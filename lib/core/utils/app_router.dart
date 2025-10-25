@@ -5,8 +5,9 @@ import '../../features/authentication/controller/auth_controller.dart';
 import '../../features/authentication/presentation/pages/splash_page.dart';
 import '../../features/authentication/presentation/pages/login_page.dart';
 import '../../features/authentication/presentation/pages/register_page.dart';
-import '../../features/authentication/presentation/pages/home_page.dart';
-import '../../features/authentication/presentation/pages/compte_page.dart';
+import '../../features/authentication/presentation/pages/forgot_password_page.dart';
+import '../pages/home_page.dart';
+import '../../features/compte/presentation/pages/compte_page.dart';
 import '../../features/cotisations/presentation/pages/cotisations_page.dart';
 import '../../features/projets/presentation/pages/projets_page.dart';
 import '../widgets/main_layout.dart';
@@ -28,14 +29,15 @@ class AppRouter {
 
         final isGoingToLogin = state.matchedLocation == '/login';
         final isGoingToRegister = state.matchedLocation == '/register';
+        final isGoingToForgotPassword = state.matchedLocation == '/forgot-password';
 
-        // Si pas authentifié et pas sur login/register, rediriger vers login
-        if (!isAuthenticated && !isGoingToLogin && !isGoingToRegister) {
+        // Si pas authentifié et pas sur login/register/forgot-password, rediriger vers login
+        if (!isAuthenticated && !isGoingToLogin && !isGoingToRegister && !isGoingToForgotPassword) {
           return '/login';
         }
 
-        // Si authentifié et sur login/register, rediriger vers home
-        if (isAuthenticated && (isGoingToLogin || isGoingToRegister)) {
+        // Si authentifié et sur login/register/forgot-password, rediriger vers home
+        if (isAuthenticated && (isGoingToLogin || isGoingToRegister || isGoingToForgotPassword)) {
           return '/home';
         }
 
@@ -52,6 +54,11 @@ class AppRouter {
           path: '/register',
           name: 'register',
           builder: (context, state) => const RegisterPage(),
+        ),
+        GoRoute(
+          path: '/forgot-password',
+          name: 'forgot-password',
+          builder: (context, state) => const ForgotPasswordPage(),
         ),
         ShellRoute(
           builder: (context, state, child) => MainLayout(

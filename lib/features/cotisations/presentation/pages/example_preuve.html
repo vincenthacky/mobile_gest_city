@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Preuve de paiement</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#ff8c00", // Orange color for the accent
+            "background-light": "#ffffff",
+            "background-dark": "#121212",
+          },
+          fontFamily: {
+            display: ["Poppins", "sans-serif"],
+          },
+          borderRadius: {
+            DEFAULT: "0.5rem", // 8px
+          },
+        },
+      },
+    };
+  </script>
+<style>::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 2px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+    body {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<div class="max-w-md mx-auto min-h-screen flex flex-col p-4 bg-background-light dark:bg-background-dark text-gray-900 dark:text-gray-100">
+<header class="flex items-center justify-between py-2">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-gray-800 dark:text-gray-200">close</span>
+</div>
+<div class="flex items-center text-sm space-x-1.5">
+<span>10:00</span>
+<span class="material-symbols-outlined text-base">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-base">wifi</span>
+<span class="material-symbols-outlined text-base">battery_full</span>
+</div>
+</header>
+<main class="flex-grow pt-6 space-y-6">
+<div class="space-y-4">
+<div>
+<label class="text-sm font-medium text-gray-700 dark:text-gray-300" for="payment-method">De</label>
+<div class="relative mt-1">
+<select class="w-full pl-12 pr-10 py-3 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-primary focus:border-primary rounded-lg bg-background-light dark:bg-gray-800 text-gray-900 dark:text-white" id="payment-method">
+<option>Orange Money</option>
+<option>MTN Mobile Money</option>
+<option>Wave</option>
+</select>
+<div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+<div class="w-6 h-6 rounded-md bg-black flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-lg font-bold">arrow_right_alt</span>
+</div>
+</div>
+</div>
+</div>
+<div>
+<label class="text-sm font-medium text-gray-700 dark:text-gray-300" for="phone-number">Numéro de téléphone</label>
+<input class="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-primary focus:border-primary bg-background-light dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 py-3" id="phone-number" placeholder="placeholder" type="tel"/>
+</div>
+</div>
+<div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-6 text-center flex flex-col items-center justify-center space-y-4">
+<div class="w-10 h-10 bg-gray-900 dark:bg-gray-200 text-background-light dark:text-background-dark rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-2xl">add</span>
+</div>
+<p class="text-gray-600 dark:text-gray-400 font-medium">Télécharger les preuves de paiements</p>
+</div>
+<div>
+<h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Fichiers</h2>
+<div class="grid grid-cols-3 gap-3">
+<div class="relative">
+<img alt="Payment receipt" class="aspect-square w-full h-auto object-cover rounded-lg" src="https://lh3.googleusercontent.com/aida-public/AB6AXuATegNlN3Ac_nc0GfzVmJozI78PBkdab_nrK1xVdAgnRNo-fh4gQa4NcuvVwTi_wiljlPyIKwrsNV-YKO3Lt3lyeFOpnrYSg3MiB8VJkblLBdIVWUcV3BlwowvTQIohapaCeXAVjpfp-6k2vt4yFhH8_DVhxPUzhLSJPh14h_EzPgstyuR1RMFLeAwgozZ-9mhI8RA8mD5QivGyBH0zmUWkzQpYzMZ5817KhKyqtC5huZFw9jauv6AAt-fgx3AYlxMt1Ux_MDtD39I"/>
+<button class="absolute top-1.5 right-1.5 bg-white bg-opacity-80 dark:bg-black dark:bg-opacity-70 rounded-md p-1.5 text-gray-800 dark:text-gray-200">
+<span class="material-symbols-outlined text-base">delete</span>
+</button>
+</div>
+<div class="relative">
+<img alt="Payment receipt" class="aspect-square w-full h-auto object-cover rounded-lg" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzinLYYZNRoh5qWhXn7N2xgA_Q5JGShSCH5RzsiYRekhT3U1e3SWcHDa6B26pdZNjqRtbgMtvxH7M7h31fae_RgpKBGzpXXjZFHQ64BubousJSblh7HSq--OTBwJr50PbAQKZGgrdeiXalP5dPsFkfAihjP6xOeX1c3DThlw1AQNf90BIrEYo5-sQ1jNvF1_7M1NLwJM9b7BwxiHfkkAuaTi-XLApzqUJLuJu6PvlrufjSitzTJ47HZfQcDOIWjbZoZ1lgWNHtLnE"/>
+</div>
+<div class="relative">
+<img alt="Payment receipt" class="aspect-square w-full h-auto object-cover rounded-lg" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6iVf24yBTc7tQKDD8gbyCDswjG-2kfchf0qGGwNZL3ujDDeP2QWN3Mb87AFKQH2vWVOx2k9z8_3Pke2s2bqU7UGAFEw6-btApDN_g-6WoW0gbt7j0VXVDfXP65orRVyaB4PUhEiOfiWZt9ALc6js5DbkUMVw0C9VH1pkQqtNl0XHdCtSbtUzpp1UIvMyNcBpd_Xx80Dow_S2X9cjzHojbRGTIY2GqALz9Od-1F_PgH-pWsU3cKzwks2eCMIIjmQZ7563DUg55BrI"/>
+</div>
+</div>
+</div>
+</main>
+<footer class="py-4">
+<button class="w-full bg-gray-900 dark:bg-gray-100 text-white dark:text-black font-semibold py-4 rounded-full text-lg shadow-lg hover:opacity-90 transition-opacity">
+        Envoyez
+      </button>
+</footer>
+</div>
+
+</body></html>

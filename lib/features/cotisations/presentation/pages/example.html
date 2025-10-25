@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Gestion des Cotisations</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2196F3",
+                        "background-light": "#F5F5F5",
+                        "background-dark": "#101c22",
+                        "status-green": "#4CAF50",
+                        "status-orange": "#FFC107",
+                        "status-red": "#F44336",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings:
+            'FILL' 0,
+            'wght' 400,
+            'GRAD' 0,
+            'opsz' 24
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden">
+<div class="flex items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between sticky top-0 z-10">
+<h1 class="text-slate-900 dark:text-slate-50 text-xl font-bold leading-tight tracking-[-0.015em] flex-1">Gestion des cotisations</h1>
+<button class="text-slate-900 dark:text-slate-50 flex size-10 shrink-0 items-center justify-center rounded-full">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</div>
+<div class="px-4 py-3">
+<label class="flex flex-col min-w-40 h-12 w-full">
+<div class="flex w-full flex-1 items-stretch rounded-lg h-full">
+<div class="text-slate-500 dark:text-slate-400 flex border-none bg-white dark:bg-slate-800 items-center justify-center pl-4 rounded-l-lg border-r-0">
+<span class="material-symbols-outlined">search</span>
+</div>
+<input class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg text-slate-900 dark:text-slate-50 focus:outline-0 focus:ring-0 border-none bg-white dark:bg-slate-800 focus:border-none h-full placeholder:text-slate-500 dark:placeholder:text-slate-400 px-4 rounded-l-none border-l-0 pl-2 text-base font-normal leading-normal" placeholder="Rechercher une cotisation" value=""/>
+</div>
+</label>
+</div>
+<div class="flex gap-3 p-3 overflow-x-auto">
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-primary pl-4 pr-4">
+<p class="text-white text-sm font-medium leading-normal">Toutes</p>
+</button>
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-white dark:bg-slate-800 pl-4 pr-4">
+<p class="text-slate-900 dark:text-slate-50 text-sm font-medium leading-normal">En cours</p>
+</button>
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-white dark:bg-slate-800 pl-4 pr-4">
+<p class="text-slate-900 dark:text-slate-50 text-sm font-medium leading-normal">Terminées</p>
+</button>
+<button class="flex h-10 shrink-0 items-center justify-center gap-x-2 rounded-full bg-white dark:bg-slate-800 pl-4 pr-4">
+<p class="text-slate-900 dark:text-slate-50 text-sm font-medium leading-normal">En retard</p>
+</button>
+</div>
+<div class="flex flex-col gap-4 p-4">
+<div class="flex flex-col gap-4 bg-white dark:bg-slate-800 p-4 rounded-lg">
+<div class="flex items-start gap-4">
+<div class="text-slate-900 dark:text-slate-50 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-700 shrink-0 size-12">
+<span class="material-symbols-outlined text-status-orange">hourglass_top</span>
+</div>
+<div class="flex flex-1 flex-col justify-center">
+<p class="text-slate-900 dark:text-slate-50 text-base font-bold leading-normal">Cotisation mensuelle - Avril 2024</p>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal">Montant: 50€</p>
+</div>
+</div>
+<div>
+<div class="flex items-center justify-between mb-1">
+<p class="text-slate-500 dark:text-slate-400 text-sm font-normal">Progression</p>
+<p class="text-slate-900 dark:text-slate-50 text-sm font-medium">85%</p>
+</div>
+<div class="w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700 h-2">
+<div class="h-full rounded-full bg-status-orange" style="width: 85%;"></div>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-xs font-normal mt-1">En cours</p>
+</div>
+</div>
+<div class="flex flex-col gap-4 bg-white dark:bg-slate-800 p-4 rounded-lg">
+<div class="flex items-start gap-4">
+<div class="text-slate-900 dark:text-slate-50 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-700 shrink-0 size-12">
+<span class="material-symbols-outlined text-status-green">check_circle</span>
+</div>
+<div class="flex flex-1 flex-col justify-center">
+<p class="text-slate-900 dark:text-slate-50 text-base font-bold leading-normal">Cotisation trimestrielle - Q1 2024</p>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal">Montant: 150€</p>
+</div>
+</div>
+<div>
+<div class="flex items-center justify-between mb-1">
+<p class="text-slate-500 dark:text-slate-400 text-sm font-normal">Progression</p>
+<p class="text-slate-900 dark:text-slate-50 text-sm font-medium">100%</p>
+</div>
+<div class="w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700 h-2">
+<div class="h-full rounded-full bg-status-green" style="width: 100%;"></div>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-xs font-normal mt-1">Terminée</p>
+</div>
+</div>
+<div class="flex flex-col gap-4 bg-white dark:bg-slate-800 p-4 rounded-lg">
+<div class="flex items-start gap-4">
+<div class="text-slate-900 dark:text-slate-50 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-700 shrink-0 size-12">
+<span class="material-symbols-outlined text-status-red">error</span>
+</div>
+<div class="flex flex-1 flex-col justify-center">
+<p class="text-slate-900 dark:text-slate-50 text-base font-bold leading-normal">Frais de maintenance - Mars 2024</p>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal">Montant: 25€</p>
+</div>
+</div>
+<div>
+<div class="flex items-center justify-between mb-1">
+<p class="text-slate-500 dark:text-slate-400 text-sm font-normal">Progression</p>
+<p class="text-slate-900 dark:text-slate-50 text-sm font-medium">40%</p>
+</div>
+<div class="w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700 h-2">
+<div class="h-full rounded-full bg-status-red" style="width: 40%;"></div>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-xs font-normal mt-1">En retard</p>
+</div>
+</div>
+</div>
+<div class="fixed bottom-6 right-6">
+<button class="flex items-center justify-center w-14 h-14 rounded-full bg-primary text-white shadow-lg">
+<span class="material-symbols-outlined text-3xl">add</span>
+</button>
+</div>
+<div class="h-20"></div>
+</div>
+</body></html>

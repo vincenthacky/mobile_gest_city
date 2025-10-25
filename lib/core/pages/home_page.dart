@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-import '../../controller/auth_controller.dart';
+import '../../features/authentication/controller/auth_controller.dart';
+import '../../features/cotisations/presentation/pages/preuve_paiement_page.dart';
+import '../../features/cotisations/presentation/pages/qr_paiement_page.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
@@ -264,27 +272,6 @@ class HomePage extends StatelessWidget {
                         ),
                         const SizedBox(height: 32),
                         
-                        // Section derniers paiements
-                        const Text(
-                          'Derniers paiements',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1F2937),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Column(
-                          children: [
-                            _buildPaymentItem('Koffi Martial', '22/10/2025'),
-                            const SizedBox(height: 12),
-                            _buildPaymentItem('Asso Vincent', '19/10/2025'),
-                            const SizedBox(height: 12),
-                            _buildPaymentItem('Saoure Kouamé', '16/10/2025'),
-                          ],
-                        ),
-                        const SizedBox(height: 32),
-                        
                         // Section Cotisations
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -298,7 +285,9 @@ class HomePage extends StatelessWidget {
                               ),
                             ),
                             TextButton(
-                              onPressed: () {},
+                              onPressed: () {
+                                context.go('/cotisations');
+                              },
                               child: const Text(
                                 'Voir plus',
                                 style: TextStyle(
@@ -318,6 +307,8 @@ class HomePage extends StatelessWidget {
                               'Cotisation',
                               Icons.school,
                               const Color(0xFF3B82F6),
+                              2000,
+                              1,
                             ),
                             const SizedBox(height: 12),
                             _buildCotisationItem(
@@ -325,6 +316,8 @@ class HomePage extends StatelessWidget {
                               'Cotisation',
                               Icons.celebration,
                               const Color(0xFF8B5CF6),
+                              1500,
+                              2,
                             ),
                             const SizedBox(height: 12),
                             _buildCotisationItem(
@@ -332,6 +325,8 @@ class HomePage extends StatelessWidget {
                               'Cotisation',
                               Icons.group,
                               const Color(0xFFEC4899),
+                              5000,
+                              3,
                             ),
                           ],
                         ),
@@ -347,58 +342,8 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildPaymentItem(String name, String date) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFDCFCE7),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Icon(
-              Icons.arrow_upward,
-              color: Color(0xFF16A34A),
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              name,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF374151),
-              ),
-            ),
-          ),
-          Text(
-            date,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Color(0xFF6B7280),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildCotisationItem(String title, String subtitle, IconData icon, Color iconColor) {
+  Widget _buildCotisationItem(String title, String subtitle, IconData icon, Color iconColor, int montant, int cotisationId) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -451,7 +396,14 @@ class HomePage extends StatelessWidget {
             ),
           ),
           ElevatedButton(
-            onPressed: () {},
+            onPressed: () {
+              _showPaymentMethodModal(context, {
+                'title': title,
+                'montantPersonnel': montant,
+                'id': cotisationId,
+                'color': iconColor,
+              });
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1F2937),
               foregroundColor: Colors.white,
@@ -469,6 +421,217 @@ class HomePage extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showPaymentMethodModal(BuildContext context, Map<String, dynamic> cotisation) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE5E7EB),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            // Titre
+            const Text(
+              'Comment voulez-vous payer ?',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1F2937),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              cotisation['title'],
+              style: const TextStyle(
+                fontSize: 16,
+                color: Color(0xFF6B7280),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Montant : ${cotisation['montantPersonnel']} FCFA',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: cotisation['color'] as Color,
+              ),
+            ),
+            const SizedBox(height: 32),
+            
+            // Options
+            Column(
+              children: [
+                // Option QR Code
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => QrPaiementPage(
+                            cotisationTitle: cotisation['title'],
+                            montant: cotisation['montantPersonnel'],
+                            cotisationId: cotisation['id'].toString(),
+                          ),
+                        ),
+                      );
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF4F46E5),
+                      side: const BorderSide(color: Color(0xFF4F46E5), width: 2),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.all(16),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.qr_code,
+                            color: Color(0xFF4F46E5),
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Afficher code QR',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1F2937),
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'L\'admin scannera votre code',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF6B7280),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          color: Color(0xFF4F46E5),
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                // Option Preuve de paiement
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PreuvePaiementPage(
+                            cotisationTitle: cotisation['title'],
+                            montant: cotisation['montantPersonnel'],
+                          ),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1F2937),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.all(16),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.receipt_long,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Prouver un paiement',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Télécharger un reçu de paiement',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }

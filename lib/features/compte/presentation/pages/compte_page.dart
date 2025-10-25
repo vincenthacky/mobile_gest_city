@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../controller/auth_controller.dart';
+import '../../../authentication/controller/auth_controller.dart';
 
 class ComptePage extends StatelessWidget {
   const ComptePage({super.key});
@@ -14,11 +14,14 @@ class ComptePage extends StatelessWidget {
         return Scaffold(
           backgroundColor: const Color(0xFFF8FAFC),
           body: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 96),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(16, 24, 16, 96),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                   // Header
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -202,8 +205,11 @@ class ComptePage extends StatelessWidget {
                       ],
                     ),
                   ),
-                ],
-              ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         );

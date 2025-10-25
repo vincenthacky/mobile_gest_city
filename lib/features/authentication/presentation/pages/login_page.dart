@@ -237,7 +237,9 @@ class _LoginPageState extends State<LoginPage> {
                                     ],
                                   ),
                                   TextButton(
-                                    onPressed: () {},
+                                    onPressed: () {
+                                      context.go('/forgot-password');
+                                    },
                                     child: const Text(
                                       'Oublié mot de passe ?',
                                       style: TextStyle(

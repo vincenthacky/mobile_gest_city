@@ -49,6 +49,18 @@ dependencies:
   
   # State management
   provider: ^6.1.1
+  
+  # Image picker
+  image_picker: ^1.0.7
+  
+  # Camera
+  camera: ^0.10.5+9
+  
+  # Permissions
+  permission_handler: ^11.2.0
+  
+  # Device info
+  device_info_plus: ^10.1.0
 
 dev_dependencies:
   flutter_test:

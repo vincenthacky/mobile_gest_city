@@ -45,5 +45,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Cette application a besoin d'accéder à l'appareil photo pour prendre des photos de preuve de paiement.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Cette application a besoin d'accéder à la galerie photo pour sélectionner des images de preuve de paiement.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Cette application a besoin d'accéder à la galerie photo pour sauvegarder des images de preuve de paiement.</string>
 </dict>
 </plist>
