@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../controller/register_controller.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -14,8 +16,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final _emailController = TextEditingController();
   final _telephoneController = TextEditingController();
   final _motDePasseController = TextEditingController();
+  final _villaIdController = TextEditingController();
   bool _obscurePassword = true;
-  bool _rememberMe = false;
 
   @override
   void dispose() {
@@ -23,12 +25,15 @@ class _RegisterPageState extends State<RegisterPage> {
     _emailController.dispose();
     _telephoneController.dispose();
     _motDePasseController.dispose();
+    _villaIdController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Consumer<RegisterController>(
+      builder: (context, registerController, child) {
+        return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
@@ -310,32 +315,59 @@ class _RegisterPageState extends State<RegisterPage> {
                             ],
                           ),
                           const SizedBox(height: 24),
-                          // Se souvenir de moi
-                          Row(
+                          // Villa ID
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              SizedBox(
-                                height: 16,
-                                width: 16,
-                                child: Checkbox(
-                                  value: _rememberMe,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _rememberMe = value ?? false;
-                                    });
-                                  },
-                                  activeColor: const Color(0xFF6366F1),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
                               const Text(
-                                'Se souvenir de moi',
+                                'ID de la villa',
                                 style: TextStyle(
                                   fontSize: 14,
+                                  fontWeight: FontWeight.w500,
                                   color: Color(0xFF374151),
                                 ),
+                              ),
+                              const SizedBox(height: 8),
+                              TextFormField(
+                                controller: _villaIdController,
+                                decoration: InputDecoration(
+                                  hintText: '1',
+                                  filled: true,
+                                  fillColor: Colors.white,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: Color(0xFFD1D5DB),
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: Color(0xFFD1D5DB),
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: Color(0xFF6366F1),
+                                      width: 2,
+                                    ),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                ),
+                                keyboardType: TextInputType.number,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Veuillez entrer l\'ID de votre villa';
+                                  }
+                                  if (int.tryParse(value) == null) {
+                                    return 'Veuillez entrer un ID valide';
+                                  }
+                                  return null;
+                                },
                               ),
                             ],
                           ),
@@ -345,22 +377,33 @@ class _RegisterPageState extends State<RegisterPage> {
                             width: double.infinity,
                             height: 56,
                             child: ElevatedButton(
-                              onPressed: _register,
+                              onPressed: registerController.isLoading ? null : () => _register(registerController),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF6366F1),
                                 foregroundColor: Colors.white,
+                                disabledBackgroundColor: const Color(0xFFE5E7EB),
+                                disabledForegroundColor: const Color(0xFF9CA3AF),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 elevation: 0,
                               ),
-                              child: const Text(
-                                'Inscription',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                              child: registerController.isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  )
+                                : const Text(
+                                    'Inscription',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                             ),
                           ),
                         ],
@@ -403,16 +446,42 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
       ),
     );
+      }
+    );
   }
 
-  void _register() {
+  Future<void> _register(RegisterController registerController) async {
     if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Fonctionnalité d\'inscription en cours de développement'),
-          backgroundColor: Color(0xFF6366F1),
-        ),
+      final success = await registerController.register(
+        fullName: _nomCompletController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _motDePasseController.text.trim(),
+        phone: _telephoneController.text.trim(),
+        villaId: _villaIdController.text.trim(),
       );
+
+      if (!mounted) return;
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(registerController.successMessage ?? 'Inscription réussie !'),
+            backgroundColor: const Color(0xFF10B981),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        
+        // Rediriger vers la page de connexion
+        context.go('/login');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(registerController.errorMessage ?? 'Erreur lors de l\'inscription'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     }
   }
 }
