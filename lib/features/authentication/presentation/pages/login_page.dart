@@ -12,15 +12,15 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _identifiantController = TextEditingController();
-  final _motDePasseController = TextEditingController();
+  final _phoneOrEmailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _rememberMe = false;
 
   @override
   void dispose() {
-    _identifiantController.dispose();
-    _motDePasseController.dispose();
+    _phoneOrEmailController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -86,7 +86,7 @@ class _LoginPageState extends State<LoginPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   const Text(
-                                    'Numéro de téléphone ou Email',
+                                    'Téléphone ou Email',
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
@@ -95,9 +95,9 @@ class _LoginPageState extends State<LoginPage> {
                                   ),
                                   const SizedBox(height: 8),
                                   TextFormField(
-                                    controller: _identifiantController,
+                                    controller: _phoneOrEmailController,
                                     decoration: InputDecoration(
-                                      hintText: 'exemple@email.com',
+                                      hintText: 'exemple@email.com ou +33123456789',
                                       prefixIcon: const Icon(
                                         Icons.alternate_email,
                                         color: Color(0xFF9CA3AF),
@@ -129,7 +129,7 @@ class _LoginPageState extends State<LoginPage> {
                                     keyboardType: TextInputType.emailAddress,
                                     validator: (value) {
                                       if (value == null || value.isEmpty) {
-                                        return 'Veuillez entrer votre identifiant';
+                                        return 'Veuillez entrer votre téléphone ou email';
                                       }
                                       return null;
                                     },
@@ -150,7 +150,7 @@ class _LoginPageState extends State<LoginPage> {
                                   ),
                                   const SizedBox(height: 8),
                                   TextFormField(
-                                    controller: _motDePasseController,
+                                    controller: _passwordController,
                                     obscureText: _obscurePassword,
                                     decoration: InputDecoration(
                                       hintText: 'Entrez votre mot de passe',
@@ -356,8 +356,8 @@ class _LoginPageState extends State<LoginPage> {
       authController.clearError();
       
       final success = await authController.login(
-        _identifiantController.text.trim(),
-        _motDePasseController.text,
+        _phoneOrEmailController.text.trim(),
+        _passwordController.text,
       );
 
       if (success && mounted) {

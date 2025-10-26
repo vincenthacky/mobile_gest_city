@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../controller/cotisations_controller.dart';
+import '../../../../core/models/contribution_model.dart';
 import 'preuve_paiement_page.dart';
 import 'qr_paiement_page.dart';
 
@@ -11,140 +14,54 @@ class CotisationsPage extends StatefulWidget {
 
 class _CotisationsPageState extends State<CotisationsPage> {
   final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
-  String _selectedFilter = 'Toutes';
+  final ScrollController _scrollController = ScrollController();
 
-  // Données d'exemple des cotisations
-  final List<Map<String, dynamic>> _cotisations = [
-    {
-      'id': 1,
-      'title': 'Nouvelle école',
-      'dateDebut': '2 Fév 2025',
-      'dateFin': '31 Déc 2025',
-      'montantTotal': 50000,
-      'montantPaye': 30000,
-      'montantPersonnel': 2000,
-      'hasUserPaid': false,
-      'personnesPaye': 15,
-      'totalPersonnes': 25,
-      'icon': Icons.school,
-      'color': const Color(0xFF3B82F6),
-    },
-    {
-      'id': 2,
-      'title': 'Festival annuel',
-      'dateDebut': '15 Jan 2025',
-      'dateFin': '20 Fév 2025',
-      'montantTotal': 30000,
-      'montantPaye': 18000,
-      'montantPersonnel': 1500,
-      'hasUserPaid': true,
-      'personnesPaye': 12,
-      'totalPersonnes': 20,
-      'icon': Icons.celebration,
-      'color': const Color(0xFF8B5CF6),
-    },
-    {
-      'id': 3,
-      'title': 'Obsèque Famille Allain',
-      'dateDebut': '28 Jan 2025',
-      'dateFin': '15 Fév 2025',
-      'montantTotal': 100000,
-      'montantPaye': 85000,
-      'montantPersonnel': 5000,
-      'hasUserPaid': false,
-      'personnesPaye': 17,
-      'totalPersonnes': 20,
-      'icon': Icons.group,
-      'color': const Color(0xFFEC4899),
-    },
-    {
-      'id': 4,
-      'title': 'Rénovation mosquée',
-      'dateDebut': '10 Jan 2025',
-      'dateFin': '30 Juin 2025',
-      'montantTotal': 150000,
-      'montantPaye': 45000,
-      'montantPersonnel': 3000,
-      'hasUserPaid': true,
-      'personnesPaye': 15,
-      'totalPersonnes': 50,
-      'icon': Icons.mosque,
-      'color': const Color(0xFF10B981),
-    },
-    {
-      'id': 5,
-      'title': 'Puits d\'eau potable',
-      'dateDebut': '5 Fév 2025',
-      'dateFin': '30 Avr 2025',
-      'montantTotal': 80000,
-      'montantPaye': 20000,
-      'montantPersonnel': 2500,
-      'hasUserPaid': false,
-      'personnesPaye': 8,
-      'totalPersonnes': 32,
-      'icon': Icons.water_drop,
-      'color': const Color(0xFF06B6D4),
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final controller = context.read<CotisationsController>();
+      if (controller.status == CotisationsStatus.initial) {
+        controller.loadContributions(refresh: true);
+      }
+    });
+    
+    _scrollController.addListener(_onScroll);
+  }
 
-  List<Map<String, dynamic>> get filteredCotisations {
-    List<Map<String, dynamic>> filtered = _cotisations;
-    
-    // Filtrer par recherche
-    if (_searchQuery.isNotEmpty) {
-      filtered = filtered.where((cotisation) {
-        return cotisation['title'].toLowerCase().contains(_searchQuery.toLowerCase());
-      }).toList();
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      final controller = context.read<CotisationsController>();
+      if (controller.hasMoreData && !controller.isLoadingMore) {
+        controller.loadMoreContributions();
+      }
     }
-    
-    // Filtrer par statut
-    switch (_selectedFilter) {
-      case 'En cours':
-        filtered = filtered.where((cotisation) {
-          final isComplete = cotisation['montantPaye'] >= cotisation['montantTotal'];
-          return !isComplete;
-        }).toList();
-        break;
-      case 'Terminées':
-        filtered = filtered.where((cotisation) {
-          return cotisation['montantPaye'] >= cotisation['montantTotal'];
-        }).toList();
-        break;
-      case 'J\'ai payé':
-        filtered = filtered.where((cotisation) {
-          return cotisation['hasUserPaid'] == true;
-        }).toList();
-        break;
-      case 'J\'ai pas payé':
-        filtered = filtered.where((cotisation) {
-          return cotisation['hasUserPaid'] == false;
-        }).toList();
-        break;
-      default: // Toutes
-        break;
-    }
-    
-    return filtered;
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 24, 16, 96),
-                child: Column(
+    return Consumer<CotisationsController>(
+      builder: (context, controller, child) {
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8FAFC),
+          body: SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () => controller.loadContributions(refresh: true),
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(16, 24, 16, 96),
+                      child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Header
@@ -174,9 +91,7 @@ class _CotisationsPageState extends State<CotisationsPage> {
                       child: TextField(
                         controller: _searchController,
                         onChanged: (value) {
-                          setState(() {
-                            _searchQuery = value;
-                          });
+                          controller.updateSearchQuery(value);
                         },
                         decoration: InputDecoration(
                           hintText: 'Rechercher une cotisation',
@@ -205,37 +120,120 @@ class _CotisationsPageState extends State<CotisationsPage> {
                       child: ListView(
                         scrollDirection: Axis.horizontal,
                         children: [
-                          _buildFilterChip('Toutes'),
+                          _buildFilterChip('Toutes', CotisationFilter.all, controller),
                           const SizedBox(width: 8),
-                          _buildFilterChip('En cours'),
+                          _buildFilterChip('En cours', CotisationFilter.ongoing, controller),
                           const SizedBox(width: 8),
-                          _buildFilterChip('Terminées'),
+                          _buildFilterChip('Terminées', CotisationFilter.finished, controller),
                           const SizedBox(width: 8),
-                          _buildFilterChip('J\'ai payé'),
+                          _buildFilterChip('J\'ai payé', CotisationFilter.paid, controller),
                           const SizedBox(width: 8),
-                          _buildFilterChip('J\'ai pas payé'),
+                          _buildFilterChip('J\'ai pas payé', CotisationFilter.notPaid, controller),
                         ],
                       ),
                     ),
                     const SizedBox(height: 24),
                     
                     // Liste des cotisations
-                    ...filteredCotisations.map((cotisation) => Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _buildCotisationCard(cotisation),
-                    )),
-                  ],
+                    if (controller.isLoading && controller.contributions.isEmpty)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(32.0),
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    else if (controller.hasError && controller.contributions.isEmpty)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.red.shade200),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(Icons.error_outline, color: Colors.red.shade600, size: 48),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Erreur de chargement',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red.shade600,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              controller.errorMessage ?? 'Une erreur est survenue',
+                              style: TextStyle(color: Colors.red.shade600),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () => controller.loadContributions(refresh: true),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red.shade600,
+                                foregroundColor: Colors.white,
+                              ),
+                              child: const Text('Réessayer'),
+                            ),
+                          ],
+                        ),
+                      )
+                    else if (controller.contributions.isEmpty)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'Aucune cotisation trouvée',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      Column(
+                        children: [
+                          ...controller.contributions.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final contribution = entry.value;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: _buildCotisationCard(contribution, index, controller),
+                            );
+                          }),
+                          if (controller.isLoadingMore)
+                            const Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildCotisationCard(Map<String, dynamic> cotisation) {
-    final hasUserPaid = cotisation['hasUserPaid'] as bool;
+  Widget _buildCotisationCard(ContributionModel contribution, int index, CotisationsController controller) {
+    final icon = controller.getIconForIndex(index);
+    final color = controller.getColorForIndex(index);
+    final progressPercentage = controller.getProgressPercentage(contribution);
     
     return Container(
       padding: const EdgeInsets.all(16),
@@ -258,12 +256,12 @@ class _CotisationsPageState extends State<CotisationsPage> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: (cotisation['color'] as Color).withValues(alpha: 0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
-                  cotisation['icon'] as IconData,
-                  color: cotisation['color'] as Color,
+                  icon,
+                  color: color,
                   size: 20,
                 ),
               ),
@@ -273,7 +271,7 @@ class _CotisationsPageState extends State<CotisationsPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      cotisation['title'],
+                      contribution.name,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -284,7 +282,7 @@ class _CotisationsPageState extends State<CotisationsPage> {
                     Row(
                       children: [
                         Text(
-                          'Début : ${cotisation['dateDebut']}',
+                          'Début : ${contribution.formattedBeginDate}',
                           style: const TextStyle(
                             fontSize: 12,
                             color: Color(0xFF6B7280),
@@ -292,7 +290,7 @@ class _CotisationsPageState extends State<CotisationsPage> {
                         ),
                         const SizedBox(width: 16),
                         Text(
-                          'Fin : ${cotisation['dateFin']}',
+                          'Fin : ${contribution.formattedEndDate}',
                           style: const TextStyle(
                             fontSize: 12,
                             color: Color(0xFF6B7280),
@@ -323,7 +321,7 @@ class _CotisationsPageState extends State<CotisationsPage> {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '${cotisation['montantPaye']}/${cotisation['montantTotal']} F',
+                      '${contribution.amountReachedTotal}/${contribution.amount} F',
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -345,9 +343,9 @@ class _CotisationsPageState extends State<CotisationsPage> {
                       ),
                     ),
                     const SizedBox(height: 3),
-                    Text(
-                      '${cotisation['personnesPaye']}/${cotisation['totalPersonnes']} pers.',
-                      style: const TextStyle(
+                    const Text(
+                      '15/25 pers.',
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: Color(0xFF1F2937),
@@ -375,11 +373,11 @@ class _CotisationsPageState extends State<CotisationsPage> {
                     ),
                   ),
                   Text(
-                    '${((cotisation['montantPaye'] / cotisation['montantTotal']) * 100).round()}%',
+                    '${(progressPercentage * 100).round()}%',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: cotisation['color'] as Color,
+                      color: color,
                     ),
                   ),
                 ],
@@ -395,11 +393,10 @@ class _CotisationsPageState extends State<CotisationsPage> {
                 child: Row(
                   children: [
                     Container(
-                      width: (MediaQuery.of(context).size.width - 80) * 
-                             (cotisation['montantPaye'] / cotisation['montantTotal']),
+                      width: (MediaQuery.of(context).size.width - 80) * progressPercentage,
                       height: 6,
                       decoration: BoxDecoration(
-                        color: cotisation['color'] as Color,
+                        color: color,
                         borderRadius: BorderRadius.circular(3),
                       ),
                     ),
@@ -414,7 +411,7 @@ class _CotisationsPageState extends State<CotisationsPage> {
           Row(
             children: [
               Expanded(
-                child: hasUserPaid
+                child: contribution.alreadyPaid
                     ? Container(
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         decoration: BoxDecoration(
@@ -433,11 +430,10 @@ class _CotisationsPageState extends State<CotisationsPage> {
                       )
                     : ElevatedButton(
                         onPressed: () {
-                          // Afficher le modal de choix de paiement
-                          _showPaymentMethodModal(context, cotisation);
+                          _showPaymentMethodModal(context, contribution, color);
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: cotisation['color'] as Color,
+                          backgroundColor: color,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(6),
@@ -445,7 +441,7 @@ class _CotisationsPageState extends State<CotisationsPage> {
                           padding: const EdgeInsets.symmetric(vertical: 8),
                         ),
                         child: Text(
-                          'Payer ${cotisation['montantPersonnel']} FCFA',
+                          'Payer ${controller.formatAmount(contribution.amountBy)}',
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -460,13 +456,11 @@ class _CotisationsPageState extends State<CotisationsPage> {
     );
   }
 
-  Widget _buildFilterChip(String filter) {
-    final isSelected = _selectedFilter == filter;
+  Widget _buildFilterChip(String filter, CotisationFilter filterEnum, CotisationsController controller) {
+    final isSelected = controller.selectedFilter == filterEnum;
     return GestureDetector(
       onTap: () {
-        setState(() {
-          _selectedFilter = filter;
-        });
+        controller.updateFilter(filterEnum);
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -490,7 +484,7 @@ class _CotisationsPageState extends State<CotisationsPage> {
     );
   }
 
-  void _showPaymentMethodModal(BuildContext context, Map<String, dynamic> cotisation) {
+  void _showPaymentMethodModal(BuildContext context, ContributionModel contribution, Color color) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -526,7 +520,7 @@ class _CotisationsPageState extends State<CotisationsPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              cotisation['title'],
+              contribution.name,
               style: const TextStyle(
                 fontSize: 16,
                 color: Color(0xFF6B7280),
@@ -535,11 +529,11 @@ class _CotisationsPageState extends State<CotisationsPage> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Montant : ${cotisation['montantPersonnel']} FCFA',
+              'Montant : ${contribution.amountBy} FCFA',
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: cotisation['color'] as Color,
+                color: color,
               ),
             ),
             const SizedBox(height: 32),
@@ -557,9 +551,9 @@ class _CotisationsPageState extends State<CotisationsPage> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => QrPaiementPage(
-                            cotisationTitle: cotisation['title'],
-                            montant: cotisation['montantPersonnel'],
-                            cotisationId: cotisation['id'].toString(),
+                            cotisationTitle: contribution.name,
+                            montant: contribution.amountBy,
+                            cotisationId: contribution.id.toString(),
                           ),
                         ),
                       );
@@ -631,18 +625,16 @@ class _CotisationsPageState extends State<CotisationsPage> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => PreuvePaiementPage(
-                            cotisationTitle: cotisation['title'],
-                            montant: cotisation['montantPersonnel'],
+                            cotisationTitle: contribution.name,
+                            montant: contribution.amountBy,
                           ),
                         ),
                       ).then((result) {
                         // Quand l'utilisateur revient de la page de preuve
-                        if (result == true) {
-                          setState(() {
-                            cotisation['hasUserPaid'] = true;
-                            cotisation['montantPaye'] += cotisation['montantPersonnel'];
-                            cotisation['personnesPaye'] += 1;
-                          });
+                        if (result == true && mounted) {
+                          // Recharger les données pour refléter le changement
+                          final controller = context.read<CotisationsController>();
+                          controller.loadContributions(refresh: true);
                         }
                       });
                     },

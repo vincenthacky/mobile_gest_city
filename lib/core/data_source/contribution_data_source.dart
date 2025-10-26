@@ -1,33 +1,27 @@
 import 'package:dio/dio.dart';
-import '../../../core/network/dio_client.dart';
-import '../model/login_response.dart';
-import '../model/user_model.dart';
+import '../network/dio_client.dart';
+import '../models/contribution_response.dart';
 
-class AuthDataSource {
+class ContributionDataSource {
   final Dio _dio = DioClient.instance;
 
-  Future<LoginResponse> login(String phoneOrEmail, String password) async {
+  Future<ContributionResponse> getDefaultContribution() async {
     try {
-      final response = await _dio.post(
-        '/auth/login',
-        data: {
-          'phone_or_email': phoneOrEmail,
-          'password': password,
-        },
-      );
+      final response = await _dio.get('/contributions/default');
 
       if (response.statusCode == 200) {
-        return LoginResponse.fromJson(response.data);
+        return ContributionResponse.fromJson(response.data);
       } else {
         throw DioException(
           requestOptions: response.requestOptions,
           response: response,
-          message: 'Erreur de connexion',
+          message: 'Erreur lors de la récupération de la cotisation par défaut',
         );
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        final errorMessage = e.response?.data['message'] ?? 'Erreur de connexion';
+        final errorMessage = e.response?.data['message'] ?? 
+            'Erreur lors de la récupération de la cotisation par défaut';
         throw DioException(
           requestOptions: e.requestOptions,
           response: e.response,
@@ -44,30 +38,25 @@ class AuthDataSource {
     }
   }
 
-  Future<void> logout() async {
+  Future<ContributionListResponse> getContributions({int perPage = 3}) async {
     try {
-      await _dio.post('/auth/logout');
-    } catch (e) {
-      throw Exception('Erreur lors de la déconnexion: $e');
-    }
-  }
-
-  Future<UserModel> getProfile() async {
-    try {
-      final response = await _dio.get('/auth/profile');
+      final response = await _dio.get('/contributions', queryParameters: {
+        'per_page': perPage,
+      });
 
       if (response.statusCode == 200) {
-        return UserModel.fromJson(response.data['data']);
+        return ContributionListResponse.fromJson(response.data);
       } else {
         throw DioException(
           requestOptions: response.requestOptions,
           response: response,
-          message: 'Erreur lors de la récupération du profil',
+          message: 'Erreur lors de la récupération des cotisations',
         );
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        final errorMessage = e.response?.data['message'] ?? 'Erreur lors de la récupération du profil';
+        final errorMessage = e.response?.data['message'] ?? 
+            'Erreur lors de la récupération des cotisations';
         throw DioException(
           requestOptions: e.requestOptions,
           response: e.response,

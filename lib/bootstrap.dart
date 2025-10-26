@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'core/network/dio_client.dart';
 import 'core/utils/app_router.dart';
+import 'core/controller/home_controller.dart';
 import 'features/authentication/controller/auth_controller.dart';
+import 'features/cotisations/controller/cotisations_controller.dart';
 
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,6 +30,12 @@ class GestCityApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(
           create: (_) => AuthController(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => HomeController(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => CotisationsController(),
         ),
       ],
       child: MaterialApp.router(

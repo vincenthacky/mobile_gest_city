@@ -66,14 +66,19 @@ class ComptePage extends StatelessWidget {
                         CircleAvatar(
                           radius: 40,
                           backgroundColor: const Color(0xFF4F46E5).withValues(alpha: 0.1),
-                          child: Text(
-                            user?.nom.substring(0, 1).toUpperCase() ?? 'U',
-                            style: const TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF4F46E5),
-                            ),
-                          ),
+                          backgroundImage: user?.imageUrl != null 
+                              ? NetworkImage(user!.imageUrl!) 
+                              : null,
+                          child: user?.imageUrl == null
+                              ? Text(
+                                  user?.fullName.substring(0, 1).toUpperCase() ?? 'U',
+                                  style: const TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF4F46E5),
+                                  ),
+                                )
+                              : null,
                         ),
                         const SizedBox(height: 16),
                         Text(
@@ -100,7 +105,7 @@ class ComptePage extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            user?.type ?? 'Membre',
+                            user?.role ?? 'Membre',
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -140,11 +145,9 @@ class ComptePage extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        _buildInfoRow('Téléphone', user?.telephone ?? ''),
-                        _buildInfoRow('Poste', user?.poste ?? ''),
-                        _buildInfoRow('Service', user?.service ?? ''),
-                        _buildInfoRow('Date d\'inscription', _formatDate(user?.dateInscription)),
-                        _buildInfoRow('Dernière connexion', _formatDate(user?.derniereConnexion)),
+                        _buildInfoRow('Téléphone', user?.phone ?? ''),
+                        _buildInfoRow('Villa ID', user?.villaId.toString() ?? ''),
+                        _buildInfoRow('Rôle', user?.role ?? ''),
                       ],
                     ),
                   ),
@@ -284,15 +287,6 @@ class ComptePage extends StatelessWidget {
     );
   }
 
-  String _formatDate(String? dateString) {
-    if (dateString == null) return 'Non disponible';
-    try {
-      final date = DateTime.parse(dateString);
-      return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
-    } catch (e) {
-      return 'Non disponible';
-    }
-  }
 
   void _showLogoutDialog(BuildContext context, AuthController authController) {
     showDialog(

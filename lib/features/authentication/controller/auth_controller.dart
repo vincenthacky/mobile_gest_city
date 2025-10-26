@@ -47,12 +47,12 @@ class AuthController extends ChangeNotifier {
     }
   }
 
-  Future<bool> login(String identifiant, String motDePasse) async {
+  Future<bool> login(String phoneOrEmail, String password) async {
     _setStatus(AuthStatus.loading);
     _clearError();
 
     try {
-      final response = await _authDataSource.login(identifiant, motDePasse);
+      final response = await _authDataSource.login(phoneOrEmail, password);
       
       if (response.success) {
         await SecureStorage.saveToken(response.data.token);
