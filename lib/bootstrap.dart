@@ -7,6 +7,7 @@ import 'core/utils/app_router.dart';
 import 'core/controller/home_controller.dart';
 import 'features/authentication/controller/auth_controller.dart';
 import 'features/cotisations/controller/cotisations_controller.dart';
+import 'features/cotisations/controller/payment_proof_controller.dart';
 
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,6 +37,9 @@ class GestCityApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => CotisationsController(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => PaymentProofController(),
         ),
       ],
       child: MaterialApp.router(

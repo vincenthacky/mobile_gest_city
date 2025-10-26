@@ -5,6 +5,7 @@ import '../../features/authentication/controller/auth_controller.dart';
 import '../../features/cotisations/presentation/pages/preuve_paiement_page.dart';
 import '../../features/cotisations/presentation/pages/qr_paiement_page.dart';
 import '../controller/home_controller.dart';
+import '../models/contribution_model.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -243,6 +244,7 @@ class _HomePageState extends State<HomePage> {
                                   contribution.amountBy,
                                   contribution.id,
                                   context,
+                                  homeController,
                                 ),
                               );
                             }).toList(),
@@ -460,7 +462,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildCotisationItem(String title, String subtitle, IconData icon, Color iconColor, int montant, int cotisationId, BuildContext context) {
+  Widget _buildCotisationItem(String title, String subtitle, IconData icon, Color iconColor, int montant, int cotisationId, BuildContext context, HomeController homeController) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -514,12 +516,12 @@ class _HomePageState extends State<HomePage> {
           ),
           ElevatedButton(
             onPressed: () {
-              _showPaymentMethodModal(context, {
-                'title': title,
-                'montantPersonnel': montant,
-                'id': cotisationId,
-                'color': iconColor,
-              });
+              // Find the contribution from homeController.contributions
+              final contribution = homeController.contributions.firstWhere(
+                (c) => c.id == cotisationId,
+                orElse: () => homeController.defaultContribution!,
+              );
+              _showPaymentMethodModal(context, contribution);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1F2937),
@@ -542,7 +544,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _showPaymentMethodModal(BuildContext context, Map<String, dynamic> cotisation) {
+  void _showPaymentMethodModal(BuildContext context, ContributionModel contribution) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -578,7 +580,7 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 8),
             Text(
-              cotisation['title'],
+              contribution.name,
               style: const TextStyle(
                 fontSize: 16,
                 color: Color(0xFF6B7280),
@@ -587,11 +589,11 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Montant : ${cotisation['montantPersonnel']} FCFA',
-              style: TextStyle(
+              'Montant : ${contribution.amountBy} FCFA',
+              style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: cotisation['color'] as Color,
+                color: Color(0xFF4F46E5),
               ),
             ),
             const SizedBox(height: 32),
@@ -609,9 +611,9 @@ class _HomePageState extends State<HomePage> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => QrPaiementPage(
-                            cotisationTitle: cotisation['title'],
-                            montant: cotisation['montantPersonnel'],
-                            cotisationId: cotisation['id'].toString(),
+                            cotisationTitle: contribution.name,
+                            montant: contribution.amountBy,
+                            cotisationId: contribution.id.toString(),
                           ),
                         ),
                       );
@@ -683,8 +685,9 @@ class _HomePageState extends State<HomePage> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => PreuvePaiementPage(
-                            cotisationTitle: cotisation['title'],
-                            montant: cotisation['montantPersonnel'],
+                            cotisationTitle: contribution.name,
+                            montant: contribution.amountBy,
+                            cotisationId: contribution.id,
                           ),
                         ),
                       );

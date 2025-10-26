@@ -3,16 +3,21 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:provider/provider.dart';
 import 'dart:io';
+import '../../controller/payment_proof_controller.dart';
+import '../../models/payment_proof_models.dart';
 
 class PreuvePaiementPage extends StatefulWidget {
   final String cotisationTitle;
   final int montant;
+  final int cotisationId;
 
   const PreuvePaiementPage({
     super.key,
     required this.cotisationTitle,
     required this.montant,
+    required this.cotisationId,
   });
 
   @override
@@ -41,7 +46,9 @@ class _PreuvePaiementPageState extends State<PreuvePaiementPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Consumer<PaymentProofController>(
+      builder: (context, paymentProofController, child) {
+        return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
@@ -363,7 +370,7 @@ class _PreuvePaiementPageState extends State<PreuvePaiementPage> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: _selectedImages.isNotEmpty ? _submitProof : null,
+                  onPressed: (_selectedImages.isNotEmpty && !paymentProofController.isLoading) ? _submitProof : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1F2937),
                     foregroundColor: Colors.white,
@@ -374,19 +381,30 @@ class _PreuvePaiementPageState extends State<PreuvePaiementPage> {
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    'Envoyer',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  child: paymentProofController.isLoading 
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Text(
+                        'Envoyer',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                 ),
               ),
             ),
           ],
         ),
       ),
+    );
+      }
     );
   }
 
@@ -521,18 +539,48 @@ class _PreuvePaiementPageState extends State<PreuvePaiementPage> {
     );
   }
 
-  void _submitProof() {
-    if (_formKey.currentState!.validate()) {
-      // Logique d'envoi des preuves
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Preuve de paiement envoyée avec succès !'),
-          backgroundColor: Color(0xFF10B981),
-        ),
+  Future<void> _submitProof() async {
+    if (_formKey.currentState!.validate() && _selectedImages.isNotEmpty) {
+      final paymentProofController = Provider.of<PaymentProofController>(context, listen: false);
+      
+      // Convertir le nom du moyen de paiement en enum
+      final provider = PaymentProviderExtension.fromDisplayName(_selectedPaymentMethod);
+      
+      // Créer la requête avec le premier fichier sélectionné
+      final request = PaymentProofRequest(
+        phone: _phoneController.text.trim(),
+        provider: provider,
+        filePath: _selectedImages.first.path,
       );
       
-      // Retourner à la page précédente avec succès
-      Navigator.pop(context, true);
+      // Soumettre la preuve de paiement
+      final success = await paymentProofController.submitPaymentProof(
+        contributionId: widget.cotisationId,
+        request: request,
+      );
+      
+      if (!mounted) return;
+      
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(paymentProofController.successMessage ?? 'Preuve de paiement envoyée avec succès !'),
+            backgroundColor: const Color(0xFF10B981),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        
+        // Retourner à la page précédente avec succès
+        Navigator.pop(context, true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(paymentProofController.errorMessage ?? 'Erreur lors de l\'envoi de la preuve de paiement'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     }
   }
 }

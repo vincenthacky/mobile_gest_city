@@ -61,6 +61,9 @@ dependencies:
   
   # Device info
   device_info_plus: ^10.1.0
+  
+  # QR Code generation
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:

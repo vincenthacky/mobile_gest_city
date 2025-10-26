@@ -627,6 +627,7 @@ class _CotisationsPageState extends State<CotisationsPage> {
                           builder: (context) => PreuvePaiementPage(
                             cotisationTitle: contribution.name,
                             montant: contribution.amountBy,
+                            cotisationId: contribution.id,
                           ),
                         ),
                       ).then((result) {
