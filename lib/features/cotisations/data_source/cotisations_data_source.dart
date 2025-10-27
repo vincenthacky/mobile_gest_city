@@ -10,7 +10,7 @@ class CotisationsDataSource {
     int page = 1,
     String? search,
     String? status, // finished, pending
-    bool? alreadyPaid,
+    String? alreadyPaid, // paid, not_paid, pending
   }) async {
     try {
       final queryParameters = <String, dynamic>{
@@ -26,7 +26,7 @@ class CotisationsDataSource {
         queryParameters['status'] = status;
       }
 
-      if (alreadyPaid != null) {
+      if (alreadyPaid != null && alreadyPaid.isNotEmpty) {
         queryParameters['already_paid'] = alreadyPaid;
       }
 

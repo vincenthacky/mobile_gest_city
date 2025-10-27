@@ -10,7 +10,7 @@ class ContributionModel {
   final bool isDefault;
   final int amountReachedByPeriodicity;
   final int amountReachedTotal;
-  final bool alreadyPaid;
+  final String alreadyPaid;
   final String? createdAt;
 
   ContributionModel({
@@ -42,7 +42,7 @@ class ContributionModel {
       isDefault: json['is_default'],
       amountReachedByPeriodicity: json['amount_reached_by_periodicity'],
       amountReachedTotal: json['amount_reached_total'],
-      alreadyPaid: json['already_paid'],
+      alreadyPaid: json['already_paid'] ?? 'not_paid',
       createdAt: json['created_at'],
     );
   }
@@ -102,5 +102,24 @@ class ContributionModel {
       'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'
     ];
     return months[month];
+  }
+
+  // Propriétés utiles pour gérer les états de paiement
+  bool get isPaid => alreadyPaid == 'paid';
+  bool get isPending => alreadyPaid == 'pending';
+  bool get isNotPaid => alreadyPaid == 'not_paid';
+  bool get canPay => alreadyPaid == 'not_paid';
+
+  String get paymentStatusDisplay {
+    switch (alreadyPaid) {
+      case 'paid':
+        return 'Déjà payé';
+      case 'pending':
+        return 'En cours';
+      case 'not_paid':
+        return 'Non payé';
+      default:
+        return 'Non payé';
+    }
   }
 }

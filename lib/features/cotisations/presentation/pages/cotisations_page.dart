@@ -128,6 +128,8 @@ class _CotisationsPageState extends State<CotisationsPage> {
                           const SizedBox(width: 8),
                           _buildFilterChip('J\'ai payé', CotisationFilter.paid, controller),
                           const SizedBox(width: 8),
+                          _buildFilterChip('En attente', CotisationFilter.pending, controller),
+                          const SizedBox(width: 8),
                           _buildFilterChip('J\'ai pas payé', CotisationFilter.notPaid, controller),
                         ],
                       ),
@@ -411,49 +413,75 @@ class _CotisationsPageState extends State<CotisationsPage> {
           Row(
             children: [
               Expanded(
-                child: contribution.alreadyPaid
-                    ? Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF3F4F6),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Text(
-                          'Déjà payé',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF6B7280),
-                          ),
-                        ),
-                      )
-                    : ElevatedButton(
-                        onPressed: () {
-                          _showPaymentMethodModal(context, contribution, color);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: color,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                        ),
-                        child: Text(
-                          'Payer ${controller.formatAmount(contribution.amountBy)}',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
+                child: _buildPaymentButton(contribution, color, controller, context),
               ),
             ],
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildPaymentButton(ContributionModel contribution, Color color, CotisationsController controller, BuildContext context) {
+    if (contribution.alreadyPaid == 'paid') {
+      // État "paid" - Déjà payé (grisé)
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3F4F6),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: const Text(
+          'Déjà payé',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF6B7280),
+          ),
+        ),
+      );
+    } else if (contribution.alreadyPaid == 'pending') {
+      // État "pending" - En cours (grisé)
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3F4F6),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: const Text(
+          'En cours',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF6B7280),
+          ),
+        ),
+      );
+    } else {
+      // État "not_paid" - Peut payer
+      return ElevatedButton(
+        onPressed: () {
+          _showPaymentMethodModal(context, contribution, color);
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(6),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+        ),
+        child: Text(
+          'Payer ${controller.formatAmount(contribution.amountBy)}',
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
   }
 
   Widget _buildFilterChip(String filter, CotisationFilter filterEnum, CotisationsController controller) {

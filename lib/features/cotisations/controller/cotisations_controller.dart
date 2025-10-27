@@ -5,7 +5,7 @@ import '../data_source/cotisations_data_source.dart';
 
 enum CotisationsStatus { initial, loading, loaded, loadingMore, error }
 
-enum CotisationFilter { all, ongoing, finished, paid, notPaid }
+enum CotisationFilter { all, ongoing, finished, paid, notPaid, pending }
 
 class CotisationsController extends ChangeNotifier {
   final CotisationsDataSource _dataSource = CotisationsDataSource();
@@ -146,12 +146,14 @@ class CotisationsController extends ChangeNotifier {
     }
   }
 
-  bool? _getAlreadyPaidFromFilter() {
+  String? _getAlreadyPaidFromFilter() {
     switch (_selectedFilter) {
       case CotisationFilter.paid:
-        return true;
+        return 'paid';
       case CotisationFilter.notPaid:
-        return false;
+        return 'not_paid';
+      case CotisationFilter.pending:
+        return 'pending';
       default:
         return null;
     }

@@ -514,34 +514,79 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
-          ElevatedButton(
-            onPressed: () {
-              // Find the contribution from homeController.contributions
+          // Find the contribution from homeController.contributions
+          Builder(
+            builder: (context) {
               final contribution = homeController.contributions.firstWhere(
                 (c) => c.id == cotisationId,
                 orElse: () => homeController.defaultContribution!,
               );
-              _showPaymentMethodModal(context, contribution);
+              return _buildHomePaymentButton(contribution, iconColor, montant, context, homeController);
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1F2937),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            ),
-            child: const Text(
-              'Payer',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildHomePaymentButton(ContributionModel contribution, Color iconColor, int montant, BuildContext context, HomeController homeController) {
+    if (contribution.alreadyPaid == 'paid') {
+      // État "paid" - Déjà payé (grisé)
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3F4F6),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Text(
+          'Déjà payé',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF6B7280),
+          ),
+        ),
+      );
+    } else if (contribution.alreadyPaid == 'pending') {
+      // État "pending" - En cours (grisé)
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3F4F6),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Text(
+          'En cours',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF6B7280),
+          ),
+        ),
+      );
+    } else {
+      // État "not_paid" - Peut payer
+      return ElevatedButton(
+        onPressed: () {
+          _showPaymentMethodModal(context, contribution);
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF1F2937),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        ),
+        child: const Text(
+          'Payer',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
   }
 
   void _showPaymentMethodModal(BuildContext context, ContributionModel contribution) {
