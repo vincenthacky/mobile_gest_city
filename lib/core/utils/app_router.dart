@@ -7,12 +7,13 @@ import '../../features/authentication/presentation/pages/login_page.dart';
 import '../../features/authentication/presentation/pages/register_page.dart';
 import '../../features/authentication/presentation/pages/forgot_password_page.dart';
 import '../pages/home_page.dart';
-import '../../features/compte/presentation/pages/compte_page.dart';
 import '../../features/cotisation/presentation/pages/cotisations_page.dart';
 import '../../features/projets/presentation/pages/projets_page.dart';
 import '../../features/projets/presentation/pages/ajouter_projet_page.dart';
 import '../../features/signalement/presentation/pages/signalements_page.dart';
 import '../../features/signalement/presentation/pages/ajouter_signalement_page.dart';
+import '../../features/caisse/presentation/pages/caisse_page.dart';
+import '../../features/compte/presentation/pages/compte_page.dart';
 import '../widgets/main_layout.dart';
 
 class AppRouter {
@@ -98,6 +99,11 @@ class AppRouter {
               path: '/signalements/ajouter',
               name: 'ajouter-signalement',
               builder: (context, state) => const AjouterSignalementPage(),
+            ),
+            GoRoute(
+              path: '/caisse',
+              name: 'caisse',
+              builder: (context, state) => const CaissePage(),
             ),
             GoRoute(
               path: '/compte',

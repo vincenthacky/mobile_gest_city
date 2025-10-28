@@ -54,45 +54,95 @@ class _HomePageState extends State<HomePage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Header avec titre et notifications
+                          // Header avec compte et notifications
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                            const Text(
-                              'Cotisation Mensuelle',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF1F2937),
-                              ),
-                            ),
-                            Stack(
-                              children: [
-                                IconButton(
-                                  onPressed: () {},
-                                  icon: const Icon(
-                                    Icons.notifications_outlined,
-                                    color: Color(0xFF6B7280),
-                                    size: 24,
-                                  ),
-                                ),
-                                Positioned(
-                                  right: 8,
-                                  top: 8,
-                                  child: Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: const BoxDecoration(
-                                      color: Color(0xFF4F46E5),
-                                      shape: BoxShape.circle,
+                              // Bouton Compte à l'extrême gauche
+                              InkWell(
+                                onTap: () {
+                                  context.go('/compte');
+                                },
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.grey.shade300,
+                                      width: 1,
                                     ),
                                   ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 24,
+                                        height: 24,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF4F46E5),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: const Icon(
+                                          Icons.person,
+                                          color: Colors.white,
+                                          size: 14,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      const Text(
+                                        'Compte',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF6B7280),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ],
+                              ),
+                              // Notifications à l'extrême droite
+                              Stack(
+                                children: [
+                                  IconButton(
+                                    onPressed: () {},
+                                    icon: const Icon(
+                                      Icons.notifications_outlined,
+                                      color: Color(0xFF6B7280),
+                                      size: 24,
+                                    ),
+                                  ),
+                                  Positioned(
+                                    right: 8,
+                                    top: 8,
+                                    child: Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFF4F46E5),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          
+                          // Titre Cotisation Mensuelle (en dehors du header)
+                          const Text(
+                            'Cotisation Mensuelle',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1F2937),
+                              letterSpacing: -0.5,
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
+                          ),
+                        const SizedBox(height: 16),
                         
                         // Carte principale de cotisation
                         if (homeController.isLoading)
@@ -268,7 +318,8 @@ class _HomePageState extends State<HomePage> {
     
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      height: 220,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: const Color(0xFF4F46E5),
         borderRadius: BorderRadius.circular(16),
@@ -333,30 +384,17 @@ class _HomePageState extends State<HomePage> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Montant par période',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white.withValues(alpha: 0.7),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      homeController.formatAmount(contribution.amountBy),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  '10 000 FCFA / mois',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                  ),
                 ),
               ),
               Expanded(
@@ -366,15 +404,15 @@ class _HomePageState extends State<HomePage> {
                     Text(
                       'Somme cible',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 12,
                         color: Colors.white.withValues(alpha: 0.7),
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       homeController.formatAmount(contribution.amount),
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 14,
                         fontWeight: FontWeight.w500,
                         color: Colors.white,
                       ),
@@ -385,28 +423,6 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
           const SizedBox(height: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Périodicité',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white.withValues(alpha: 0.7),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                contribution.periodicityDisplay,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
           
           // Montant et progression
           Row(
@@ -420,7 +436,7 @@ class _HomePageState extends State<HomePage> {
                   (Match m) => '${m[1]} '
                 ),
                 style: const TextStyle(
-                  fontSize: 32,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
@@ -428,30 +444,30 @@ class _HomePageState extends State<HomePage> {
               Text(
                 ' / ${contribution.amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')}',
                 style: const TextStyle(
-                  fontSize: 20,
+                  fontSize: 14,
                   color: Colors.white70,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           
           // Barre de progression
           Container(
             width: double.infinity,
-            height: 10,
+            height: 8,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(5),
+              borderRadius: BorderRadius.circular(4),
             ),
             child: Row(
               children: [
                 Container(
                   width: MediaQuery.of(context).size.width * progressPercentage * 0.8,
-                  height: 10,
+                  height: 8,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(5),
+                    borderRadius: BorderRadius.circular(4),
                   ),
                 ),
               ],

@@ -1,0 +1,887 @@
+// wallet_page.dart - VERSION OPTIMISÉE
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:mobile_suivi_planting/core/presentation/theme/app_colors.dart';
+import 'package:mobile_suivi_planting/core/presentation/theme/theme_provider.dart';
+import '/../../core/services/security_service.dart';
+import '../../data/controllers/wallet_controller.dart';
+import '../../../authentication/presentation/bloc/auth_provider.dart';
+
+class PerfectWalletPage extends StatefulWidget {
+  const PerfectWalletPage({super.key});
+
+  @override
+  State<PerfectWalletPage> createState() => _PerfectWalletPageState();
+}
+
+class _PerfectWalletPageState extends State<PerfectWalletPage>
+    with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+
+  // ✅ Animation optimisée - Une seule animation au lieu de multiples
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  // ✅ Services
+  late SecurityService _securityService;
+  bool _isBiometricAvailable = false;
+  bool _isPinSet = false;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeServices();
+    _initializeAnimations();
+    _loadInitialData();
+  }
+
+  void _initializeServices() {
+    _securityService = SecurityService();
+  }
+
+  // ✅ Animation simplifiée et optimisée
+  void _initializeAnimations() {
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    ));
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutBack,
+    ));
+
+    _animationController.forward();
+  }
+
+  // ✅ Chargement initial optimisé
+  void _loadInitialData() async {
+    // Vérifier les paramètres de sécurité en parallèle
+    _checkSecuritySettings();
+  }
+
+  Future<void> _checkSecuritySettings() async {
+    try {
+      final results = await Future.wait([
+        _securityService.isBiometricAvailable(),
+        _securityService.hasPin(),
+      ]);
+
+      if (mounted) {
+        setState(() {
+          _isBiometricAvailable = results[0];
+          _isPinSet = results[1];
+        });
+      }
+    } catch (e) {
+      debugPrint('[WalletPage] Erreur sécurité: $e');
+    }
+  }
+
+  // ✅ Authentification optimisée avec gestion d'erreur
+  Future<void> _toggleBalanceVisibility() async {
+    final controller = context.read<WalletController>();
+
+    if (controller.isBalanceVisible) {
+      controller.setBalanceVisibility(false);
+      return;
+    }
+
+    try {
+      // Initialiser le PIN par défaut si nécessaire
+      if (!_isPinSet) {
+        await _securityService.initializeDefaultPinIfNeeded();
+        _isPinSet = true;
+        if (mounted) setState(() {});
+      }
+
+      bool authenticated = false;
+
+      // Authentification biométrique si disponible
+      if (_isBiometricAvailable) {
+        final useBiometric = await _showAuthMethodDialog();
+        if (useBiometric == true) {
+          authenticated = await _securityService.authenticateWithBiometrics();
+          if (!authenticated) {
+            _showSnackBar('Authentification biométrique échouée', isError: true);
+          }
+        }
+      }
+
+      // Authentification PIN si biométrique échoue ou pas disponible
+      if (!authenticated) {
+        authenticated = await _showPinDialog();
+      }
+
+      if (authenticated) {
+        controller.setBalanceVisibility(true);
+      }
+    } catch (e) {
+      _showSnackBar('Erreur d\'authentification: $e', isError: true);
+    }
+  }
+
+  // ✅ Dialog optimisé pour méthode d'authentification
+  Future<bool?> _showAuthMethodDialog() async {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Méthode d\'authentification'),
+        content: const Text('Comment souhaitez-vous vous authentifier ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Code PIN'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Biométrie'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ Dialog PIN optimisé
+  Future<bool> _showPinDialog() async {
+    final enteredPin = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _PinDialog(),
+    );
+
+    if (enteredPin?.isNotEmpty == true) {
+      final isCorrect = await _securityService.verifyPin(enteredPin!);
+      if (!isCorrect) {
+        _showSnackBar('Code PIN incorrect', isError: true);
+      }
+      return isCorrect;
+    }
+
+    return false;
+  }
+
+  // ✅ SnackBar helper optimisé
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? AppColors.error : AppColors.success,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: Duration(seconds: isError ? 4 : 2),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, _) {
+        return ChangeNotifierProvider<WalletController>(
+          create: (_) => WalletController(authProvider: authProvider)..loadWalletData(),
+          child: Consumer<ThemeProvider>(
+            builder: (context, themeProvider, _) {
+              // ✅ Mise à jour du brightness système uniquement si nécessaire
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  themeProvider.updateSystemBrightness(context);
+                }
+              });
+
+              final isDark = themeProvider.isDarkMode;
+
+              return FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: Consumer<WalletController>(
+                    builder: (context, controller, _) {
+                      return RefreshIndicator(
+                        color: AppColors.primary,
+                        backgroundColor: AppColors.surface(isDark),
+                        onRefresh: controller.refreshData,
+                        child: _buildBody(controller, isDark),
+                      );
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  // ✅ Builder optimisé avec lazy loading
+  Widget _buildBody(WalletController controller, bool isDark) {
+    if (controller.isLoading) {
+      return _buildLoadingState();
+    }
+
+    if (controller.hasError) {
+      return _buildErrorState(controller, isDark);
+    }
+
+    if (!controller.hasData) {
+      return _buildEmptyState(isDark);
+    }
+
+    return _buildContentState(controller, isDark);
+  }
+
+  Widget _buildLoadingState() {
+    return const Center(
+      key: ValueKey('wallet_loading'),
+      child: CircularProgressIndicator(),
+    );
+  }
+
+  Widget _buildErrorState(WalletController controller, bool isDark) {
+    return ListView(
+      padding: const EdgeInsets.all(16.0),
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: AppColors.surface(isDark),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 40),
+              const SizedBox(height: 16),
+              Text(
+                controller.errorMessage,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.textPrimary(isDark)),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => controller.loadWalletData(forceRefresh: true),
+                child: const Text('Réessayer'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState(bool isDark) {
+    return ListView(
+      padding: const EdgeInsets.all(16.0),
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        Center(
+          child: Text(
+            'Aucune donnée disponible',
+            style: TextStyle(color: AppColors.textPrimary(isDark)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ✅ Contenu principal avec lazy loading pour les transactions
+  Widget _buildContentState(WalletController controller, bool isDark) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16.0),
+      physics: const AlwaysScrollableScrollPhysics(),
+      itemCount: _getItemCount(controller),
+      itemBuilder: (context, index) => _buildItem(context, index, controller, isDark),
+    );
+  }
+
+  int _getItemCount(WalletController controller) {
+    final transactions = controller.getTransactions();
+    return 3 + transactions.length; // Balance + Header + Spacer + Transactions
+  }
+
+  Widget _buildItem(BuildContext context, int index, WalletController controller, bool isDark) {
+    if (index == 0) {
+      return _buildBalanceCard(controller, isDark);
+    } else if (index == 1) {
+      return const SizedBox(height: 24);
+    } else if (index == 2) {
+      return _buildTransactionsHeader(controller, isDark);
+    } else {
+      final transactionIndex = index - 3;
+      final transactions = controller.getTransactions();
+      if (transactionIndex < transactions.length) {
+        return _buildTransactionItem(transactions[transactionIndex], isDark);
+      }
+    }
+    return const SizedBox.shrink();
+  }
+
+  // ✅ Card de balance optimisée
+  Widget _buildBalanceCard(WalletController controller, bool isDark) {
+    final walletData = controller.walletData!;
+    final balanceText = controller.getBalanceText();
+    final growthText = controller.getGrowthText();
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [const Color(0xFF2E7D32), const Color(0xFF1B5E20)]
+              : [const Color(0xFFE8F5E8), const Color(0xFFF1F8E9)],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow(isDark),
+            blurRadius: isDark ? 16 : 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.1)
+              : AppColors.primary.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(isDark ? 0.3 : 0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.account_balance_wallet_outlined,
+                      size: 20,
+                      color: isDark ? Colors.white : AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    "Solde disponible",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white.withOpacity(0.9) : Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+              GestureDetector(
+                onTap: _toggleBalanceVisibility,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.1)
+                        : Colors.black.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    controller.isBalanceVisible
+                        ? Icons.visibility_rounded
+                        : Icons.visibility_off_rounded,
+                    color: isDark ? Colors.white.withOpacity(0.8) : Colors.black87,
+                    size: 22,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: Text(
+              balanceText,
+              key: ValueKey('balance_${controller.isBalanceVisible}'),
+              style: TextStyle(
+                fontSize: 36,
+                fontWeight: FontWeight.w800,
+                color: isDark ? Colors.white : Colors.black,
+                letterSpacing: 1,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: walletData.indicateurCroissance >= 0
+                      ? AppColors.success.withOpacity(0.2)
+                      : AppColors.error.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      walletData.indicateurCroissance >= 0
+                          ? Icons.trending_up_rounded
+                          : Icons.trending_down_rounded,
+                      size: 16,
+                      color: walletData.indicateurCroissance >= 0
+                          ? AppColors.success
+                          : AppColors.error,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      growthText,
+                      style: TextStyle(
+                        color: walletData.indicateurCroissance >= 0
+                            ? AppColors.success
+                            : AppColors.error,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                "vs mois dernier",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.white.withOpacity(0.7) : Colors.black54,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTransactionsHeader(WalletController controller, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.receipt_long_rounded,
+                color: AppColors.textPrimary(isDark),
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                "Transactions récentes",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary(isDark),
+                ),
+              ),
+            ],
+          ),
+          GestureDetector(
+            onTap: () => _showFilterOptions(context, controller, isDark),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceVariant(isDark),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.1)
+                      : Colors.grey[300]!,
+                ),
+              ),
+              child: Icon(
+                Icons.tune_rounded,
+                color: AppColors.textSecondary(isDark),
+                size: 20,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ Item de transaction optimisé
+  Widget _buildTransactionItem(dynamic transaction, bool isDark) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface(isDark),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.1)
+              : Colors.grey[300]!,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow(isDark),
+            blurRadius: isDark ? 10 : 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: (transaction.isPositive ? AppColors.success : AppColors.error)
+                  .withOpacity(isDark ? 0.2 : 0.1),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              transaction.isPositive
+                  ? Icons.add_circle_outline_rounded
+                  : Icons.remove_circle_outline_rounded,
+              color: transaction.isPositive ? AppColors.success : AppColors.error,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  transaction.type,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary(isDark),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  transaction.description,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondary(isDark),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  transaction.date,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textDisabled(isDark),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                "${transaction.isPositive ? '+' : '-'}${transaction.amount} fcfa",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: transaction.isPositive ? AppColors.success : AppColors.error,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: (transaction.isPositive ? AppColors.success : AppColors.error)
+                      .withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  transaction.isPositive ? "Crédit" : "Débit",
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: transaction.isPositive ? AppColors.success : AppColors.error,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ Modal de filtres optimisée
+  void _showFilterOptions(BuildContext context, WalletController controller, bool isDark) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => _FilterBottomSheet(
+        controller: controller,
+        isDark: isDark,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+}
+
+// ✅ Dialog PIN séparé pour une meilleure organisation
+class _PinDialog extends StatefulWidget {
+  @override
+  _PinDialogState createState() => _PinDialogState();
+}
+
+class _PinDialogState extends State<_PinDialog> {
+  final _pinController = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text('Entrez votre code PIN'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _pinController,
+            keyboardType: TextInputType.number,
+            obscureText: true,
+            maxLength: 5,
+            decoration: const InputDecoration(
+              hintText: 'Code PIN (5 chiffres)',
+              counterText: '',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'PIN par défaut: 00000',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Annuler'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, _pinController.text),
+          child: const Text('Valider'),
+        ),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    _pinController.dispose();
+    super.dispose();
+  }
+}
+
+// ✅ Bottom sheet séparée pour les filtres
+class _FilterBottomSheet extends StatelessWidget {
+  final WalletController controller;
+  final bool isDark;
+
+  const _FilterBottomSheet({
+    required this.controller,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.surface(isDark),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow(isDark),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 60,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.textDisabled(isDark),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            "Options de transaction",
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary(isDark),
+            ),
+          ),
+          const SizedBox(height: 24),
+          ..._buildFilterOptions(context),
+          SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildFilterOptions(BuildContext context) {
+    final options = [
+      _FilterOption(
+        icon: Icons.today,
+        title: "Aujourd'hui",
+        subtitle: "Transactions du jour",
+        onTap: () => _applyFilter(context, 'aujourdhui'),
+      ),
+      _FilterOption(
+        icon: Icons.date_range,
+        title: "Cette semaine",
+        subtitle: "Transactions de la semaine",
+        onTap: () => _applyFilter(context, 'semaine'),
+      ),
+      _FilterOption(
+        icon: Icons.calendar_month_rounded,
+        title: "Ce mois-ci",
+        subtitle: "Transactions du mois",
+        onTap: () => _applyFilter(context, 'mois'),
+      ),
+    ];
+
+    return options.map((option) => _buildFilterOption(option)).toList();
+  }
+
+  Widget _buildFilterOption(_FilterOption option) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: option.onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceVariant(isDark),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withOpacity(0.1)
+                    : Colors.grey[300]!,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(isDark ? 0.2 : 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(option.icon, color: AppColors.primary, size: 22),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        option.title,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary(isDark),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        option.subtitle,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary(isDark),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16,
+                  color: AppColors.textSecondary(isDark),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _applyFilter(BuildContext context, String filter) {
+    Navigator.pop(context);
+    controller.setFilterAndLoad(filter);
+  }
+}
+
+// ✅ Classe helper pour les options de filtre
+class _FilterOption {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _FilterOption({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+}

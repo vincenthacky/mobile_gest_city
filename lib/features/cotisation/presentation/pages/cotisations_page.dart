@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
 import 'preuve_paiement_page.dart';
+import 'qr_paiement_page.dart';
 
 class CotisationsPage extends StatefulWidget {
   const CotisationsPage({super.key});
@@ -15,6 +15,8 @@ class _CotisationsPageState extends State<CotisationsPage> with TickerProviderSt
   late AnimationController _fadeController;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
+  
+  bool _showingPayments = true;
 
   @override
   void initState() {
@@ -149,14 +151,14 @@ class _CotisationsPageState extends State<CotisationsPage> with TickerProviderSt
               
               // Liste des paiements (en arrière-plan)
               Positioned(
-                top: 180,
+                top: 350,
                 left: 0,
                 right: 0,
                 bottom: 0,
                 child: SlideTransition(
                   position: _slideAnimation,
                   child: Container(
-                    padding: const EdgeInsets.only(top: 140),
+                    padding: const EdgeInsets.only(top: 20),
                     decoration: BoxDecoration(
                       color: Colors.grey.shade50,
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
@@ -177,34 +179,36 @@ class _CotisationsPageState extends State<CotisationsPage> with TickerProviderSt
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
+                                  color: (_showingPayments ? const Color(0xFF3B82F6) : const Color(0xFFEF4444)).withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
+                                    color: (_showingPayments ? const Color(0xFF3B82F6) : const Color(0xFFEF4444)).withValues(alpha: 0.3),
                                     width: 1.5,
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                                      color: (_showingPayments ? const Color(0xFF3B82F6) : const Color(0xFFEF4444)).withValues(alpha: 0.1),
                                       blurRadius: 8,
                                       offset: const Offset(0, 2),
                                     ),
                                   ],
                                 ),
-                                child: const Icon(
-                                  Icons.timeline,
-                                  color: Color(0xFF3B82F6),
+                                child: Icon(
+                                  _showingPayments ? Icons.timeline : Icons.warning_amber,
+                                  color: _showingPayments ? const Color(0xFF3B82F6) : const Color(0xFFEF4444),
                                   size: 20,
                                 ),
                               ),
                               const SizedBox(width: 12),
-                              const Text(
-                                'Historique des paiements',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF1F2937),
-                                  letterSpacing: -0.3,
+                              Expanded(
+                                child: Text(
+                                  _showingPayments ? 'Historique des paiements' : 'Mes retards de paiement',
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF1F2937),
+                                    letterSpacing: -0.3,
+                                  ),
                                 ),
                               ),
                             ],
@@ -213,7 +217,7 @@ class _CotisationsPageState extends State<CotisationsPage> with TickerProviderSt
                       Flexible(
                         child: ListView(
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                          children: [
+                          children: _showingPayments ? [
                             _buildPaymentItem(
                               'Cotisation Mensuelle Novembre',
                               '26 octobre 2025 à 20:43',
@@ -244,6 +248,27 @@ class _CotisationsPageState extends State<CotisationsPage> with TickerProviderSt
                               '-5.000F',
                               false,
                             ),
+                          ] : [
+                            _buildOverdueItem(
+                              'Cotisation Mensuelle Juin',
+                              '30 juin 2025',
+                              '5.000F',
+                            ),
+                            _buildOverdueItem(
+                              'Cotisation Mensuelle Mai',
+                              '31 mai 2025',
+                              '5.000F',
+                            ),
+                            _buildOverdueItem(
+                              'Cotisation Mensuelle Avril',
+                              '30 avril 2025',
+                              '5.000F',
+                            ),
+                            _buildOverdueItem(
+                              'Cotisation Mensuelle Mars',
+                              '31 mars 2025',
+                              '5.000F',
+                            ),
                           ],
                         ),
                       ),
@@ -253,7 +278,7 @@ class _CotisationsPageState extends State<CotisationsPage> with TickerProviderSt
                 ),
               ),
               
-              // Carte QR réduite qui chevauche
+              // Card cotisation mensuelle 
               Positioned(
                 top: 100,
                 left: 24,
@@ -261,165 +286,292 @@ class _CotisationsPageState extends State<CotisationsPage> with TickerProviderSt
                 child: FadeTransition(
                   opacity: _fadeAnimation,
                   child: Container(
-                    height: 220,
-                    padding: const EdgeInsets.all(24),
+                    height: 180,
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Color(0xFF00D4FF),
-                          Color(0xFF00A4C7),
-                          Color(0xFF007B8F),
-                        ],
-                        stops: [0.0, 0.5, 1.0],
-                      ),
-                      borderRadius: BorderRadius.circular(24),
+                      color: const Color(0xFF4F46E5),
+                      borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.2),
-                          blurRadius: 20,
-                          offset: const Offset(0, 8),
-                          spreadRadius: 0,
+                          color: const Color(0xFF4F46E5).withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
                         ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        // Informations en grille
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Date début',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.white.withValues(alpha: 0.7),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  const Text(
+                                    '01/01/2024',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Date Fin',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.white.withValues(alpha: 0.7),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  const Text(
+                                    '31/12/2024',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                '10 000 FCFA / mois',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Somme cible',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.white.withValues(alpha: 0.7),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  const Text(
+                                    '120 000 FCFA',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        
+                        // Montant et progression
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            const Text(
+                              '80 000',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Text(
+                              ' / 120 000',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.white70,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        
+                        // Barre de progression
+                        Container(
+                          width: double.infinity,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: MediaQuery.of(context).size.width * 0.67 * 0.8,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              
+              // Bouton payer cotisation flottant
+              Positioned(
+                top: 300,
+                left: 24,
+                right: 24,
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 40),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        HapticFeedback.mediumImpact();
+                        _showPaymentMethodModal(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4F46E5),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        elevation: 4,
+                        shadowColor: const Color(0xFF4F46E5).withValues(alpha: 0.3),
+                      ),
+                      child: const Text(
+                        'Payer cotisation',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              
+              // Bouton switch flottant
+              Positioned(
+                bottom: 30,
+                right: 20,
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.grey.shade300,
+                        width: 1,
+                      ),
+                      boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF00D4FF).withValues(alpha: 0.4),
-                          blurRadius: 30,
-                          offset: const Offset(0, 0),
-                          spreadRadius: -5,
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        // QR Code section élargie
-                        Expanded(
-                          flex: 3,
+                        InkWell(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            setState(() {
+                              _showingPayments = true;
+                            });
+                          },
+                          borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
                           child: Container(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.95),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.3),
-                                width: 1,
-                              ),
+                              color: _showingPayments ? const Color(0xFF4F46E5) : Colors.transparent,
+                              borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
                             ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                // QR Code amélioré
-                                Container(
-                                  width: 110,
-                                  height: 110,
-                                  decoration: BoxDecoration(
-                                    color: Colors.black,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: GridView.builder(
-                                    padding: const EdgeInsets.all(6),
-                                    physics: const NeverScrollableScrollPhysics(),
-                                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 8,
-                                      crossAxisSpacing: 1,
-                                      mainAxisSpacing: 1,
-                                    ),
-                                    itemCount: 64,
-                                    itemBuilder: (context, index) {
-                                      final isBlack = (index + (index ~/ 8)) % 3 != 0;
-                                      return Container(
-                                        decoration: BoxDecoration(
-                                          color: isBlack ? Colors.black : Colors.white,
-                                          borderRadius: BorderRadius.circular(1),
-                                        ),
-                                      );
-                                    },
-                                  ),
+                                Icon(
+                                  Icons.check_circle,
+                                  size: 14,
+                                  color: _showingPayments ? Colors.white : Colors.grey.shade600,
                                 ),
-                                const SizedBox(height: 16),
-                                // Bouton Scanner amélioré
-                                InkWell(
-                                  onTap: () {
-                                    HapticFeedback.lightImpact();
-                                  },
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF00A4C7).withValues(alpha: 0.2),
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(
-                                        color: const Color(0xFF00A4C7).withValues(alpha: 0.6),
-                                        width: 1.5,
-                                      ),
-                                    ),
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.qr_code_scanner,
-                                          size: 18,
-                                          color: Color(0xFF007B8F),
-                                        ),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          'Scanner',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF007B8F),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Payés',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: _showingPayments ? Colors.white : Colors.grey.shade600,
                                   ),
                                 ),
                               ],
                             ),
                           ),
                         ),
-                        const SizedBox(width: 20),
-                        
-                        // Bouton "Prouver un paiement" modernisé
-                        Expanded(
-                          flex: 2,
-                          child: InkWell(
-                            onTap: () {
-                              HapticFeedback.mediumImpact();
-                              _showPaymentProofModal(context);
-                            },
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.95),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.3),
-                                  width: 1,
+                        InkWell(
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            setState(() {
+                              _showingPayments = false;
+                            });
+                          },
+                          borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: !_showingPayments ? const Color(0xFFEF4444) : Colors.transparent,
+                              borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.warning_amber,
+                                  size: 14,
+                                  color: !_showingPayments ? Colors.white : Colors.grey.shade600,
                                 ),
-                              ),
-                              child: const Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.receipt_long,
-                                    color: Color(0xFF00D4FF),
-                                    size: 32,
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Retards',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: !_showingPayments ? Colors.white : Colors.grey.shade600,
                                   ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    'Prouver un\npaiement',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF00D4FF),
-                                      height: 1.2,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -431,6 +583,99 @@ class _CotisationsPageState extends State<CotisationsPage> with TickerProviderSt
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildOverdueItem(String month, String dueDate, String amount) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFEF4444).withValues(alpha: 0.3),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.error_outline,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 16),
+          
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  month,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFEF4444),
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.schedule,
+                      size: 14,
+                      color: Colors.grey.shade500,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Échéance : $dueDate',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              amount,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFEF4444),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -539,136 +784,204 @@ class _CotisationsPageState extends State<CotisationsPage> with TickerProviderSt
     );
   }
 
-  void _showPaymentProofModal(BuildContext context) {
-    HapticFeedback.mediumImpact();
+  void _showPaymentMethodModal(BuildContext context) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => Container(
-        padding: const EdgeInsets.all(28),
+        padding: const EdgeInsets.all(24),
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Handle amélioré
+            // Handle
             Container(
-              width: 50,
-              height: 5,
+              width: 40,
+              height: 4,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF667eea), Color(0xFF764ba2)],
-                ),
-                borderRadius: BorderRadius.circular(3),
-              ),
-            ),
-            const SizedBox(height: 24),
-            
-            // Icône et titre
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF667eea), Color(0xFF764ba2)],
-                ),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Icon(
-                Icons.cloud_upload_outlined,
-                color: Colors.white,
-                size: 32,
+                color: const Color(0xFFE5E7EB),
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
             const SizedBox(height: 20),
             
+            // Titre
             const Text(
-              'Prouver un paiement',
+              'Comment voulez-vous payer ?',
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF1F2937),
-                letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              'Téléchargez la preuve de votre paiement de cotisation mensuelle pour valider votre transaction',
+            const SizedBox(height: 8),
+            const Text(
+              'Cotisation Mensuelle',
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.grey.shade600,
-                height: 1.4,
+                color: Color(0xFF6B7280),
               ),
               textAlign: TextAlign.center,
             ),
+            const SizedBox(height: 4),
+            const Text(
+              'Montant : 10 000 FCFA',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF4F46E5),
+              ),
+            ),
             const SizedBox(height: 32),
             
-            // Boutons
-            Row(
+            // Options
+            Column(
               children: [
-                Expanded(
+                // Option QR Code
+                SizedBox(
+                  width: double.infinity,
                   child: OutlinedButton(
                     onPressed: () {
-                      HapticFeedback.lightImpact();
                       Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const QrPaiementPage(
+                            cotisationTitle: 'Cotisation Mensuelle',
+                            montant: 10000,
+                            cotisationId: '1',
+                          ),
+                        ),
+                      );
                     },
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                      foregroundColor: const Color(0xFF4F46E5),
+                      side: const BorderSide(color: Color(0xFF4F46E5), width: 2),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       padding: const EdgeInsets.all(16),
                     ),
-                    child: Text(
-                      'Annuler',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade600,
-                      ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.qr_code,
+                            color: Color(0xFF4F46E5),
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Afficher code QR',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1F2937),
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'L\'admin scannera votre code',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF6B7280),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          color: Color(0xFF4F46E5),
+                          size: 16,
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  flex: 2,
+                const SizedBox(height: 16),
+                
+                // Option Preuve de paiement
+                SizedBox(
+                  width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      HapticFeedback.mediumImpact();
                       Navigator.pop(context);
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => const PreuvePaiementPage(
                             cotisationTitle: 'Cotisation Mensuelle',
-                            montant: 5000,
+                            montant: 10000,
                             cotisationId: 1,
                           ),
                         ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF667eea),
+                      backgroundColor: const Color(0xFF1F2937),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       padding: const EdgeInsets.all(16),
-                      elevation: 0,
                     ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    child: Row(
                       children: [
-                        Icon(Icons.upload_file, size: 20),
-                        SizedBox(width: 8),
-                        Text(
-                          'Télécharger',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(8),
                           ),
+                          child: const Icon(
+                            Icons.receipt_long,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Prouver un paiement',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Télécharger un reçu de paiement',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios,
+                          color: Colors.white,
+                          size: 16,
                         ),
                       ],
                     ),
@@ -676,10 +989,11 @@ class _CotisationsPageState extends State<CotisationsPage> with TickerProviderSt
                 ),
               ],
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
           ],
         ),
       ),
     );
   }
+
 }
