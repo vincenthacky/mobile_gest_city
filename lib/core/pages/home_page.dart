@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/authentication/controller/auth_controller.dart';
-import '../../features/cotisations/presentation/pages/preuve_paiement_page.dart';
-import '../../features/cotisations/presentation/pages/qr_paiement_page.dart';
+// import '../../features/cotisations/presentation/pages/preuve_paiement_page.dart';
+// import '../../features/cotisations/presentation/pages/qr_paiement_page.dart';
 import '../controller/home_controller.dart';
 import '../models/contribution_model.dart';
 
@@ -644,157 +644,157 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 32),
             
             // Options
-            Column(
-              children: [
-                // Option QR Code
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => QrPaiementPage(
-                            cotisationTitle: contribution.name,
-                            montant: contribution.amountBy,
-                            cotisationId: contribution.id.toString(),
-                          ),
-                        ),
-                      );
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF4F46E5),
-                      side: const BorderSide(color: Color(0xFF4F46E5), width: 2),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.all(16),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.qr_code,
-                            color: Color(0xFF4F46E5),
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Afficher code QR',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF1F2937),
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                'L\'admin scannera votre code',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF6B7280),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(
-                          Icons.arrow_forward_ios,
-                          color: Color(0xFF4F46E5),
-                          size: 16,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
+            // Column(
+            //   children: [
+            //     // Option QR Code
+            //     SizedBox(
+            //       width: double.infinity,
+            //       child: OutlinedButton(
+            //         onPressed: () {
+            //           Navigator.pop(context);
+            //           Navigator.push(
+            //             context,
+            //             MaterialPageRoute(
+            //               builder: (context) => QrPaiementPage(
+            //                 cotisationTitle: contribution.name,
+            //                 montant: contribution.amountBy,
+            //                 cotisationId: contribution.id.toString(),
+            //               ),
+            //             ),
+            //           );
+            //         },
+            //         style: OutlinedButton.styleFrom(
+            //           foregroundColor: const Color(0xFF4F46E5),
+            //           side: const BorderSide(color: Color(0xFF4F46E5), width: 2),
+            //           shape: RoundedRectangleBorder(
+            //             borderRadius: BorderRadius.circular(12),
+            //           ),
+            //           padding: const EdgeInsets.all(16),
+            //         ),
+            //         child: Row(
+            //           children: [
+            //             Container(
+            //               padding: const EdgeInsets.all(8),
+            //               decoration: BoxDecoration(
+            //                 color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
+            //                 borderRadius: BorderRadius.circular(8),
+            //               ),
+            //               child: const Icon(
+            //                 Icons.qr_code,
+            //                 color: Color(0xFF4F46E5),
+            //                 size: 24,
+            //               ),
+            //             ),
+            //             const SizedBox(width: 16),
+            //             const Expanded(
+            //               child: Column(
+            //                 crossAxisAlignment: CrossAxisAlignment.start,
+            //                 children: [
+            //                   Text(
+            //                     'Afficher code QR',
+            //                     style: TextStyle(
+            //                       fontSize: 16,
+            //                       fontWeight: FontWeight.w600,
+            //                       color: Color(0xFF1F2937),
+            //                     ),
+            //                   ),
+            //                   SizedBox(height: 2),
+            //                   Text(
+            //                     'L\'admin scannera votre code',
+            //                     style: TextStyle(
+            //                       fontSize: 12,
+            //                       color: Color(0xFF6B7280),
+            //                     ),
+            //                   ),
+            //                 ],
+            //               ),
+            //             ),
+            //             const Icon(
+            //               Icons.arrow_forward_ios,
+            //               color: Color(0xFF4F46E5),
+            //               size: 16,
+            //             ),
+            //           ],
+            //         ),
+            //       ),
+            //     ),
+            //     const SizedBox(height: 16),
                 
-                // Option Preuve de paiement
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PreuvePaiementPage(
-                            cotisationTitle: contribution.name,
-                            montant: contribution.amountBy,
-                            cotisationId: contribution.id,
-                          ),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1F2937),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.all(16),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.receipt_long,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Prouver un paiement',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                'Télécharger un reçu de paiement',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white70,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(
-                          Icons.arrow_forward_ios,
-                          color: Colors.white,
-                          size: 16,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
+            //     // Option Preuve de paiement
+            //     SizedBox(
+            //       width: double.infinity,
+            //       child: ElevatedButton(
+            //         onPressed: () {
+            //           Navigator.pop(context);
+            //           Navigator.push(
+            //             context,
+            //             MaterialPageRoute(
+            //               builder: (context) => PreuvePaiementPage(
+            //                 cotisationTitle: contribution.name,
+            //                 montant: contribution.amountBy,
+            //                 cotisationId: contribution.id,
+            //               ),
+            //             ),
+            //           );
+            //         },
+            //         style: ElevatedButton.styleFrom(
+            //           backgroundColor: const Color(0xFF1F2937),
+            //           foregroundColor: Colors.white,
+            //           shape: RoundedRectangleBorder(
+            //             borderRadius: BorderRadius.circular(12),
+            //           ),
+            //           padding: const EdgeInsets.all(16),
+            //         ),
+            //         child: Row(
+            //           children: [
+            //             Container(
+            //               padding: const EdgeInsets.all(8),
+            //               decoration: BoxDecoration(
+            //                 color: Colors.white.withValues(alpha: 0.2),
+            //                 borderRadius: BorderRadius.circular(8),
+            //               ),
+            //               child: const Icon(
+            //                 Icons.receipt_long,
+            //                 color: Colors.white,
+            //                 size: 24,
+            //               ),
+            //             ),
+            //             const SizedBox(width: 16),
+            //             const Expanded(
+            //               child: Column(
+            //                 crossAxisAlignment: CrossAxisAlignment.start,
+            //                 children: [
+            //                   Text(
+            //                     'Prouver un paiement',
+            //                     style: TextStyle(
+            //                       fontSize: 16,
+            //                       fontWeight: FontWeight.w600,
+            //                       color: Colors.white,
+            //                     ),
+            //                   ),
+            //                   SizedBox(height: 2),
+            //                   Text(
+            //                     'Télécharger un reçu de paiement',
+            //                     style: TextStyle(
+            //                       fontSize: 12,
+            //                       color: Colors.white70,
+            //                     ),
+            //                   ),
+            //                 ],
+            //               ),
+            //             ),
+            //             const Icon(
+            //               Icons.arrow_forward_ios,
+            //               color: Colors.white,
+            //               size: 16,
+            //             ),
+            //           ],
+            //         ),
+            //       ),
+            //     ),
+            //   ],
+            // ),
+            // const SizedBox(height: 24),
           ],
         ),
       ),

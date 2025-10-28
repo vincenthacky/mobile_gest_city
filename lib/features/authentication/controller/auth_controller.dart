@@ -106,4 +106,11 @@ class AuthController extends ChangeNotifier {
   void clearError() {
     _clearError();
   }
+
+  // Méthode pour forcer la déconnexion en cas d'erreur 401
+  void forceLogout() {
+    _user = null;
+    _clearError();
+    _setStatus(AuthStatus.unauthenticated);
+  }
 }

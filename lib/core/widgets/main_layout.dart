@@ -56,12 +56,17 @@ class MainLayout extends StatelessWidget {
                 ),
                 _buildNavItem(
                   context,
-                  '#',
-                  //  '/projets',
+                  '/projets',
                   Icons.folder_outlined,
                   'Projets',
-                  currentPath == '',
-                  //  currentPath == '/projets',
+                  currentPath == '/projets',
+                ),
+                _buildNavItem(
+                  context,
+                  '/signalements',
+                  Icons.warning_outlined,
+                  'Signalements',
+                  currentPath == '/signalements',
                 ),
                 _buildNavItem(
                   context,

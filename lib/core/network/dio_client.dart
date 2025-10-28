@@ -6,9 +6,14 @@ import '../storage/secure_storage.dart';
 class DioClient {
   static Dio? _dio;
   static late GoRouter _router;
+  static Function()? _onUnauthorized;
 
   static void setRouter(GoRouter router) {
     _router = router;
+  }
+
+  static void setUnauthorizedCallback(Function() callback) {
+    _onUnauthorized = callback;
   }
 
   static Dio get instance {
@@ -38,10 +43,28 @@ class DioClient {
           handler.next(options);
         },
         onError: (DioException error, handler) async {
+          print('DioClient onError: ${error.response?.statusCode} - ${error.message}');
+          
           if (error.response?.statusCode == 401) {
+            print('401 Unauthorized detected - clearing token and redirecting to login');
+            
+            // Nettoyer toutes les données d'authentification
             await SecureStorage.deleteToken();
+            await SecureStorage.deleteUserData();
+            
+            // Appeler le callback pour notifier l'AuthController
+            if (_onUnauthorized != null) {
+              _onUnauthorized!();
+            }
+            
+            // Rediriger vers la page de login
             _router.go('/login');
+            
+            // Ne pas continuer avec l'erreur pour éviter d'afficher des messages d'erreur
+            return;
           }
+          
+          // Pour toutes les autres erreurs, continuer normalement
           handler.next(error);
         },
       ),

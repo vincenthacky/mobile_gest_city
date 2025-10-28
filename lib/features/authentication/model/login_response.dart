@@ -44,7 +44,7 @@ class LoginData {
   factory LoginData.fromJson(Map<String, dynamic> json) {
     return LoginData(
       user: UserModel.fromJson(json['user']),
-      token: json['token'],
+      token: json['tokens']['access_token'], // Correction : le token est dans tokens.access_token
     );
   }
 

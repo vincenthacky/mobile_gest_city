@@ -7,8 +7,8 @@ import 'core/utils/app_router.dart';
 import 'core/controller/home_controller.dart';
 import 'features/authentication/controller/auth_controller.dart';
 import 'features/authentication/controller/register_controller.dart';
-import 'features/cotisations/controller/cotisations_controller.dart';
-import 'features/cotisations/controller/payment_proof_controller.dart';
+// import 'features/cotisations/controller/cotisations_controller.dart';
+// import 'features/cotisations/controller/payment_proof_controller.dart';
 
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,17 +21,35 @@ Future<void> bootstrap() async {
   runApp(GestCityApp(router: router));
 }
 
-class GestCityApp extends StatelessWidget {
+class GestCityApp extends StatefulWidget {
   final GoRouter router;
   
   const GestCityApp({super.key, required this.router});
 
   @override
+  State<GestCityApp> createState() => _GestCityAppState();
+}
+
+class _GestCityAppState extends State<GestCityApp> {
+  late AuthController _authController;
+
+  @override
+  void initState() {
+    super.initState();
+    _authController = AuthController();
+    
+    // Configurer le callback pour les erreurs 401
+    DioClient.setUnauthorizedCallback(() {
+      _authController.forceLogout();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => AuthController(),
+        ChangeNotifierProvider.value(
+          value: _authController,
         ),
         ChangeNotifierProvider(
           create: (_) => RegisterController(),
@@ -39,12 +57,12 @@ class GestCityApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => HomeController(),
         ),
-        ChangeNotifierProvider(
-          create: (_) => CotisationsController(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => PaymentProofController(),
-        ),
+        // ChangeNotifierProvider(
+        //   create: (_) => CotisationsController(),
+        // ),
+        // ChangeNotifierProvider(
+        //   create: (_) => PaymentProofController(),
+        // ),
       ],
       child: MaterialApp.router(
         title: 'Gest City',
@@ -73,7 +91,7 @@ class GestCityApp extends StatelessWidget {
             ),
           ),
         ),
-        routerConfig: router,
+        routerConfig: widget.router,
       ),
     );
   }
