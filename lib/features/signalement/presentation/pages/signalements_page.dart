@@ -101,7 +101,7 @@ class _SignalementsPageState extends State<SignalementsPage> {
       priority: PriorityLevel.urgent,
       dateCreation: DateTime.now().subtract(const Duration(hours: 2)),
       location: 'Derrière résidence A, bloc 3',
-      photos: ['../../enfant_fumant.jpg'],
+      photos: ['assets/images/enfant_fumant.jpg'],
       auteur: 'Marie Dupont',
     ),
     Signalement(
@@ -113,7 +113,7 @@ class _SignalementsPageState extends State<SignalementsPage> {
       priority: PriorityLevel.eleve,
       dateCreation: DateTime.now().subtract(const Duration(hours: 5)),
       location: 'Parking central',
-      photos: ['../../individue_suspect.jpg'],
+      photos: ['assets/images/individue_suspect.jpg'],
       auteur: 'Ahmed Ben Ali',
     ),
     Signalement(
