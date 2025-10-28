@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../controller/projects_controller.dart';
 
 class AjouterProjetPage extends StatefulWidget {
   const AjouterProjetPage({super.key});
@@ -12,10 +15,12 @@ class _AjouterProjetPageState extends State<AjouterProjetPage> {
   final _formKey = GlobalKey<FormState>();
   final _titreController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _budgetController = TextEditingController();
   DateTime? _dateDebut;
   DateTime? _dateCloture;
   IconData _selectedIcon = Icons.lightbulb;
   Color _selectedColor = const Color(0xFF3B82F6);
+  bool _isLoading = false;
 
   final List<IconData> _icons = [
     Icons.lightbulb,
@@ -45,6 +50,7 @@ class _AjouterProjetPageState extends State<AjouterProjetPage> {
   void dispose() {
     _titreController.dispose();
     _descriptionController.dispose();
+    _budgetController.dispose();
     super.dispose();
   }
 
@@ -221,6 +227,70 @@ class _AjouterProjetPageState extends State<AjouterProjetPage> {
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
                                       return 'Veuillez entrer une description';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                            
+                            // Budget
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Budget estimé (optionnel)',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF374151),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                TextFormField(
+                                  controller: _budgetController,
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                                  ],
+                                  decoration: InputDecoration(
+                                    hintText: 'Ex: 50000',
+                                    prefixIcon: const Icon(
+                                      Icons.attach_money,
+                                      color: Color(0xFF9CA3AF),
+                                    ),
+                                    suffixText: 'FCFA',
+                                    filled: true,
+                                    fillColor: const Color(0xFFF3F4F6),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFFE5E7EB),
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFF3B82F6),
+                                        width: 2,
+                                      ),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                  validator: (value) {
+                                    if (value != null && value.isNotEmpty) {
+                                      final budget = double.tryParse(value);
+                                      if (budget == null || budget < 0) {
+                                        return 'Veuillez entrer un budget valide';
+                                      }
                                     }
                                     return null;
                                   },
@@ -479,7 +549,7 @@ class _AjouterProjetPageState extends State<AjouterProjetPage> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: _createProject,
+                  onPressed: _isLoading ? null : _createProject,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF3B82F6),
                     foregroundColor: Colors.white,
@@ -488,13 +558,22 @@ class _AjouterProjetPageState extends State<AjouterProjetPage> {
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    'Créer le projet',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'Créer le projet',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                 ),
               ),
             ],
@@ -536,47 +615,110 @@ class _AjouterProjetPageState extends State<AjouterProjetPage> {
     }
   }
 
-  void _createProject() {
-    if (_formKey.currentState!.validate()) {
-      if (_dateDebut == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Veuillez sélectionner une date de début'),
-            backgroundColor: Color(0xFFEF4444),
-          ),
-        );
-        return;
-      }
-      
-      if (_dateCloture == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Veuillez sélectionner une date de clôture'),
-            backgroundColor: Color(0xFFEF4444),
-          ),
-        );
-        return;
-      }
-      
-      if (_dateCloture!.isBefore(_dateDebut!)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('La date de clôture doit être après la date de début'),
-            backgroundColor: Color(0xFFEF4444),
-          ),
-        );
-        return;
-      }
+  String _getIconName(IconData icon) {
+    final iconMap = {
+      Icons.lightbulb: 'lightbulb',
+      Icons.fence: 'fence',
+      Icons.cleaning_services: 'cleaning_services',
+      Icons.water_drop: 'water_drop',
+      Icons.park: 'park',
+      Icons.construction: 'build',
+      Icons.nature: 'nature',
+      Icons.directions_car: 'directions_car',
+      Icons.sports_soccer: 'sports_soccer',
+      Icons.local_hospital: 'local_hospital',
+    };
+    return iconMap[icon] ?? 'lightbulb';
+  }
 
-      // TODO: Ajouter le projet à la liste
+  String _colorToHex(Color color) {
+    return '#${color.value.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+  }
+
+  Future<void> _createProject() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    if (_dateDebut == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Projet créé avec succès !'),
-          backgroundColor: Color(0xFF10B981),
+          content: Text('Veuillez sélectionner une date de début'),
+          backgroundColor: Color(0xFFEF4444),
         ),
       );
+      return;
+    }
+    
+    if (_dateCloture == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Veuillez sélectionner une date de clôture'),
+          backgroundColor: Color(0xFFEF4444),
+        ),
+      );
+      return;
+    }
+    
+    if (_dateCloture!.isBefore(_dateDebut!)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('La date de clôture doit être après la date de début'),
+          backgroundColor: Color(0xFFEF4444),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final projectsController = context.read<ProjectsController>();
       
-      context.go('/projets');
+      // Préparer les données
+      final budget = _budgetController.text.isNotEmpty 
+          ? double.tryParse(_budgetController.text)
+          : null;
+          
+      await projectsController.createProject(
+        title: _titreController.text.trim(),
+        description: _descriptionController.text.trim().isEmpty 
+            ? null 
+            : _descriptionController.text.trim(),
+        voteStartDate: _dateDebut!,
+        voteEndDate: _dateCloture!,
+        budget: budget,
+        icon: _getIconName(_selectedIcon),
+        color: _colorToHex(_selectedColor),
+      );
+
+      // Succès
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Projet créé avec succès !'),
+            backgroundColor: Color(0xFF10B981),
+          ),
+        );
+        context.go('/projets');
+      }
+    } catch (e) {
+      // Erreur
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors de la création : ${e.toString()}'),
+            backgroundColor: const Color(0xFFEF4444),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 }

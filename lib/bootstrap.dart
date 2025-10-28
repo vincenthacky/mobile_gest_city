@@ -7,6 +7,7 @@ import 'core/utils/app_router.dart';
 import 'core/controller/home_controller.dart';
 import 'features/authentication/controller/auth_controller.dart';
 import 'features/authentication/controller/register_controller.dart';
+import 'features/projets/controller/projects_controller.dart';
 // import 'features/cotisations/controller/cotisations_controller.dart';
 // import 'features/cotisations/controller/payment_proof_controller.dart';
 
@@ -56,6 +57,9 @@ class _GestCityAppState extends State<GestCityApp> {
         ),
         ChangeNotifierProvider(
           create: (_) => HomeController(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ProjectsController(),
         ),
         // ChangeNotifierProvider(
         //   create: (_) => CotisationsController(),
