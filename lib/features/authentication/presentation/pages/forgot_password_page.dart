@@ -22,15 +22,27 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final screenHeight = mediaQuery.size.height;
+    final screenWidth = mediaQuery.size.width;
+    final isSmallScreen = screenHeight < 700;
+    final isVerySmallScreen = screenHeight < 600;
+    final keyboardVisible = mediaQuery.viewInsets.bottom > 0;
+    
+    // Responsive padding
+    final horizontalPadding = screenWidth < 400 ? 16.0 : 32.0;
+    final verticalPadding = isSmallScreen ? 16.0 : 32.0;
+    
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Column(
           children: [
             // Header avec bouton retour
             Container(
-              height: 64,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              height: isVerySmallScreen ? 56 : 64,
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
               child: Row(
                 children: [
                   IconButton(
@@ -51,46 +63,55 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             ),
             // Contenu principal
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(32.0),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 32),
-                    Container(
-                      height: 80,
-                      width: 80,
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Icon(
-                        Icons.email_outlined,
-                        size: 48,
-                        color: Color(0xFF3B82F6),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    Text(
-                      _emailSent ? 'Email envoyé !' : 'Mot de passe oublié',
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1F2937),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _emailSent 
-                          ? 'Vérifiez votre boîte email pour les instructions de réinitialisation.'
-                          : 'Entrez votre email pour recevoir un lien de réinitialisation.',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Color(0xFF6B7280),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 48),
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: verticalPadding,
+                ),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: screenHeight - mediaQuery.padding.top - mediaQuery.padding.bottom - (verticalPadding * 2) - (isVerySmallScreen ? 56 : 64),
+                  ),
+                  child: IntrinsicHeight(
+                    child: Column(
+                      mainAxisAlignment: keyboardVisible ? MainAxisAlignment.start : MainAxisAlignment.center,
+                      children: [
+                        if (keyboardVisible) const SizedBox(height: 20),
+                        Container(
+                          height: isVerySmallScreen ? 60 : (isSmallScreen ? 70 : 80),
+                          width: isVerySmallScreen ? 60 : (isSmallScreen ? 70 : 80),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Icon(
+                            Icons.email_outlined,
+                            size: isVerySmallScreen ? 36 : (isSmallScreen ? 42 : 48),
+                            color: const Color(0xFF3B82F6),
+                          ),
+                        ),
+                        SizedBox(height: isVerySmallScreen ? 16 : (isSmallScreen ? 24 : 32)),
+                        Text(
+                          _emailSent ? 'Email envoyé !' : 'Mot de passe oublié',
+                          style: TextStyle(
+                            fontSize: isVerySmallScreen ? 24 : (isSmallScreen ? 26 : 28),
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF1F2937),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _emailSent 
+                              ? 'Vérifiez votre boîte email pour les instructions de réinitialisation.'
+                              : 'Entrez votre email pour recevoir un lien de réinitialisation.',
+                          style: TextStyle(
+                            fontSize: isVerySmallScreen ? 14 : 16,
+                            color: const Color(0xFF6B7280),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        SizedBox(height: isVerySmallScreen ? 24 : (isSmallScreen ? 32 : 48)),
                     if (!_emailSent) ...[
                       Form(
                         key: _formKey,
@@ -149,7 +170,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                                 return null;
                               },
                             ),
-                            const SizedBox(height: 32),
+                            SizedBox(height: isVerySmallScreen ? 20 : (isSmallScreen ? 24 : 32)),
                             SizedBox(
                               width: double.infinity,
                               height: 56,
@@ -210,7 +231,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                         ),
                       ),
                     ],
-                  ],
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),

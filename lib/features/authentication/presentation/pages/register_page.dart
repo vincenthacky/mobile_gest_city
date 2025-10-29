@@ -31,17 +31,29 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final screenHeight = mediaQuery.size.height;
+    final screenWidth = mediaQuery.size.width;
+    final isSmallScreen = screenHeight < 700;
+    final isVerySmallScreen = screenHeight < 600;
+    final keyboardVisible = mediaQuery.viewInsets.bottom > 0;
+    
+    // Responsive padding
+    final horizontalPadding = screenWidth < 400 ? 16.0 : 24.0;
+    final verticalPadding = isSmallScreen ? 12.0 : 24.0;
+    
     return Consumer<RegisterController>(
       builder: (context, registerController, child) {
         return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Column(
           children: [
             // Header avec bouton retour
             Container(
-              height: 64,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              height: isVerySmallScreen ? 56 : 64,
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
               child: Row(
                 children: [
                   IconButton(
@@ -63,20 +75,23 @@ class _RegisterPageState extends State<RegisterPage> {
             // Contenu principal
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
+                padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding,
+                  vertical: verticalPadding,
+                ),
                 child: Column(
                   children: [
-                    const SizedBox(height: 32),
-                    const Text(
+                    if (!keyboardVisible) SizedBox(height: isVerySmallScreen ? 16 : (isSmallScreen ? 20 : 32)),
+                    Text(
                       'Inscription',
                       style: TextStyle(
-                        fontSize: 32,
+                        fontSize: isVerySmallScreen ? 24 : (isSmallScreen ? 28 : 32),
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF1F2937),
+                        color: const Color(0xFF1F2937),
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 32),
+                    SizedBox(height: isVerySmallScreen ? 16 : (isSmallScreen ? 20 : 32)),
                     Form(
                       key: _formKey,
                       child: Column(
@@ -133,7 +148,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 24),
+                          SizedBox(height: isVerySmallScreen ? 16 : (isSmallScreen ? 20 : 24)),
                           // Email
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,7 +205,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 24),
+                          SizedBox(height: isVerySmallScreen ? 16 : (isSmallScreen ? 20 : 24)),
                           // Numéro de téléphone
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -244,7 +259,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 24),
+                          SizedBox(height: isVerySmallScreen ? 16 : (isSmallScreen ? 20 : 24)),
                           // Mot de passe
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -314,7 +329,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 24),
+                          SizedBox(height: isVerySmallScreen ? 16 : (isSmallScreen ? 20 : 24)),
                           // Villa ID
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -371,7 +386,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 32),
+                          SizedBox(height: isVerySmallScreen ? 20 : (isSmallScreen ? 24 : 32)),
                           // Bouton inscription
                           SizedBox(
                             width: double.infinity,
@@ -414,34 +429,41 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
             ),
             // Footer
-            Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    'Vous avez déjà un compte ? ',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF6B7280),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      context.go('/login');
-                    },
-                    child: const Text(
-                      'Se connecter',
+            if (!keyboardVisible || !isSmallScreen)
+              Padding(
+                padding: EdgeInsets.all(verticalPadding),
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(
+                      'Vous avez déjà un compte ? ',
                       style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF6366F1),
+                        fontSize: isVerySmallScreen ? 12 : 14,
+                        color: const Color(0xFF6B7280),
                       ),
                     ),
-                  ),
-                ],
+                    TextButton(
+                      onPressed: () {
+                        context.go('/login');
+                      },
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        'Se connecter',
+                        style: TextStyle(
+                          fontSize: isVerySmallScreen ? 12 : 14,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF6366F1),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
           ],
         ),
       ),
