@@ -111,8 +111,8 @@ class ContributionDataSource {
 
   Future<PaymentProofResponse> submitPaymentProof(PaymentProofRequest request) async {
     try {
-      // Créer FormData pour envoyer le fichier
-      FormData formData = FormData.fromMap({
+      // Créer le FormData pour l'envoi multipart - exactement comme l'ancienne version
+      final formData = FormData.fromMap({
         'comment': request.comment,
         'phone': request.phone,
         'provider': request.provider.apiValue,
