@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
 import '../../models/payment_proofs_model.dart';
 import '../../../../core/services/pdf_service.dart';
 
@@ -176,7 +175,7 @@ class CotisationDetailPage extends StatelessWidget {
                             ),
                           ),
                           child: InkWell(
-                            onTap: () => _showShareOptions(context, title, montant.toStringAsFixed(0), date, paymentMethod, cotisationId, isPaid ? 'Validé' : 'En attente'),
+                            onTap: () => _generateAndSharePdf(context, title, montant.toStringAsFixed(0), date, paymentMethod, cotisationId, isPaid ? 'Validé' : 'En attente'),
                             borderRadius: BorderRadius.circular(12),
                             child: Container(
                               padding: EdgeInsets.symmetric(
@@ -576,270 +575,51 @@ class CotisationDetailPage extends StatelessWidget {
     );
   }
 
-  void _shareCotisation(BuildContext context) {
-    // Utiliser les données appropriées selon la source
-    late final String shareTitle;
-    late final String shareAmount;
-    late final String shareDate;
-    late final String shareMode;
-    late final String shareStatus;
+
+  // Générer et partager le PDF directement avec la fenêtre native
+  Future<void> _generateAndSharePdf(BuildContext context, String title, String amount, String date, String paymentMethod, String paymentId, String status) async {
+    bool isLoading = true;
     
-    if (paymentProof != null) {
-      shareTitle = paymentProof!.displayTitle;
-      shareAmount = paymentProof!.formattedAmount;
-      shareDate = paymentProof!.formattedDate;
-      shareMode = paymentProof!.formattedPaymentMethod;
-      shareStatus = paymentProof!.isValidated ? 'Validé' : 'En attente';
-    } else {
-      shareTitle = cotisation!['title'];
-      shareAmount = '5 000 FCFA';
-      shareDate = cotisation!['date'];
-      shareMode = cotisation!['paymentMethod'] ?? 'Code QR';
-      shareStatus = 'Payé';
-    }
-    
-    final shareText = '''
-Cotisation GestCity
-
-Type: $shareTitle
-Montant: +$shareAmount
-Date: $shareDate
-Mode: $shareMode
-Statut: $shareStatus
-
-Généré via GestCity
-''';
-
-    // Utilisation du nouveau système de partage PDF (obsolète)
-    _showShareOptions(context, shareTitle, shareAmount, shareDate, shareMode, '', shareStatus);
-  }
-
-  // Nouvelle méthode pour afficher les options de partage
-  void _showShareOptions(BuildContext context, String title, String amount, String date, String paymentMethod, String paymentId, String status) {
-    showModalBottomSheet(
+    // Afficher un indicateur de chargement avec possibilité d'annulation
+    showDialog(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext context) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Handle
-                Container(
-                  margin: const EdgeInsets.only(top: 12),
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+      barrierDismissible: true, // Permettre d'annuler en cliquant en dehors
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(
+                color: Color(0xFF10B981),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Génération du PDF...',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
                 ),
-                
-                // Header
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      const Icon(
-                        Icons.share,
-                        size: 48,
-                        color: Color(0xFF4F46E5),
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Partager le reçu',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1F2937),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Choisissez comment vous souhaitez partager votre reçu',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade600,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () {
+                  isLoading = false;
+                  Navigator.pop(dialogContext);
+                },
+                child: const Text(
+                  'Annuler',
+                  style: TextStyle(color: Colors.grey),
                 ),
-                
-                // Options
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Column(
-                    children: [
-                      // Option PDF + Partage natif
-                      _buildShareOption(
-                        context: context,
-                        icon: Icons.picture_as_pdf,
-                        title: 'Générer et partager PDF',
-                        subtitle: 'Créer un reçu PDF et le partager',
-                        color: const Color(0xFFDC2626),
-                        onTap: () async {
-                          Navigator.pop(context);
-                          await _generateAndSharePdf(context, title, amount, date, paymentMethod, paymentId, status);
-                        },
-                      ),
-                      
-                      const SizedBox(height: 12),
-                      
-                      // Option Preview + Imprimer
-                      _buildShareOption(
-                        context: context,
-                        icon: Icons.print,
-                        title: 'Aperçu et impression',
-                        subtitle: 'Voir le reçu et choisir les options',
-                        color: const Color(0xFF4F46E5),
-                        onTap: () async {
-                          Navigator.pop(context);
-                          await _showPrintPreview(context, title, amount, date, paymentMethod, paymentId, status);
-                        },
-                      ),
-                      
-                      const SizedBox(height: 12),
-                      
-                      // Option Texte simple
-                      _buildShareOption(
-                        context: context,
-                        icon: Icons.text_format,
-                        title: 'Partager en texte',
-                        subtitle: 'Partager les informations en texte simple',
-                        color: const Color(0xFF059669),
-                        onTap: () {
-                          Navigator.pop(context);
-                          _shareAsText(context, title, amount, date, paymentMethod, paymentId, status);
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // Bouton Annuler
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'Annuler',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },
     );
-  }
 
-  Widget _buildShareOption({
-    required BuildContext context,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade200),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                icon,
-                color: color,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1F2937),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: Colors.grey.shade400,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Générer et partager le PDF
-  Future<void> _generateAndSharePdf(BuildContext context, String title, String amount, String date, String paymentMethod, String paymentId, String status) async {
     try {
-      // Afficher un indicateur de chargement
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return const AlertDialog(
-            content: Row(
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(width: 20),
-                Text('Génération du PDF...'),
-              ],
-            ),
-          );
-        },
-      );
-
+      // Générer et partager le PDF avec timeout
       await PdfService.generateAndShareReceipt(
         title: title,
         amount: '$amount FCFA',
@@ -847,76 +627,40 @@ Généré via GestCity
         paymentMethod: paymentMethod,
         paymentId: paymentId,
         status: status,
+      ).timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          throw Exception('Timeout - La génération du PDF a pris trop de temps');
+        },
       );
 
-      if (context.mounted) {
-        Navigator.pop(context); // Fermer le dialogue de chargement
+      // Fermer le dialogue de chargement si toujours ouvert
+      if (context.mounted && isLoading) {
+        Navigator.pop(context);
       }
       
     } catch (e) {
-      if (context.mounted) {
-        Navigator.pop(context); // Fermer le dialogue de chargement
+      // Fermer le dialogue de chargement si toujours ouvert
+      if (context.mounted && isLoading) {
+        Navigator.pop(context);
+        
+        // Afficher l'erreur
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur: $e'),
+            content: Text('Erreur: ${e.toString().replaceAll('Exception: ', '')}'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'Réessayer',
+              textColor: Colors.white,
+              onPressed: () => _generateAndSharePdf(context, title, amount, date, paymentMethod, paymentId, status),
+            ),
           ),
         );
       }
     }
   }
 
-  // Afficher l'aperçu et les options d'impression
-  Future<void> _showPrintPreview(BuildContext context, String title, String amount, String date, String paymentMethod, String paymentId, String status) async {
-    try {
-      await PdfService.showPrintOptions(
-        title: title,
-        amount: '$amount FCFA',
-        date: date,
-        paymentMethod: paymentMethod,
-        paymentId: paymentId,
-        status: status,
-      );
-      
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  // Partager en texte simple (méthode existante améliorée)
-  void _shareAsText(BuildContext context, String title, String amount, String date, String paymentMethod, String paymentId, String status) {
-    final shareText = '''
-🏦 REÇU DE PAIEMENT - GestCity
-
-📋 Type: $title
-💰 Montant: +$amount FCFA
-📅 Date: $date
-🔄 Mode: $paymentMethod
-🆔 ID: $paymentId
-✅ Statut: $status
-
-Généré via GestCity
-''';
-
-    try {
-      // Utiliser le package share_plus pour partager le texte
-      Share.share(shareText, subject: 'Reçu de cotisation GestCity');
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur lors du partage: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
 
   // Méthodes helper pour les modes de paiement
   Color _getPaymentMethodColor(String paymentMethod) {

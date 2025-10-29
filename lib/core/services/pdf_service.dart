@@ -4,7 +4,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:printing/printing.dart';
+import 'package:flutter/foundation.dart';
 
 class PdfService {
   static Future<void> generateAndShareReceipt({
@@ -16,6 +16,10 @@ class PdfService {
     required String status,
   }) async {
     try {
+      if (kDebugMode) {
+        print('🔄 Début génération PDF...');
+      }
+
       // Créer le document PDF
       final pdf = pw.Document();
 
@@ -70,11 +74,22 @@ class PdfService {
         ),
       );
 
-      // Sauvegarder et partager le PDF
+      if (kDebugMode) {
+        print('📄 PDF créé, génération des bytes...');
+      }
+
+      // Sauvegarder et partager le PDF directement
       await _saveAndSharePdf(pdf);
       
+      if (kDebugMode) {
+        print('✅ PDF partagé avec succès');
+      }
+      
     } catch (e) {
-      throw Exception('Erreur lors de la génération du PDF: $e');
+      if (kDebugMode) {
+        print('❌ Erreur PDF: $e');
+      }
+      rethrow;
     }
   }
 
@@ -254,90 +269,53 @@ class PdfService {
 
   static Future<void> _saveAndSharePdf(pw.Document pdf) async {
     try {
-      // Générer les bytes du PDF
-      final Uint8List bytes = await pdf.save();
+      if (kDebugMode) {
+        print('💾 Sauvegarde PDF...');
+      }
+
+      // Générer les bytes du PDF avec un timeout
+      final Uint8List bytes = await pdf.save().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Timeout lors de la génération du PDF');
+        },
+      );
       
+      if (kDebugMode) {
+        print('📁 Création du fichier temporaire...');
+      }
+
       // Obtenir le répertoire temporaire
       final Directory tempDir = await getTemporaryDirectory();
-      final String fileName = 'recu_cotisation_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      final String fileName = 'recu_gestcity_${DateTime.now().millisecondsSinceEpoch}.pdf';
       final String filePath = '${tempDir.path}/$fileName';
       
       // Créer le fichier
       final File file = File(filePath);
       await file.writeAsBytes(bytes);
       
+      if (kDebugMode) {
+        print('📤 Ouverture du partage natif...');
+      }
+
       // Partager le fichier avec les applications natives
-      await Share.shareXFiles(
-        [XFile(filePath)],
-        text: 'Reçu de paiement GestCity',
-        subject: 'Reçu de cotisation',
+      // Utilisation de la nouvelle API optimisée
+      final result = await Share.shareXFiles(
+        [XFile(filePath, name: fileName, mimeType: 'application/pdf')],
+        text: 'Reçu de cotisation - GestCity',
+        subject: 'Reçu de paiement GestCity',
       );
       
+      if (kDebugMode) {
+        print('🎯 Résultat partage: ${result.status}');
+      }
+      
     } catch (e) {
-      throw Exception('Erreur lors du partage du PDF: $e');
+      if (kDebugMode) {
+        print('❌ Erreur partage: $e');
+      }
+      rethrow;
     }
   }
 
-  // Méthode alternative pour afficher les options de partage avec preview
-  static Future<void> showPrintOptions({
-    required String title,
-    required String amount,
-    required String date,
-    required String paymentMethod,
-    required String paymentId,
-    required String status,
-  }) async {
-    try {
-      // Créer le document PDF
-      final pdf = pw.Document();
-
-      pdf.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.all(32),
-          build: (pw.Context context) {
-            return pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                _buildHeader(),
-                pw.SizedBox(height: 40),
-                pw.Center(
-                  child: pw.Text(
-                    'REÇU DE PAIEMENT',
-                    style: pw.TextStyle(
-                      fontSize: 24,
-                      fontWeight: pw.FontWeight.bold,
-                      color: PdfColors.indigo,
-                    ),
-                  ),
-                ),
-                pw.SizedBox(height: 30),
-                _buildPaymentInfo(
-                  title: title,
-                  amount: amount,
-                  date: date,
-                  paymentMethod: paymentMethod,
-                  paymentId: paymentId,
-                  status: status,
-                ),
-                pw.SizedBox(height: 40),
-                _buildStatusSection(status),
-                pw.Spacer(),
-                _buildFooter(),
-              ],
-            );
-          },
-        ),
-      );
-
-      // Afficher les options d'impression/partage natives
-      await Printing.layoutPdf(
-        onLayout: (PdfPageFormat format) async => pdf.save(),
-        name: 'Reçu_cotisation_${DateTime.now().millisecondsSinceEpoch}',
-      );
-      
-    } catch (e) {
-      throw Exception('Erreur lors de l\'affichage des options: $e');
-    }
-  }
 }
