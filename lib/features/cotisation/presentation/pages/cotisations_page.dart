@@ -6,6 +6,8 @@ import 'qr_paiement_page.dart';
 import 'cotisation_detail_page.dart';
 import '../../../../core/widgets/app_header.dart';
 import '../../controller/contribution_controller.dart';
+import '../../../authentication/controller/auth_controller.dart';
+import '../../models/payment_proofs_model.dart';
 
 class CotisationsPage extends StatefulWidget {
   const CotisationsPage({super.key});
@@ -16,6 +18,7 @@ class CotisationsPage extends StatefulWidget {
 
 class _CotisationsPageState extends State<CotisationsPage> with TickerProviderStateMixin {
   bool _showingPayments = true;
+  bool _showingValidated = true; // true = validated payments, false = pending payments
   
   // Animation controllers
   late AnimationController _slideController;
@@ -32,9 +35,11 @@ class _CotisationsPageState extends State<CotisationsPage> with TickerProviderSt
     super.initState();
     _initializeAnimations();
     _startAnimations();
-    // Charger les données de cotisation
+    // Charger les données de cotisation avec les paiements de l'utilisateur connecté
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ContributionController>().loadContribution();
+      final authController = context.read<AuthController>();
+      final userId = authController.user?.id;
+      context.read<ContributionController>().loadContribution(userId: userId);
     });
   }
 
@@ -582,154 +587,342 @@ class _CotisationsPageState extends State<CotisationsPage> with TickerProviderSt
   }
 
   Widget _buildToggleSection() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Colors.grey.shade300,
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.grey.shade300,
+                width: 1,
               ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              InkWell(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  setState(() {
-                    _showingPayments = true;
-                  });
-                },
-                borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: _showingPayments ? const Color(0xFF4F46E5) : Colors.transparent,
-                    borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.check_circle,
-                        size: 16,
-                        color: _showingPayments ? Colors.white : Colors.grey.shade600,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Payés',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: _showingPayments ? Colors.white : Colors.grey.shade600,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Paiements Validés
+                InkWell(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    setState(() {
+                      _showingPayments = true;
+                      _showingValidated = true;
+                    });
+                  },
+                  borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: (_showingPayments && _showingValidated) ? const Color(0xFF10B981) : Colors.transparent,
+                      borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.check_circle,
+                          size: 14,
+                          color: (_showingPayments && _showingValidated) ? Colors.white : Colors.grey.shade600,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Text(
+                          'Validés',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: (_showingPayments && _showingValidated) ? Colors.white : Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              InkWell(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  setState(() {
-                    _showingPayments = false;
-                  });
-                },
-                borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: !_showingPayments ? const Color(0xFFEF4444) : Colors.transparent,
-                    borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
+                // Paiements en Attente
+                InkWell(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    setState(() {
+                      _showingPayments = true;
+                      _showingValidated = false;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: (_showingPayments && !_showingValidated) ? const Color(0xFFF59E0B) : Colors.transparent,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.hourglass_empty,
+                          size: 14,
+                          color: (_showingPayments && !_showingValidated) ? Colors.white : Colors.grey.shade600,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'En attente',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: (_showingPayments && !_showingValidated) ? Colors.white : Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.warning_amber,
-                        size: 16,
-                        color: !_showingPayments ? Colors.white : Colors.grey.shade600,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Retards',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                ),
+                // Retards
+                InkWell(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    setState(() {
+                      _showingPayments = false;
+                      _showingValidated = false;
+                    });
+                  },
+                  borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: !_showingPayments ? const Color(0xFFEF4444) : Colors.transparent,
+                      borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.warning_amber,
+                          size: 14,
                           color: !_showingPayments ? Colors.white : Colors.grey.shade600,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 4),
+                        Text(
+                          'Retards',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: !_showingPayments ? Colors.white : Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   List<Widget> _getPaymentItems() {
     if (_showingPayments) {
-      // Section "Payés" - données statiques pour le moment
-      return [
-        _buildPaymentItem(
-          'Cotisation Mensuelle Novembre',
-          '26 octobre 2025 à 20:43',
-          '5.000F',
-          true,
-          false,
-          paymentMethod: 'Code QR',
-        ),
-        _buildPaymentItem(
-          'Cotisation Mensuelle Octobre',
-          '26 octobre 2025 à 20:27',
-          '5.000F',
-          true,
-          false,
-          paymentMethod: 'Preuve',
-        ),
-        _buildPaymentItem(
-          'Cotisation Mensuelle Septembre',
-          '24 octobre 2025 à 11:08',
-          '5.000F',
-          true,
-          false,
-          paymentMethod: 'Code QR',
-        ),
-        _buildPaymentItem(
-          'Cotisation Mensuelle Août',
-          '15 août 2025 à 14:30',
-          '5.000F',
-          true,
-          false,
-          paymentMethod: 'Preuve',
-        ),
-        _buildPaymentItem(
-          'Cotisation Mensuelle Juillet',
-          '10 juillet 2025 à 09:15',
-          '5.000F',
-          true,
-          true, // isLast
-          paymentMethod: 'Code QR',
-        ),
-      ];
+      if (_showingValidated) {
+        // Section "Paiements Validés"
+        return _buildValidatedPaymentsItems();
+      } else {
+        // Section "Paiements en Attente"
+        return _buildPendingPaymentsItems();
+      }
     } else {
       // Section "Retards" - données dynamiques de l'API
       return _buildUnpaidMonthsItems();
     }
+  }
+
+  List<Widget> _buildValidatedPaymentsItems() {
+    return [
+      Consumer<ContributionController>(
+        builder: (context, controller, child) {
+          final validatedPayments = controller.validatedPayments;
+          final pagination = controller.validatedPagination;
+          
+          if (validatedPayments.isEmpty) {
+            return Container(
+              padding: const EdgeInsets.all(40),
+              color: Colors.white,
+              child: const Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.payment_outlined,
+                      size: 48,
+                      color: Color(0xFF6B7280),
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'Aucun paiement validé',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Vos paiements validés apparaîtront ici',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF6B7280),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+          
+          List<Widget> items = validatedPayments.asMap().entries.map((entry) {
+            final index = entry.key;
+            final payment = entry.value;
+            final isLast = index == validatedPayments.length - 1 && pagination?.hasNextPage != true;
+            
+            return _buildPaymentItem(
+              payment.displayTitle,
+              payment.formattedDate,
+              payment.formattedAmount,
+              true, // isPaid
+              isLast,
+              paymentMethod: payment.formattedPaymentMethod,
+              paymentProof: payment, // Passer l'objet PaymentProof
+            );
+          }).toList();
+          
+          // Ajouter un bouton pour charger plus si pagination disponible
+          if (pagination?.hasNextPage == true) {
+            items.add(_buildLoadMoreButton(isValidated: true));
+          }
+          
+          return Column(children: items);
+        },
+      ),
+    ];
+  }
+
+  List<Widget> _buildPendingPaymentsItems() {
+    return [
+      Consumer<ContributionController>(
+        builder: (context, controller, child) {
+          final pendingPayments = controller.pendingPayments;
+          final pagination = controller.pendingPagination;
+          
+          if (pendingPayments.isEmpty) {
+            return Container(
+              padding: const EdgeInsets.all(40),
+              color: Colors.white,
+              child: const Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.hourglass_empty,
+                      size: 48,
+                      color: Color(0xFF6B7280),
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'Aucun paiement en attente',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Vos paiements en cours de validation apparaîtront ici',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF6B7280),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+          
+          List<Widget> items = pendingPayments.asMap().entries.map((entry) {
+            final index = entry.key;
+            final payment = entry.value;
+            final isLast = index == pendingPayments.length - 1 && pagination?.hasNextPage != true;
+            
+            return _buildPaymentItem(
+              payment.displayTitle,
+              payment.formattedDate,
+              payment.formattedAmount,
+              false, // isPaid (en attente)
+              isLast,
+              paymentMethod: payment.formattedPaymentMethod,
+              paymentProof: payment, // Passer l'objet PaymentProof
+            );
+          }).toList();
+          
+          // Ajouter un bouton pour charger plus si pagination disponible
+          if (pagination?.hasNextPage == true) {
+            items.add(_buildLoadMoreButton(isValidated: false));
+          }
+          
+          return Column(children: items);
+        },
+      ),
+    ];
+  }
+
+  Widget _buildLoadMoreButton({required bool isValidated}) {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      child: OutlinedButton(
+        onPressed: () async {
+          final authController = context.read<AuthController>();
+          final userId = authController.user?.id;
+          if (userId != null) {
+            final contributionController = context.read<ContributionController>();
+            if (isValidated) {
+              await contributionController.loadMoreValidatedPayments(userId);
+            } else {
+              await contributionController.loadMorePendingPayments(userId);
+            }
+          }
+        },
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFF4F46E5),
+          side: const BorderSide(color: Color(0xFF4F46E5)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.keyboard_arrow_down, size: 18),
+            SizedBox(width: 8),
+            Text(
+              'Charger plus',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   List<Widget> _buildUnpaidMonthsItems() {
@@ -808,7 +1001,7 @@ class _CotisationsPageState extends State<CotisationsPage> with TickerProviderSt
     ];
   }
 
-  Widget _buildPaymentItem(String title, String date, String amount, bool isPaid, bool isLast, {String? paymentMethod}) {
+  Widget _buildPaymentItem(String title, String date, String amount, bool isPaid, bool isLast, {String? paymentMethod, PaymentProof? paymentProof}) {
     // Fonction pour obtenir l'icône selon le type
     IconData getPaymentIcon() {
       return Icons.account_balance_wallet; // Icône de portefeuille pour cotisations
@@ -939,13 +1132,15 @@ class _CotisationsPageState extends State<CotisationsPage> with TickerProviderSt
                 context,
                 MaterialPageRoute(
                   builder: (context) => CotisationDetailPage(
-                    cotisation: {
+                    // Utiliser PaymentProof si disponible, sinon utiliser l'ancienne structure
+                    paymentProof: paymentProof,
+                    cotisation: paymentProof == null ? {
                       'title': title,
                       'date': date,
                       'amount': amount,
                       'isPaid': isPaid,
                       'paymentMethod': paymentMethod ?? 'Code QR',
-                    },
+                    } : null,
                   ),
                 ),
               );

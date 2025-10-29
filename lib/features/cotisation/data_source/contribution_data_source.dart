@@ -4,6 +4,7 @@ import '../models/contribution_model.dart';
 import '../models/qr_code_model.dart';
 import '../models/unpaid_months_model.dart';
 import '../models/payment_proof_model.dart';
+import '../models/payment_proofs_model.dart';
 
 class ContributionDataSource {
   final Dio _dio = DioClient.instance;
@@ -144,6 +145,90 @@ class ContributionDataSource {
     } on DioException catch (e) {
       if (e.response != null) {
         final errorMessage = e.response?.data['message'] ?? 'Erreur lors de l\'envoi de la preuve de paiement';
+        throw DioException(
+          requestOptions: e.requestOptions,
+          response: e.response,
+          message: errorMessage,
+        );
+      } else {
+        throw DioException(
+          requestOptions: e.requestOptions,
+          message: 'Erreur de réseau. Vérifiez votre connexion internet.',
+        );
+      }
+    } catch (e) {
+      throw Exception('Erreur inattendue: $e');
+    }
+  }
+
+  Future<PaymentProofsResponse> getValidatedPayments({
+    required int userId,
+    int page = 1,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '/payments/proofs/contributions',
+        queryParameters: {
+          'status': 'VALIDATED',
+          'user_id': userId,
+          'page': page,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return PaymentProofsResponse.fromJson(response.data);
+      } else {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          response: response,
+          message: 'Erreur lors de la récupération des paiements validés',
+        );
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final errorMessage = e.response?.data['message'] ?? 'Erreur lors de la récupération des paiements validés';
+        throw DioException(
+          requestOptions: e.requestOptions,
+          response: e.response,
+          message: errorMessage,
+        );
+      } else {
+        throw DioException(
+          requestOptions: e.requestOptions,
+          message: 'Erreur de réseau. Vérifiez votre connexion internet.',
+        );
+      }
+    } catch (e) {
+      throw Exception('Erreur inattendue: $e');
+    }
+  }
+
+  Future<PaymentProofsResponse> getPendingPayments({
+    required int userId,
+    int page = 1,
+  }) async {
+    try {
+      final response = await _dio.get(
+        '/payments/proofs/contributions',
+        queryParameters: {
+          'status': 'PENDING',
+          'user_id': userId,
+          'page': page,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return PaymentProofsResponse.fromJson(response.data);
+      } else {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          response: response,
+          message: 'Erreur lors de la récupération des paiements en attente',
+        );
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final errorMessage = e.response?.data['message'] ?? 'Erreur lors de la récupération des paiements en attente';
         throw DioException(
           requestOptions: e.requestOptions,
           response: e.response,

@@ -1,24 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../models/payment_proofs_model.dart';
 
 class CotisationDetailPage extends StatelessWidget {
-  final Map<String, dynamic> cotisation;
+  final Map<String, dynamic>? cotisation; // Pour compatibilité avec ancienne version
+  final PaymentProof? paymentProof; // Nouvelles données depuis l'API
 
   const CotisationDetailPage({
     super.key,
-    required this.cotisation,
-  });
+    this.cotisation,
+    this.paymentProof,
+  }) : assert(cotisation != null || paymentProof != null, 'Either cotisation or paymentProof must be provided');
 
   @override
   Widget build(BuildContext context) {
-    final isPaid = cotisation['isPaid'] as bool;
-    final montant = 5000; // Montant fixe des cotisations
-    final title = cotisation['title'] as String;
-    final date = cotisation['date'] as String;
-    final paymentMethod = cotisation['paymentMethod'] ?? 'Code QR'; // Code QR ou Preuve
-
-    // Génération d'un ID de cotisation fictif
-    final cotisationId = 'COT${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+    // Utiliser les données du PaymentProof si disponible, sinon utiliser les anciennes données
+    late final bool isPaid;
+    late final double montant;
+    late final String title;
+    late final String date;
+    late final String paymentMethod;
+    late final String cotisationId;
+    
+    if (paymentProof != null) {
+      // Nouvelles données depuis l'API
+      isPaid = paymentProof!.isValidated;
+      montant = paymentProof!.amountPaid;
+      title = paymentProof!.displayTitle;
+      date = paymentProof!.formattedDate;
+      paymentMethod = paymentProof!.formattedPaymentMethod; // Utiliser le vrai mode de paiement depuis l'API
+      cotisationId = paymentProof!.id.toString(); // Utiliser l'ID réel du paiement au lieu de null
+    } else {
+      // Anciennes données (compatibilité)
+      isPaid = cotisation!['isPaid'] as bool;
+      montant = 5000.0; // Montant fixe des cotisations
+      title = cotisation!['title'] as String;
+      date = cotisation!['date'] as String;
+      paymentMethod = cotisation!['paymentMethod'] ?? 'Code QR';
+      cotisationId = 'COT${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -93,7 +113,7 @@ class CotisationDetailPage extends StatelessWidget {
                     
                     // Montant principal
                     Text(
-                      '+${montant.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')}F',
+                      '+${montant.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')} FCFA',
                       style: const TextStyle(
                         fontSize: 48,
                         fontWeight: FontWeight.bold,
@@ -174,14 +194,14 @@ class CotisationDetailPage extends StatelessWidget {
                         children: [
                           _buildDetailRow(
                             'Montant payé',
-                            '${montant.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')}F',
+                            '${montant.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')} FCFA',
                             false,
                           ),
                           _buildDetailRow(
                             'Statut',
-                            'Payé',
+                            isPaid ? 'Validé' : 'En attente',
                             true,
-                            valueColor: const Color(0xFF10B981),
+                            valueColor: isPaid ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
                             hasIcon: true,
                           ),
                           _buildDetailRow(
@@ -196,7 +216,7 @@ class CotisationDetailPage extends StatelessWidget {
                             true,
                           ),
                           _buildDetailRow(
-                            'ID de cotisation',
+                            'ID de paiement',
                             cotisationId,
                             false,
                             isLast: true,
@@ -208,7 +228,7 @@ class CotisationDetailPage extends StatelessWidget {
                     const SizedBox(height: 48),
                     
                     // Section informations du mode de paiement
-                    if (paymentMethod == 'Code QR') ...[
+                    if (paymentMethod == 'Code QR' || paymentMethod == 'Validé' || paymentMethod == 'Mobile Money') ...[
                       Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
@@ -230,32 +250,32 @@ class CotisationDetailPage extends StatelessWidget {
                                   Container(
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
+                                      color: _getPaymentMethodColor(paymentMethod).withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
-                                    child: const Icon(
-                                      Icons.qr_code,
-                                      color: Color(0xFF4F46E5),
+                                    child: Icon(
+                                      _getPaymentMethodIcon(paymentMethod),
+                                      color: _getPaymentMethodColor(paymentMethod),
                                       size: 24,
                                     ),
                                   ),
                                   const SizedBox(width: 16),
-                                  const Expanded(
+                                  Expanded(
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'Paiement par Code QR',
-                                          style: TextStyle(
+                                          _getPaymentMethodTitle(paymentMethod),
+                                          style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w600,
                                             color: Color(0xFF1F2937),
                                           ),
                                         ),
-                                        SizedBox(height: 4),
+                                        const SizedBox(height: 4),
                                         Text(
-                                          'Code scanné par l\'administrateur',
-                                          style: TextStyle(
+                                          _getPaymentMethodDescription(paymentMethod),
+                                          style: const TextStyle(
                                             fontSize: 14,
                                             color: Color(0xFF6B7280),
                                           ),
@@ -269,7 +289,7 @@ class CotisationDetailPage extends StatelessWidget {
                           ],
                         ),
                       ),
-                    ] else if (paymentMethod == 'Preuve') ...[
+                    ] else if (paymentMethod == 'Preuve' || paymentMethod == 'En attente' || paymentMethod == 'Main à main') ...[
                       Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
@@ -291,32 +311,32 @@ class CotisationDetailPage extends StatelessWidget {
                                   Container(
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF1F2937).withValues(alpha: 0.1),
+                                      color: _getPaymentMethodColor(paymentMethod).withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
-                                    child: const Icon(
-                                      Icons.receipt_long,
-                                      color: Color(0xFF1F2937),
+                                    child: Icon(
+                                      _getPaymentMethodIcon(paymentMethod),
+                                      color: _getPaymentMethodColor(paymentMethod),
                                       size: 24,
                                     ),
                                   ),
                                   const SizedBox(width: 16),
-                                  const Expanded(
+                                  Expanded(
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'Preuve de paiement',
-                                          style: TextStyle(
+                                          _getPaymentMethodTitle(paymentMethod),
+                                          style: const TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w600,
                                             color: Color(0xFF1F2937),
                                           ),
                                         ),
-                                        SizedBox(height: 4),
+                                        const SizedBox(height: 4),
                                         Text(
-                                          'Reçu téléchargé et validé',
-                                          style: TextStyle(
+                                          _getPaymentMethodDescription(paymentMethod),
+                                          style: const TextStyle(
                                             fontSize: 14,
                                             color: Color(0xFF6B7280),
                                           ),
@@ -427,14 +447,35 @@ class CotisationDetailPage extends StatelessWidget {
   }
 
   void _shareCotisation(BuildContext context) {
+    // Utiliser les données appropriées selon la source
+    late final String shareTitle;
+    late final String shareAmount;
+    late final String shareDate;
+    late final String shareMode;
+    late final String shareStatus;
+    
+    if (paymentProof != null) {
+      shareTitle = paymentProof!.displayTitle;
+      shareAmount = paymentProof!.formattedAmount;
+      shareDate = paymentProof!.formattedDate;
+      shareMode = paymentProof!.formattedPaymentMethod;
+      shareStatus = paymentProof!.isValidated ? 'Validé' : 'En attente';
+    } else {
+      shareTitle = cotisation!['title'];
+      shareAmount = '5 000 FCFA';
+      shareDate = cotisation!['date'];
+      shareMode = cotisation!['paymentMethod'] ?? 'Code QR';
+      shareStatus = 'Payé';
+    }
+    
     final shareText = '''
 Cotisation GestCity
 
-Type: ${cotisation['title']}
-Montant: +5 000F
-Date: ${cotisation['date']}
-Mode: ${cotisation['paymentMethod'] ?? 'Code QR'}
-Statut: Payé
+Type: $shareTitle
+Montant: +$shareAmount
+Date: $shareDate
+Mode: $shareMode
+Statut: $shareStatus
 
 Généré via GestCity
 ''';
@@ -443,5 +484,80 @@ Généré via GestCity
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Partager: $shareText')),
     );
+  }
+
+  // Méthodes helper pour les modes de paiement
+  Color _getPaymentMethodColor(String paymentMethod) {
+    switch (paymentMethod) {
+      case 'Mobile Money':
+        return const Color(0xFF059669); // Vert pour mobile money
+      case 'Main à main':
+        return const Color(0xFF7C3AED); // Violet pour main à main
+      case 'Code QR':
+      case 'Validé':
+        return const Color(0xFF4F46E5); // Bleu pour QR/Validé
+      case 'En attente':
+        return const Color(0xFFF59E0B); // Orange pour en attente
+      case 'Preuve':
+        return const Color(0xFF1F2937); // Gris foncé pour preuve
+      default:
+        return const Color(0xFF6B7280); // Gris par défaut
+    }
+  }
+
+  IconData _getPaymentMethodIcon(String paymentMethod) {
+    switch (paymentMethod) {
+      case 'Mobile Money':
+        return Icons.phone_android;
+      case 'Main à main':
+        return Icons.handshake;
+      case 'Code QR':
+      case 'Validé':
+        return Icons.qr_code;
+      case 'En attente':
+        return Icons.hourglass_empty;
+      case 'Preuve':
+        return Icons.receipt_long;
+      default:
+        return Icons.payment;
+    }
+  }
+
+  String _getPaymentMethodTitle(String paymentMethod) {
+    switch (paymentMethod) {
+      case 'Mobile Money':
+        return 'Paiement Mobile Money';
+      case 'Main à main':
+        return 'Paiement main à main';
+      case 'Code QR':
+        return 'Paiement par Code QR';
+      case 'Validé':
+        return 'Paiement validé';
+      case 'En attente':
+        return 'Paiement en attente';
+      case 'Preuve':
+        return 'Preuve de paiement';
+      default:
+        return 'Paiement';
+    }
+  }
+
+  String _getPaymentMethodDescription(String paymentMethod) {
+    switch (paymentMethod) {
+      case 'Mobile Money':
+        return 'Paiement effectué via Mobile Money';
+      case 'Main à main':
+        return 'Paiement effectué en espèces';
+      case 'Code QR':
+        return 'Code scanné par l\'administrateur';
+      case 'Validé':
+        return 'Paiement confirmé par l\'administrateur';
+      case 'En attente':
+        return 'En cours de validation par l\'administrateur';
+      case 'Preuve':
+        return 'Reçu téléchargé et validé';
+      default:
+        return 'Mode de paiement';
+    }
   }
 }
