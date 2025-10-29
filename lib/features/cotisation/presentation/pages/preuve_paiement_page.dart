@@ -445,67 +445,21 @@ class _PreuvePaiementPageState extends State<PreuvePaiementPage> {
 
   Future<void> _pickImageFromCamera() async {
     try {
-      if (Platform.isIOS) {
-        try {
-          final XFile? photo = await _picker.pickImage(
-            source: ImageSource.camera,
-            imageQuality: 85,
-          );
-          
-          if (photo != null) {
-            setState(() {
-              _selectedImages.add(photo);
-            });
-            
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Photo ajoutée avec succès !'),
-                  backgroundColor: Color(0xFF10B981),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            }
-          }
-          return;
-        } catch (e) {
-          // Si le picker échoue, continuer avec la vérification des permissions
-        }
-      }
-      
-      // Vérifier les permissions pour Android ou iOS en cas d'échec du picker direct
+      // Vérifier et demander les permissions de caméra AVANT d'ouvrir le picker
       PermissionStatus cameraStatus = await Permission.camera.status;
       
       if (cameraStatus.isDenied) {
         cameraStatus = await Permission.camera.request();
       }
       
-      if (cameraStatus.isGranted) {
-        final XFile? photo = await _picker.pickImage(
-          source: ImageSource.camera,
-          imageQuality: 85,
-        );
-        
-        if (photo != null) {
-          setState(() {
-            _selectedImages.add(photo);
-          });
-          
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Photo ajoutée avec succès !'),
-                backgroundColor: Color(0xFF10B981),
-                duration: Duration(seconds: 2),
-              ),
-            );
-          }
-        }
-      } else if (cameraStatus.isPermanentlyDenied) {
+      if (cameraStatus.isPermanentlyDenied) {
         if (mounted) {
           _showPermissionDialog('caméra');
         }
-      } else {
+        return;
+      }
+      
+      if (!cameraStatus.isGranted) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -514,13 +468,39 @@ class _PreuvePaiementPageState extends State<PreuvePaiementPage> {
             ),
           );
         }
+        return;
+      }
+
+      // Maintenant ouvrir la caméra avec permission accordée
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+        maxWidth: 1920,
+        maxHeight: 1080,
+      );
+      
+      if (photo != null) {
+        setState(() {
+          _selectedImages.add(photo);
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('📷 Photo prise avec succès !'),
+              backgroundColor: Color(0xFF10B981),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Erreur lors de la prise de photo'),
+          SnackBar(
+            content: Text('Erreur lors de la prise de photo: ${e.toString()}'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -529,34 +509,7 @@ class _PreuvePaiementPageState extends State<PreuvePaiementPage> {
 
   Future<void> _pickImageFromGallery() async {
     try {
-      if (Platform.isIOS) {
-        try {
-          final List<XFile> images = await _picker.pickMultiImage(
-            imageQuality: 85,
-          );
-          
-          if (images.isNotEmpty) {
-            setState(() {
-              _selectedImages.addAll(images);
-            });
-            
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('${images.length} image(s) ajoutée(s) depuis la galerie !'),
-                  backgroundColor: const Color(0xFF10B981),
-                  duration: const Duration(seconds: 2),
-                ),
-              );
-            }
-          }
-          return;
-        } catch (e) {
-          // Si le picker échoue, continuer avec la vérification des permissions
-        }
-      }
-      
-      // Vérifier les permissions pour Android ou iOS en cas d'échec du picker direct
+      // Déterminer la permission appropriée selon la plateforme et la version Android
       Permission storagePermission;
       if (Platform.isAndroid) {
         final androidInfo = await DeviceInfoPlugin().androidInfo;
@@ -569,37 +522,21 @@ class _PreuvePaiementPageState extends State<PreuvePaiementPage> {
         storagePermission = Permission.photos;
       }
       
+      // Vérifier et demander les permissions AVANT d'ouvrir le picker
       PermissionStatus storageStatus = await storagePermission.status;
       
       if (storageStatus.isDenied) {
         storageStatus = await storagePermission.request();
       }
       
-      if (storageStatus.isGranted || storageStatus.isLimited) {
-        final List<XFile> images = await _picker.pickMultiImage(
-          imageQuality: 85,
-        );
-        
-        if (images.isNotEmpty) {
-          setState(() {
-            _selectedImages.addAll(images);
-          });
-          
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('${images.length} image(s) ajoutée(s) depuis la galerie !'),
-                backgroundColor: const Color(0xFF10B981),
-                duration: const Duration(seconds: 2),
-              ),
-            );
-          }
-        }
-      } else if (storageStatus.isPermanentlyDenied) {
+      if (storageStatus.isPermanentlyDenied) {
         if (mounted) {
           _showPermissionDialog('galerie');
         }
-      } else {
+        return;
+      }
+      
+      if (!storageStatus.isGranted && !storageStatus.isLimited) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -608,13 +545,38 @@ class _PreuvePaiementPageState extends State<PreuvePaiementPage> {
             ),
           );
         }
+        return;
+      }
+
+      // Maintenant ouvrir la galerie avec permission accordée
+      final List<XFile> images = await _picker.pickMultiImage(
+        imageQuality: 85,
+        maxWidth: 1920,
+        maxHeight: 1080,
+      );
+      
+      if (images.isNotEmpty) {
+        setState(() {
+          _selectedImages.addAll(images);
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('📁 ${images.length} image(s) sélectionnée(s) depuis la galerie !'),
+              backgroundColor: const Color(0xFF10B981),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Erreur lors de la sélection d\'images'),
+          SnackBar(
+            content: Text('Erreur lors de la sélection d\'images: ${e.toString()}'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
           ),
         );
       }
