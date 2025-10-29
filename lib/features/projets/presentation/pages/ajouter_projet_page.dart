@@ -82,39 +82,6 @@ class _AjouterProjetPageState extends State<AjouterProjetPage> {
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      Container(
-                        height: 80,
-                        width: 80,
-                        decoration: BoxDecoration(
-                          color: _selectedColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Icon(
-                          _selectedIcon,
-                          size: 48,
-                          color: _selectedColor,
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      const Text(
-                        'Nouveau projet',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1F2937),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Créez un nouveau projet pour votre communauté',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Color(0xFF6B7280),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 48),
                       Form(
                         key: _formKey,
                         child: Column(

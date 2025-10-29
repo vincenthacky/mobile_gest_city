@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../controller/projects_controller.dart';
 import '../../models/project_model.dart';
+import '../../../../core/widgets/app_header.dart';
 
 enum ProjectFilter { tous, nonVoter, dejaVoter, aVenir, enCours, finir }
 
@@ -140,26 +141,33 @@ class _ProjetsPageState extends State<ProjetsPage> {
           body: SafeArea(
             child: Column(
               children: [
+                // Header fixe
+                Container(
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.grey.shade200,
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: const AppHeader(
+                    title: 'Votes sur les projets',
+                  ),
+                ),
+                
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: () => projectsController.refreshProjects(),
                     child: SingleChildScrollView(
                       controller: _scrollController,
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 24, 16, 96),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Header
-                          const Text(
-                            'Votes sur les projets',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1F2937),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
                           
                           // Barre de recherche et bouton ajouter
                           Row(

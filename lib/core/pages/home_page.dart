@@ -6,6 +6,7 @@ import '../../features/authentication/controller/auth_controller.dart';
 // import '../../features/cotisations/presentation/pages/qr_paiement_page.dart';
 import '../controller/home_controller.dart';
 import '../models/contribution_model.dart';
+import '../widgets/app_header.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -45,103 +46,32 @@ class _HomePageState extends State<HomePage> {
           body: SafeArea(
             child: Column(
               children: [
+                // Header fixe
+                Container(
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.grey.shade200,
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: const AppHeader(
+                    title: 'Cotisation Mensuelle',
+                  ),
+                ),
+                
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: () => homeController.refreshHomeData(),
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 24, 16, 96),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Header avec compte et notifications
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              // Bouton Compte à l'extrême gauche
-                              InkWell(
-                                onTap: () {
-                                  context.go('/compte');
-                                },
-                                borderRadius: BorderRadius.circular(12),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade100,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: Colors.grey.shade300,
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        width: 24,
-                                        height: 24,
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF4F46E5),
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: const Icon(
-                                          Icons.person,
-                                          color: Colors.white,
-                                          size: 14,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      const Text(
-                                        'Compte',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFF6B7280),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              // Notifications à l'extrême droite
-                              Stack(
-                                children: [
-                                  IconButton(
-                                    onPressed: () {},
-                                    icon: const Icon(
-                                      Icons.notifications_outlined,
-                                      color: Color(0xFF6B7280),
-                                      size: 24,
-                                    ),
-                                  ),
-                                  Positioned(
-                                    right: 8,
-                                    top: 8,
-                                    child: Container(
-                                      width: 8,
-                                      height: 8,
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFF4F46E5),
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-                          
-                          // Titre Cotisation Mensuelle (en dehors du header)
-                          const Text(
-                            'Cotisation Mensuelle',
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1F2937),
-                              letterSpacing: -0.5,
-                            ),
-                          ),
                         const SizedBox(height: 16),
                         
                         // Carte principale de cotisation

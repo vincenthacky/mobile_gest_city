@@ -91,39 +91,6 @@ class _AjouterSignalementPageState extends State<AjouterSignalementPage> {
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      Container(
-                        height: 80,
-                        width: 80,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEF4444).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Icon(
-                          _typeIcons[_selectedType]!,
-                          size: 48,
-                          color: const Color(0xFFEF4444),
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      const Text(
-                        'Signaler un problème',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1F2937),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Aidez à améliorer la sécurité de votre quartier',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Color(0xFF6B7280),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 48),
                       Form(
                         key: _formKey,
                         child: Column(

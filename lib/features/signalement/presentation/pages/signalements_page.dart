@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/widgets/app_header.dart';
 
 enum SignalementFilter { tous, nouveaux, enCours, resolus, urgents }
 
@@ -204,6 +205,23 @@ class _SignalementsPageState extends State<SignalementsPage> {
       body: SafeArea(
         child: Column(
           children: [
+            // Header fixe
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                border: Border(
+                  bottom: BorderSide(
+                    color: Colors.grey.shade200,
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: const AppHeader(
+                title: 'Signalements',
+              ),
+            ),
+            
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () async {
@@ -212,28 +230,10 @@ class _SignalementsPageState extends State<SignalementsPage> {
                 },
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 96),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Header
-                      const Text(
-                        'Signalements',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1F2937),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '${_filteredSignalements.length} signalement(s)',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF6B7280),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
                       
                       // Barre de recherche et bouton ajouter
                       Row(

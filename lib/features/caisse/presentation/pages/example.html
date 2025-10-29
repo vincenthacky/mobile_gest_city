@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto List</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .crypto-list {
+            background: rgba(30, 30, 50, 0.6);
+            border-radius: 16px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .crypto-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            transition: background 0.2s ease;
+        }
+
+        .crypto-item:last-child {
+            border-bottom: none;
+        }
+
+        .crypto-item:active {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .left-section {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .crypto-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .bitcoin {
+            background: linear-gradient(135deg, #f7931a 0%, #ff6b00 100%);
+            color: white;
+        }
+
+        .ethereum {
+            background: linear-gradient(135deg, #627eea 0%, #4a5fd6 100%);
+            color: white;
+        }
+
+        .ripple {
+            background: linear-gradient(135deg, #23292f 0%, #1a1f24 100%);
+            color: #00aae4;
+        }
+
+        .litecoin {
+            background: linear-gradient(135deg, #345d9d 0%, #2d5189 100%);
+            color: white;
+        }
+
+        .ravencoin {
+            background: linear-gradient(135deg, #4a3f3f 0%, #3d3333 100%);
+            color: #ff8c42;
+        }
+
+        .crypto-info {
+            margin-left: 16px;
+            flex: 1;
+        }
+
+        .crypto-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 4px;
+            letter-spacing: -0.2px;
+        }
+
+        .crypto-symbol {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .right-section {
+            text-align: right;
+            margin-left: 16px;
+        }
+
+        .crypto-price {
+            font-size: 17px;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 4px;
+            letter-spacing: -0.3px;
+        }
+
+        .crypto-change {
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
+
+        .crypto-change.positive {
+            color: #00d97e;
+        }
+
+        .crypto-change.negative {
+            color: #ff4757;
+        }
+
+        /* Icon Symbols */
+        .icon-btc::before {
+            content: '₿';
+        }
+
+        .icon-eth::before {
+            content: '♦';
+            font-size: 24px;
+        }
+
+        .icon-xrp::before {
+            content: '◈';
+            font-size: 26px;
+        }
+
+        .icon-ltc::before {
+            content: 'Ł';
+        }
+
+        .icon-rvn::before {
+            content: '⬢';
+            font-size: 26px;
+        }
+
+        /* Status indicator */
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            position: absolute;
+            top: 22px;
+            right: 22px;
+        }
+
+        .status-active {
+            background: #00d97e;
+            box-shadow: 0 0 8px rgba(0, 217, 126, 0.6);
+        }
+
+        .crypto-item {
+            position: relative;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .crypto-item {
+                padding: 16px 20px;
+            }
+
+            .crypto-icon {
+                width: 44px;
+                height: 44px;
+                font-size: 24px;
+            }
+
+            .crypto-name {
+                font-size: 16px;
+            }
+
+            .crypto-price {
+                font-size: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="crypto-list">
+            <!-- Bitcoin -->
+            <div class="crypto-item">
+                <div class="status-indicator status-active"></div>
+                <div class="left-section">
+                    <div class="crypto-icon bitcoin icon-btc"></div>
+                    <div class="crypto-info">
+                        <div class="crypto-name">Bitcoin</div>
+                        <div class="crypto-symbol">BTC</div>
+                    </div>
+                </div>
+                <div class="right-section">
+                    <div class="crypto-price">USDC 99,284.01</div>
+                    <div class="crypto-change positive">+68.3%</div>
+                </div>
+            </div>
+
+            <!-- Ethereum -->
+            <div class="crypto-item">
+                <div class="left-section">
+                    <div class="crypto-icon ethereum icon-eth"></div>
+                    <div class="crypto-info">
+                        <div class="crypto-name">Ethereum</div>
+                        <div class="crypto-symbol">ETH</div>
+                    </div>
+                </div>
+                <div class="right-section">
+                    <div class="crypto-price">USDC 24,933.56</div>
+                    <div class="crypto-change positive">+32.1%</div>
+                </div>
+            </div>
+
+            <!-- Ripple -->
+            <div class="crypto-item">
+                <div class="left-section">
+                    <div class="crypto-icon ripple icon-xrp"></div>
+                    <div class="crypto-info">
+                        <div class="crypto-name">Ripple</div>
+                        <div class="crypto-symbol">XRP</div>
+                    </div>
+                </div>
+                <div class="right-section">
+                    <div class="crypto-price">USDC 0.04</div>
+                    <div class="crypto-change negative">-16.8%</div>
+                </div>
+            </div>
+
+            <!-- Litecoin -->
+            <div class="crypto-item">
+                <div class="left-section">
+                    <div class="crypto-icon litecoin icon-ltc"></div>
+                    <div class="crypto-info">
+                        <div class="crypto-name">Litecoin Ca...</div>
+                        <div class="crypto-symbol">LTC</div>
+                    </div>
+                </div>
+                <div class="right-section">
+                    <div class="crypto-price">USDC 245.72</div>
+                    <div class="crypto-change positive">+11.5%</div>
+                </div>
+            </div>
+
+            <!-- Ravencoin -->
+            <div class="crypto-item">
+                <div class="left-section">
+                    <div class="crypto-icon ravencoin icon-rvn"></div>
+                    <div class="crypto-info">
+                        <div class="crypto-name">Ravencoin</div>
+                        <div class="crypto-symbol">RVN</div>
+                    </div>
+                </div>
+                <div class="right-section">
+                    <div class="crypto-price">USDC 10,015.90</div>
+                    <div class="crypto-change negative">-9.0%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
