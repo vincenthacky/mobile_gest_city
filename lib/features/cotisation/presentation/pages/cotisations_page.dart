@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'preuve_paiement_page.dart';
 import 'qr_paiement_page.dart';
 import 'cotisation_detail_page.dart';
 import '../../../../core/widgets/app_header.dart';
+import '../../controller/contribution_controller.dart';
 
 class CotisationsPage extends StatefulWidget {
   const CotisationsPage({super.key});
@@ -30,6 +32,10 @@ class _CotisationsPageState extends State<CotisationsPage> with TickerProviderSt
     super.initState();
     _initializeAnimations();
     _startAnimations();
+    // Charger les données de cotisation
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ContributionController>().loadContribution();
+    });
   }
 
   void _initializeAnimations() {
@@ -128,6 +134,9 @@ class _CotisationsPageState extends State<CotisationsPage> with TickerProviderSt
                 strokeWidth: 2.5,
                 onRefresh: () async {
                   HapticFeedback.lightImpact();
+                  // Refresh contribution data
+                  await context.read<ContributionController>().refreshContribution();
+                  
                   // Restart animations on refresh
                   _fadeController.reset();
                   _slideController.reset();
@@ -157,7 +166,11 @@ class _CotisationsPageState extends State<CotisationsPage> with TickerProviderSt
                                 opacity: _fadeAnimation,
                                 child: ScaleTransition(
                                   scale: _scaleAnimation,
-                                  child: _buildCotisationCard(),
+                                  child: LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      return _buildCotisationCard();
+                                    },
+                                  ),
                                 ),
                               ),
                             ),
@@ -233,157 +246,301 @@ class _CotisationsPageState extends State<CotisationsPage> with TickerProviderSt
   }
 
   Widget _buildCotisationCard() {
-    return Container(
-      height: 180,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF4F46E5),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF4F46E5).withValues(alpha: 0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Informations en grille
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Date début',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.7),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    const Text(
-                      '01/01/2024',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
+    return Consumer<ContributionController>(
+      builder: (context, controller, child) {
+        if (controller.isLoading) {
+          return Container(
+            height: 180,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF4F46E5),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF4F46E5).withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
                 ),
+              ],
+            ),
+            child: const Center(
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
               ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Date Fin',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.7),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    const Text(
-                      '31/12/2024',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
+            ),
+          );
+        }
+
+        if (controller.errorMessage != null) {
+          return Container(
+            height: 180,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEF4444),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFEF4444).withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  '10 000 FCFA / mois',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+              ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  color: Colors.white,
+                  size: 32,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Erreur de chargement',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
                 ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Somme cible',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.white.withValues(alpha: 0.7),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    const Text(
-                      '120 000 FCFA',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 4),
+                Text(
+                  controller.errorMessage!,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.white.withValues(alpha: 0.8),
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          
-          // Montant et progression
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              const Text(
-                '80 000',
+              ],
+            ),
+          );
+        }
+
+        final data = controller.contributionData;
+        if (data == null) {
+          return Container(
+            height: 180,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF6B7280),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF6B7280).withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Center(
+              child: Text(
+                'Aucune donnée disponible',
                 style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
                   color: Colors.white,
                 ),
               ),
-              Text(
-                ' / 120 000',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.white70,
+            ),
+          );
+        }
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            // Calculer les tailles responsives basées sur la largeur et hauteur d'écran disponible
+            final screenHeight = MediaQuery.of(context).size.height;
+            final isVerySmall = constraints.maxWidth < 300;
+            final isSmall = constraints.maxWidth < 350;
+            final isShortScreen = screenHeight < 700;
+            
+            return Container(
+              constraints: BoxConstraints(
+                minHeight: isShortScreen ? 160.0 : (isVerySmall ? 170.0 : 180.0),
+                maxHeight: isShortScreen ? 180.0 : (isVerySmall ? 190.0 : 200.0),
+              ),
+              padding: EdgeInsets.all(isVerySmall ? 12 : 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF4F46E5),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF4F46E5).withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: IntrinsicHeight(
+                child: Column(
+                children: [
+                  // Première ligne
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildInfoItem(
+                          'Montant par personne',
+                          data.formattedAmountByPerson,
+                          fontSize: isVerySmall ? 8 : (isSmall ? 9 : 10),
+                          valueFontSize: isVerySmall ? 9 : (isSmall ? 10 : 11),
+                        ),
+                      ),
+                      Expanded(
+                        child: _buildInfoItem(
+                          'Jour limite',
+                          data.deadlineDayFormatted,
+                          fontSize: isVerySmall ? 8 : (isSmall ? 9 : 10),
+                          valueFontSize: isVerySmall ? 9 : (isSmall ? 10 : 11),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: isVerySmall ? 4 : 6),
+                  
+                  // Deuxième ligne
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildInfoItem(
+                          'Total collecté',
+                          data.formattedTotalCollected,
+                          fontSize: isVerySmall ? 7 : (isSmall ? 8 : 9),
+                          valueFontSize: isVerySmall ? 8 : (isSmall ? 9 : 10),
+                        ),
+                      ),
+                      Expanded(
+                        child: _buildInfoItem(
+                          'Collecté ce mois',
+                          data.formattedCollectedThisMonth,
+                          fontSize: isVerySmall ? 7 : (isSmall ? 8 : 9),
+                          valueFontSize: isVerySmall ? 8 : (isSmall ? 9 : 10),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: isVerySmall ? 4 : 6),
+                  
+                  // Troisième ligne
+                  _buildInfoItem(
+                    'Attendu ce mois-ci',
+                    data.formattedExpectedThisMonth,
+                    fontSize: isVerySmall ? 8 : (isSmall ? 9 : 10),
+                    valueFontSize: isVerySmall ? 10 : (isSmall ? 11 : 12),
+                    centerAlign: true,
+                  ),
+                  
+                  // Spacer flexible pour pousser le contenu du bas
+                  const Spacer(),
+              
+                  // Montant et progression dans un conteneur flexible
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Montant avec ellipsis si trop long
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              Text(
+                                data.totalAmountPaymentCollectedCurrentMonth.toStringAsFixed(0),
+                                style: TextStyle(
+                                  fontSize: isVerySmall ? 14 : (isSmall ? 15 : 16),
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              Text(
+                                ' / ${data.totalExpectedAmountThisMonth.toStringAsFixed(0)}',
+                                style: TextStyle(
+                                  fontSize: isVerySmall ? 8 : (isSmall ? 9 : 10),
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: isVerySmall ? 6 : 8),
+                      
+                      // Barre de progression
+                      Container(
+                        width: double.infinity,
+                        height: isVerySmall ? 4 : 6,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(isVerySmall ? 2 : 3),
+                        ),
+                        child: FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: data.progressPercentage,
+                          child: Container(
+                            height: isVerySmall ? 4 : 6,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(isVerySmall ? 2 : 3),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          
-          // Barre de progression
-          Container(
-            width: double.infinity,
-            height: 6,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(3),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildInfoItem(
+    String label,
+    String value, {
+    double fontSize = 10,
+    double valueFontSize = 12,
+    bool centerAlign = false,
+  }) {
+    return Flexible(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: centerAlign ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+        children: [
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: fontSize,
+                color: Colors.white.withValues(alpha: 0.7),
+                height: 1.2,
+              ),
+              textAlign: centerAlign ? TextAlign.center : TextAlign.start,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: MediaQuery.of(context).size.width * 0.67 * 0.8,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
+          ),
+          const SizedBox(height: 1),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontSize: valueFontSize,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                  height: 1.1,
                 ),
-              ],
+                textAlign: centerAlign ? TextAlign.center : TextAlign.start,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
         ],
@@ -392,31 +549,35 @@ class _CotisationsPageState extends State<CotisationsPage> with TickerProviderSt
   }
 
   Widget _buildPayButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: () {
-          HapticFeedback.mediumImpact();
-          _showPaymentMethodModal(context);
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF10B981),
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+    return Consumer<ContributionController>(
+      builder: (context, controller, child) {
+        return SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: controller.hasData ? () {
+              HapticFeedback.mediumImpact();
+              _showPaymentMethodModal(context);
+            } : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              elevation: 0,
+              shadowColor: const Color(0xFF10B981).withValues(alpha: 0.3),
+            ),
+            child: const Text(
+              'Payer cotisation',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          elevation: 0,
-          shadowColor: const Color(0xFF10B981).withValues(alpha: 0.3),
-        ),
-        child: const Text(
-          'Payer cotisation',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -743,6 +904,11 @@ class _CotisationsPageState extends State<CotisationsPage> with TickerProviderSt
   }
 
   void _showPaymentMethodModal(BuildContext context) {
+    final controller = context.read<ContributionController>();
+    final data = controller.contributionData;
+    
+    if (data == null) return;
+    
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -777,18 +943,18 @@ class _CotisationsPageState extends State<CotisationsPage> with TickerProviderSt
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Cotisation Mensuelle',
-              style: TextStyle(
+            Text(
+              data.name,
+              style: const TextStyle(
                 fontSize: 16,
                 color: Color(0xFF6B7280),
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
-            const Text(
-              'Montant : 10 000 FCFA',
-              style: TextStyle(
+            Text(
+              'Montant : ${data.formattedAmountByPerson}',
+              style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF4F46E5),
@@ -808,10 +974,10 @@ class _CotisationsPageState extends State<CotisationsPage> with TickerProviderSt
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const QrPaiementPage(
-                            cotisationTitle: 'Cotisation Mensuelle',
-                            montant: 10000,
-                            cotisationId: '1',
+                          builder: (context) => QrPaiementPage(
+                            cotisationTitle: data.name,
+                            montant: data.amountByPersonDouble.toInt(),
+                            cotisationId: data.id.toString(),
                           ),
                         ),
                       );
@@ -882,10 +1048,10 @@ class _CotisationsPageState extends State<CotisationsPage> with TickerProviderSt
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const PreuvePaiementPage(
-                            cotisationTitle: 'Cotisation Mensuelle',
-                            montant: 10000,
-                            cotisationId: 1,
+                          builder: (context) => PreuvePaiementPage(
+                            cotisationTitle: data.name,
+                            montant: data.amountByPersonDouble.toInt(),
+                            cotisationId: data.id,
                           ),
                         ),
                       );
