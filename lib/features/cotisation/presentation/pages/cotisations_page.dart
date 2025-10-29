@@ -682,75 +682,128 @@ class _CotisationsPageState extends State<CotisationsPage> with TickerProviderSt
   }
 
   List<Widget> _getPaymentItems() {
-    return _showingPayments ? [
-      _buildPaymentItem(
-        'Cotisation Mensuelle Novembre',
-        '26 octobre 2025 à 20:43',
-        '5.000F',
-        true,
-        false,
-        paymentMethod: 'Code QR',
-      ),
-      _buildPaymentItem(
-        'Cotisation Mensuelle Octobre',
-        '26 octobre 2025 à 20:27',
-        '5.000F',
-        true,
-        false,
-        paymentMethod: 'Preuve',
-      ),
-      _buildPaymentItem(
-        'Cotisation Mensuelle Septembre',
-        '24 octobre 2025 à 11:08',
-        '5.000F',
-        true,
-        false,
-        paymentMethod: 'Code QR',
-      ),
-      _buildPaymentItem(
-        'Cotisation Mensuelle Août',
-        '15 août 2025 à 14:30',
-        '5.000F',
-        true,
-        false,
-        paymentMethod: 'Preuve',
-      ),
-      _buildPaymentItem(
-        'Cotisation Mensuelle Juillet',
-        '10 juillet 2025 à 09:15',
-        '5.000F',
-        true,
-        true, // isLast
-        paymentMethod: 'Code QR',
-      ),
-    ] : [
-      _buildPaymentItem(
-        'Cotisation Mensuelle Juin',
-        '30 juin 2025',
-        '5.000F',
-        false,
-        false,
-      ),
-      _buildPaymentItem(
-        'Cotisation Mensuelle Mai',
-        '31 mai 2025',
-        '5.000F',
-        false,
-        false,
-      ),
-      _buildPaymentItem(
-        'Cotisation Mensuelle Avril',
-        '30 avril 2025',
-        '5.000F',
-        false,
-        false,
-      ),
-      _buildPaymentItem(
-        'Cotisation Mensuelle Mars',
-        '31 mars 2025',
-        '5.000F',
-        false,
-        true, // isLast
+    if (_showingPayments) {
+      // Section "Payés" - données statiques pour le moment
+      return [
+        _buildPaymentItem(
+          'Cotisation Mensuelle Novembre',
+          '26 octobre 2025 à 20:43',
+          '5.000F',
+          true,
+          false,
+          paymentMethod: 'Code QR',
+        ),
+        _buildPaymentItem(
+          'Cotisation Mensuelle Octobre',
+          '26 octobre 2025 à 20:27',
+          '5.000F',
+          true,
+          false,
+          paymentMethod: 'Preuve',
+        ),
+        _buildPaymentItem(
+          'Cotisation Mensuelle Septembre',
+          '24 octobre 2025 à 11:08',
+          '5.000F',
+          true,
+          false,
+          paymentMethod: 'Code QR',
+        ),
+        _buildPaymentItem(
+          'Cotisation Mensuelle Août',
+          '15 août 2025 à 14:30',
+          '5.000F',
+          true,
+          false,
+          paymentMethod: 'Preuve',
+        ),
+        _buildPaymentItem(
+          'Cotisation Mensuelle Juillet',
+          '10 juillet 2025 à 09:15',
+          '5.000F',
+          true,
+          true, // isLast
+          paymentMethod: 'Code QR',
+        ),
+      ];
+    } else {
+      // Section "Retards" - données dynamiques de l'API
+      return _buildUnpaidMonthsItems();
+    }
+  }
+
+  List<Widget> _buildUnpaidMonthsItems() {
+    return [
+      Consumer<ContributionController>(
+        builder: (context, controller, child) {
+          final unpaidMonths = controller.unpaidMonths;
+          final contributionData = controller.contributionData;
+          
+          if (unpaidMonths.isEmpty) {
+            return Container(
+              padding: const EdgeInsets.all(40),
+              color: Colors.white,
+              child: const Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.check_circle_outline,
+                      size: 48,
+                      color: Color(0xFF10B981),
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'Aucun retard de paiement',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1F2937),
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Toutes vos cotisations sont à jour !',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF6B7280),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+          
+          return Column(
+            children: unpaidMonths.asMap().entries.map((entry) {
+              final index = entry.key;
+              final unpaidMonth = entry.value;
+              final isLast = index == unpaidMonths.length - 1;
+              
+              // Utiliser les données de l'API pour construire le titre et la date
+              final title = contributionData != null 
+                  ? unpaidMonth.getTitle(contributionData.name)
+                  : 'Cotisation ${unpaidMonth.period}';
+              
+              final deadline = contributionData != null
+                  ? unpaidMonth.getDeadline(contributionData.deadlineDay)
+                  : 'Échéance: ${unpaidMonth.period}';
+                  
+              final amount = contributionData != null
+                  ? unpaidMonth.getFormattedAmount(contributionData.amountByPerson)
+                  : '10.000F';
+              
+              return _buildPaymentItem(
+                title,
+                deadline,
+                amount,
+                false, // isPaid = false pour les retards
+                isLast,
+              );
+            }).toList(),
+          );
+        },
       ),
     ];
   }

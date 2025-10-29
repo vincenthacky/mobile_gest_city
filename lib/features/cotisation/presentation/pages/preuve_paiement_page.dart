@@ -4,6 +4,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
+import '../../data_source/contribution_data_source.dart';
+import '../../models/payment_proof_model.dart';
 
 class PreuvePaiementPage extends StatefulWidget {
   final String? cotisationTitle;
@@ -24,9 +26,12 @@ class PreuvePaiementPage extends StatefulWidget {
 class _PreuvePaiementPageState extends State<PreuvePaiementPage> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
+  final _commentController = TextEditingController();
   String _selectedPaymentMethod = 'Orange Money';
   List<XFile> _selectedImages = [];
   final ImagePicker _picker = ImagePicker();
+  final ContributionDataSource _dataSource = ContributionDataSource();
+  bool _isLoading = false;
 
   final List<String> _paymentMethods = [
     'Orange Money',
@@ -38,6 +43,7 @@ class _PreuvePaiementPageState extends State<PreuvePaiementPage> {
   @override
   void dispose() {
     _phoneController.dispose();
+    _commentController.dispose();
     super.dispose();
   }
 
@@ -203,6 +209,42 @@ class _PreuvePaiementPageState extends State<PreuvePaiementPage> {
                           return null;
                         },
                       ),
+                      const SizedBox(height: 20),
+                      
+                      // Commentaire
+                      const Text(
+                        'Commentaire (optionnel)',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF374151),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: _commentController,
+                        maxLines: 3,
+                        decoration: InputDecoration(
+                          hintText: 'Ajouter un commentaire...',
+                          prefixIcon: const Icon(
+                            Icons.comment,
+                            color: Color(0xFF6B7280),
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Color(0xFF4F46E5), width: 2),
+                          ),
+                          contentPadding: const EdgeInsets.all(16),
+                        ),
+                      ),
                       const SizedBox(height: 24),
                       
                       // Section téléchargement
@@ -365,7 +407,7 @@ class _PreuvePaiementPageState extends State<PreuvePaiementPage> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: (_selectedImages.isNotEmpty) ? _submitProof : null,
+                  onPressed: (_selectedImages.isNotEmpty && !_isLoading) ? _submitProof : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1F2937),
                     foregroundColor: Colors.white,
@@ -376,13 +418,22 @@ class _PreuvePaiementPageState extends State<PreuvePaiementPage> {
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    'Envoyer',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  child: _isLoading 
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Text(
+                        'Envoyer',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                 ),
               ),
             ),
@@ -606,17 +657,69 @@ class _PreuvePaiementPageState extends State<PreuvePaiementPage> {
 
   Future<void> _submitProof() async {
     if (_formKey.currentState!.validate() && _selectedImages.isNotEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Preuve de paiement envoyée avec succès ! (Mode statique)'),
-            backgroundColor: Color(0xFF10B981),
-            duration: Duration(seconds: 3),
-          ),
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        // Convertir le nom du moyen de paiement en enum
+        final provider = PaymentProviderExtension.fromDisplayName(_selectedPaymentMethod);
+        
+        // Créer la requête avec le premier fichier sélectionné
+        final request = PaymentProofRequest(
+          comment: _commentController.text.trim(),
+          phone: _phoneController.text.trim(),
+          provider: provider,
+          file: File(_selectedImages.first.path),
         );
         
-        // Retourner à la page précédente avec succès
-        Navigator.pop(context, true);
+        // Soumettre la preuve de paiement
+        final response = await _dataSource.submitPaymentProof(request);
+        
+        if (!mounted) return;
+        
+        // Vérifier le succès de la réponse
+        if (response.success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.message.isNotEmpty ? response.message : 'Preuve de paiement envoyée avec succès !'),
+              backgroundColor: const Color(0xFF10B981),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+          
+          // Retourner à la page précédente avec succès
+          Navigator.pop(context, true);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.message.isNotEmpty ? response.message : 'Erreur lors de l\'envoi de la preuve de paiement'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      } catch (e) {
+        if (!mounted) return;
+        
+        String errorMessage = 'Erreur lors de l\'envoi de la preuve de paiement';
+        if (e.toString().contains('DioException')) {
+          errorMessage = e.toString().replaceAll('DioException: ', '');
+        }
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }
