@@ -84,288 +84,338 @@ class CotisationDetailPage extends StatelessWidget {
             ),
             
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 32),
-                    
-                    // Icône de cotisation
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(40),
-                        border: Border.all(
-                          color: const Color(0xFF10B981).withValues(alpha: 0.3),
-                          width: 3,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final screenWidth = constraints.maxWidth;
+                  final screenHeight = MediaQuery.of(context).size.height;
+                  final isVerySmall = screenWidth < 320;
+                  final isSmall = screenWidth < 375;
+                  final isShortScreen = screenHeight < 700;
+                  
+                  // Responsive padding
+                  final horizontalPadding = isVerySmall ? 12.0 : (isSmall ? 16.0 : 24.0);
+                  final verticalPadding = isShortScreen ? 12.0 : 24.0;
+                  
+                  return SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                      vertical: verticalPadding,
+                    ),
+                    child: Column(
+                      children: [
+                        SizedBox(height: isShortScreen ? 16 : 32),
+                        
+                        // Icône de cotisation - Responsive
+                        Container(
+                          width: isVerySmall ? 60 : (isSmall ? 70 : 80),
+                          height: isVerySmall ? 60 : (isSmall ? 70 : 80),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(isVerySmall ? 30 : (isSmall ? 35 : 40)),
+                            border: Border.all(
+                              color: const Color(0xFF10B981).withValues(alpha: 0.3),
+                              width: isVerySmall ? 2 : 3,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.account_balance_wallet,
+                            color: const Color(0xFF10B981),
+                            size: isVerySmall ? 28 : (isSmall ? 35 : 40),
+                          ),
                         ),
-                      ),
-                      child: const Icon(
-                        Icons.account_balance_wallet,
-                        color: Color(0xFF10B981),
-                        size: 40,
-                      ),
-                    ),
                     
-                    const SizedBox(height: 24),
-                    
-                    // Montant principal
-                    Text(
-                      '+${montant.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')} FCFA',
-                      style: const TextStyle(
-                        fontSize: 48,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF10B981),
-                        letterSpacing: -1,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 8),
-                    
-                    // Titre de la cotisation
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF6B7280),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    
-                    const SizedBox(height: 40),
-                    
-                    // Bouton Partager
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.grey.shade300,
-                          width: 1,
+                        SizedBox(height: isShortScreen ? 16 : 24),
+                        
+                        // Montant principal - Responsive
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            '+${montant.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')} FCFA',
+                            style: TextStyle(
+                              fontSize: isVerySmall ? 32 : (isSmall ? 40 : 48),
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF10B981),
+                              letterSpacing: -1,
+                            ),
+                          ),
                         ),
-                      ),
-                      child: InkWell(
-                        onTap: () => _shareCotisation(context),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.share,
-                                color: Colors.grey.shade600,
-                                size: 20,
+                    
+                        SizedBox(height: isShortScreen ? 6 : 8),
+                        
+                        // Titre de la cotisation - Responsive
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 8 : 16),
+                          child: Text(
+                            title,
+                            style: TextStyle(
+                              fontSize: isVerySmall ? 14 : (isSmall ? 16 : 18),
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF6B7280),
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    
+                        SizedBox(height: isShortScreen ? 24 : 40),
+                        
+                        // Bouton Partager - Responsive
+                        Container(
+                          constraints: BoxConstraints(
+                            maxWidth: isSmall ? double.infinity : 200,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.grey.shade300,
+                              width: 1,
+                            ),
+                          ),
+                          child: InkWell(
+                            onTap: () => _shareCotisation(context),
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isVerySmall ? 16 : 24, 
+                                vertical: isVerySmall ? 12 : 16
                               ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Partager',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey.shade700,
-                                ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.share,
+                                    color: Colors.grey.shade600,
+                                    size: isVerySmall ? 18 : 20,
+                                  ),
+                                  SizedBox(width: isVerySmall ? 6 : 8),
+                                  Text(
+                                    'Partager',
+                                    style: TextStyle(
+                                      fontSize: isVerySmall ? 14 : 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey.shade700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                    
+                        SizedBox(height: isShortScreen ? 32 : 48),
+                        
+                        // Détails de la cotisation - Responsive
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
                               ),
                             ],
                           ),
-                        ),
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 48),
-                    
-                    // Détails de la cotisation
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          _buildDetailRow(
-                            'Montant payé',
-                            '${montant.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')} FCFA',
-                            false,
-                          ),
-                          _buildDetailRow(
-                            'Statut',
-                            isPaid ? 'Validé' : 'En attente',
-                            true,
-                            valueColor: isPaid ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
-                            hasIcon: true,
-                          ),
-                          _buildDetailRow(
-                            'Mode de paiement',
-                            paymentMethod,
-                            false,
-                            hasPaymentIcon: true,
-                          ),
-                          _buildDetailRow(
-                            'Date et heure',
-                            date,
-                            true,
-                          ),
-                          _buildDetailRow(
-                            'ID de paiement',
-                            cotisationId,
-                            false,
-                            isLast: true,
-                          ),
+                          child: Column(
+                            children: [
+                              _buildDetailRow(
+                                'Montant payé',
+                                '${montant.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')} FCFA',
+                                false,
+                                isVerySmall: isVerySmall,
+                                isSmall: isSmall,
+                              ),
+                              _buildDetailRow(
+                                'Statut',
+                                isPaid ? 'Validé' : 'En attente',
+                                true,
+                                valueColor: isPaid ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                                hasIcon: true,
+                                isVerySmall: isVerySmall,
+                                isSmall: isSmall,
+                              ),
+                              _buildDetailRow(
+                                'Mode de paiement',
+                                paymentMethod,
+                                false,
+                                hasPaymentIcon: true,
+                                isVerySmall: isVerySmall,
+                                isSmall: isSmall,
+                              ),
+                              _buildDetailRow(
+                                'Date et heure',
+                                date,
+                                true,
+                                isVerySmall: isVerySmall,
+                                isSmall: isSmall,
+                              ),
+                              _buildDetailRow(
+                                'ID de paiement',
+                                cotisationId,
+                                false,
+                                isLast: true,
+                                isVerySmall: isVerySmall,
+                                isSmall: isSmall,
+                              ),
                         ],
                       ),
                     ),
                     
-                    const SizedBox(height: 48),
-                    
-                    // Section informations du mode de paiement
-                    if (paymentMethod == 'Code QR' || paymentMethod == 'Validé' || paymentMethod == 'Mobile Money') ...[
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
+                        SizedBox(height: isShortScreen ? 32 : 48),
+                        
+                        // Section informations du mode de paiement - Responsive
+                        if (paymentMethod == 'Code QR' || paymentMethod == 'Validé' || paymentMethod == 'Mobile Money') ...[
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(20),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: _getPaymentMethodColor(paymentMethod).withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Icon(
-                                      _getPaymentMethodIcon(paymentMethod),
-                                      color: _getPaymentMethodColor(paymentMethod),
-                                      size: 24,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          _getPaymentMethodTitle(paymentMethod),
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: Color(0xFF1F2937),
-                                          ),
+                            child: Column(
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.all(isVerySmall ? 12 : (isSmall ? 16 : 20)),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: EdgeInsets.all(isVerySmall ? 8 : (isSmall ? 10 : 12)),
+                                        decoration: BoxDecoration(
+                                          color: _getPaymentMethodColor(paymentMethod).withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(12),
                                         ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          _getPaymentMethodDescription(paymentMethod),
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            color: Color(0xFF6B7280),
-                                          ),
+                                        child: Icon(
+                                          _getPaymentMethodIcon(paymentMethod),
+                                          color: _getPaymentMethodColor(paymentMethod),
+                                          size: isVerySmall ? 18 : (isSmall ? 20 : 24),
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                      SizedBox(width: isVerySmall ? 12 : 16),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              _getPaymentMethodTitle(paymentMethod),
+                                              style: TextStyle(
+                                                fontSize: isVerySmall ? 14 : (isSmall ? 15 : 16),
+                                                fontWeight: FontWeight.w600,
+                                                color: const Color(0xFF1F2937),
+                                              ),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            SizedBox(height: isVerySmall ? 2 : 4),
+                                            Text(
+                                              _getPaymentMethodDescription(paymentMethod),
+                                              style: TextStyle(
+                                                fontSize: isVerySmall ? 12 : (isSmall ? 13 : 14),
+                                                color: const Color(0xFF6B7280),
+                                              ),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
-                    ] else if (paymentMethod == 'Preuve' || paymentMethod == 'En attente' || paymentMethod == 'Main à main') ...[
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
+                          ),
+                        ] else if (paymentMethod == 'Preuve' || paymentMethod == 'En attente' || paymentMethod == 'Main à main') ...[
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(20),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: _getPaymentMethodColor(paymentMethod).withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Icon(
-                                      _getPaymentMethodIcon(paymentMethod),
-                                      color: _getPaymentMethodColor(paymentMethod),
-                                      size: 24,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          _getPaymentMethodTitle(paymentMethod),
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: Color(0xFF1F2937),
-                                          ),
+                            child: Column(
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.all(isVerySmall ? 12 : (isSmall ? 16 : 20)),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: EdgeInsets.all(isVerySmall ? 8 : (isSmall ? 10 : 12)),
+                                        decoration: BoxDecoration(
+                                          color: _getPaymentMethodColor(paymentMethod).withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(12),
                                         ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          _getPaymentMethodDescription(paymentMethod),
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            color: Color(0xFF6B7280),
-                                          ),
+                                        child: Icon(
+                                          _getPaymentMethodIcon(paymentMethod),
+                                          color: _getPaymentMethodColor(paymentMethod),
+                                          size: isVerySmall ? 18 : (isSmall ? 20 : 24),
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                      SizedBox(width: isVerySmall ? 12 : 16),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              _getPaymentMethodTitle(paymentMethod),
+                                              style: TextStyle(
+                                                fontSize: isVerySmall ? 14 : (isSmall ? 15 : 16),
+                                                fontWeight: FontWeight.w600,
+                                                color: const Color(0xFF1F2937),
+                                              ),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            SizedBox(height: isVerySmall ? 2 : 4),
+                                            Text(
+                                              _getPaymentMethodDescription(paymentMethod),
+                                              style: TextStyle(
+                                                fontSize: isVerySmall ? 12 : (isSmall ? 13 : 14),
+                                                color: const Color(0xFF6B7280),
+                                              ),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
+                        ],
+                        
+                        SizedBox(height: isShortScreen ? 32 : 48),
+                        
+                        // Footer - Responsive
+                        Text(
+                          'Cotisation effectuée via GestCity',
+                          style: TextStyle(
+                            fontSize: isVerySmall ? 12 : 14,
+                            color: Colors.grey.shade500,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                      ),
-                    ],
-                    
-                    const SizedBox(height: 48),
-                    
-                    // Footer
-                    Text(
-                      'Cotisation effectuée via GestCity',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade500,
-                      ),
+                        
+                        SizedBox(height: isShortScreen ? 16 : 32),
+                      ],
                     ),
-                    
-                    const SizedBox(height: 32),
-                  ],
-                ),
+                  );
+                },
               ),
             ),
           ],
@@ -382,6 +432,8 @@ class CotisationDetailPage extends StatelessWidget {
     bool hasIcon = false,
     bool hasPaymentIcon = false,
     bool isLast = false,
+    bool isVerySmall = false,
+    bool isSmall = false,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -393,54 +445,130 @@ class CotisationDetailPage extends StatelessWidget {
           ),
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      padding: EdgeInsets.symmetric(
+        horizontal: isVerySmall ? 12 : (isSmall ? 16 : 20), 
+        vertical: isVerySmall ? 12 : 16
+      ),
+      child: Column(
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF1F2937),
-            ),
-          ),
-          Row(
-            children: [
-              if (hasIcon) ...[ 
-                Container(
-                  width: 20,
-                  height: 20,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF10B981),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.check,
-                    color: Colors.white,
-                    size: 14,
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ],
-              if (hasPaymentIcon) ...[
-                Icon(
-                  value == 'Code QR' ? Icons.qr_code : Icons.receipt_long,
-                  color: value == 'Code QR' ? const Color(0xFF4F46E5) : const Color(0xFF1F2937),
-                  size: 16,
-                ),
-                const SizedBox(width: 8),
-              ],
-              Text(
-                value,
+          // Pour les très petits écrans, afficher en colonne
+          if (isVerySmall) ...[
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                label,
                 style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: valueColor ?? const Color(0xFF6B7280),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF1F2937),
                 ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                if (hasIcon) ...[ 
+                  Container(
+                    width: 18,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981),
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: const Icon(
+                      Icons.check,
+                      color: Colors.white,
+                      size: 12,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                if (hasPaymentIcon) ...[
+                  Icon(
+                    _getPaymentMethodIcon(value),
+                    color: _getPaymentMethodColor(value),
+                    size: 14,
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                Flexible(
+                  child: Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: valueColor ?? const Color(0xFF6B7280),
+                    ),
+                    textAlign: TextAlign.end,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            // Pour les écrans normaux, afficher en ligne
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: isSmall ? 14 : 16,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF1F2937),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      if (hasIcon) ...[ 
+                        Container(
+                          width: isSmall ? 18 : 20,
+                          height: isSmall ? 18 : 20,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981),
+                            borderRadius: BorderRadius.circular(isSmall ? 9 : 10),
+                          ),
+                          child: Icon(
+                            Icons.check,
+                            color: Colors.white,
+                            size: isSmall ? 12 : 14,
+                          ),
+                        ),
+                        SizedBox(width: isSmall ? 6 : 8),
+                      ],
+                      if (hasPaymentIcon) ...[
+                        Icon(
+                          _getPaymentMethodIcon(value),
+                          color: _getPaymentMethodColor(value),
+                          size: isSmall ? 14 : 16,
+                        ),
+                        SizedBox(width: isSmall ? 6 : 8),
+                      ],
+                      Flexible(
+                        child: Text(
+                          value,
+                          style: TextStyle(
+                            fontSize: isSmall ? 14 : 16,
+                            fontWeight: FontWeight.w600,
+                            color: valueColor ?? const Color(0xFF6B7280),
+                          ),
+                          textAlign: TextAlign.end,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
