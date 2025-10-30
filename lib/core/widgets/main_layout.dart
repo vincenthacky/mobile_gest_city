@@ -94,28 +94,37 @@ class MainLayout extends StatelessWidget {
       child: GestureDetector(
         onTap: () => context.go(path),
         behavior: HitTestBehavior.opaque,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: isActive 
-                  ? const Color(0xFF4F46E5) 
-                  : const Color(0xFF9CA3AF),
-              size: 24,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
                 color: isActive 
                     ? const Color(0xFF4F46E5) 
                     : const Color(0xFF9CA3AF),
+                size: 22,
               ),
-            ),
-          ],
+              const SizedBox(height: 2),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                    color: isActive 
+                        ? const Color(0xFF4F46E5) 
+                        : const Color(0xFF9CA3AF),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

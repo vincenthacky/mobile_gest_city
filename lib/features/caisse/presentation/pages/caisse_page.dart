@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../core/widgets/app_header.dart';
 import 'transaction_detail_page.dart';
+import '../../data/datasource/cash_movements_data_source.dart';
+import '../../data/models/cash_movement.dart';
+import '../../data/models/cash_movements_response.dart';
 
 class CaissePage extends StatefulWidget {
   const CaissePage({super.key});
@@ -25,81 +28,32 @@ class _CaissePageState extends State<CaissePage> with TickerProviderStateMixin {
   late Animation<double> _scaleAnimation;
 
   final List<String> _filters = ['Tous', 'Recettes', 'Dépenses'];
+  
+  // Data source
+  final CashMovementsDataSource _dataSource = CashMovementsDataSource();
+  
+  // State management
+  bool _isLoading = true;
+  String? _error;
+  List<CashMovement> _cashMovements = [];
+  Totals? _totals;
 
-  // Données statiques pour la démonstration
-  final List<Map<String, dynamic>> _transactions = [
-    {
-      'id': 1,
-      'type': 'Cotisation Mensuelle',
-      'description': 'Paiement cotisation - Jean Dupont',
-      'montant': 10000,
-      'isRecette': true,
-      'date': '2024-10-28',
-      'dateFormatted': '28 Oct 2024',
-    },
-    {
-      'id': 2,
-      'type': 'Financement Projet',
-      'description': 'Décaissement pour projet construction école',
-      'montant': 50000,
-      'isRecette': false,
-      'date': '2024-10-27',
-      'dateFormatted': '27 Oct 2024',
-    },
-    {
-      'id': 3,
-      'type': 'Cotisation Mensuelle',
-      'description': 'Paiement cotisation - Marie Martin',
-      'montant': 10000,
-      'isRecette': true,
-      'date': '2024-10-26',
-      'dateFormatted': '26 Oct 2024',
-    },
-    {
-      'id': 4,
-      'type': 'Achat Matériel',
-      'description': 'Achat matériel de bureau pour association',
-      'montant': 25000,
-      'isRecette': false,
-      'date': '2024-10-25',
-      'dateFormatted': '25 Oct 2024',
-    },
-    {
-      'id': 5,
-      'type': 'Cotisation Mensuelle',
-      'description': 'Paiement cotisation - Paul Durand',
-      'montant': 10000,
-      'isRecette': true,
-      'date': '2024-10-24',
-      'dateFormatted': '24 Oct 2024',
-    },
-    {
-      'id': 6,
-      'type': 'Don',
-      'description': 'Don pour aide aux familles démunies',
-      'montant': 15000,
-      'isRecette': true,
-      'date': '2024-10-23',
-      'dateFormatted': '23 Oct 2024',
-    },
-  ];
 
-  List<Map<String, dynamic>> get _filteredTransactions {
-    List<Map<String, dynamic>> filtered = _transactions;
+  List<CashMovement> get _filteredTransactions {
+    List<CashMovement> filtered = _cashMovements;
 
     // Filtre par type
     if (_selectedFilter == 'Recettes') {
-      filtered = filtered.where((t) => t['isRecette'] == true).toList();
+      filtered = filtered.where((t) => t.isCredit).toList();
     } else if (_selectedFilter == 'Dépenses') {
-      filtered = filtered.where((t) => t['isRecette'] == false).toList();
+      filtered = filtered.where((t) => t.isDebit).toList();
     }
 
     // Filtre par date
     if (_selectedDateRange != null) {
       filtered = filtered.where((t) {
-        final transactionDate = DateTime.parse(t['date']);
-        return transactionDate.isAfter(_selectedDateRange!.start.subtract(const Duration(days: 1))) &&
-               transactionDate.isBefore(_selectedDateRange!.end.add(const Duration(days: 1)));
+        return t.date.isAfter(_selectedDateRange!.start.subtract(const Duration(days: 1))) &&
+               t.date.isBefore(_selectedDateRange!.end.add(const Duration(days: 1)));
       }).toList();
     }
 
@@ -107,26 +61,22 @@ class _CaissePageState extends State<CaissePage> with TickerProviderStateMixin {
   }
 
   double get _totalRecettes {
-    return _filteredTransactions
-        .where((t) => t['isRecette'] == true)
-        .fold(0.0, (sum, t) => sum + t['montant']);
+    return _totals?.totalReceipts.toDouble() ?? 0.0;
   }
 
   double get _totalDepenses {
-    return _filteredTransactions
-        .where((t) => t['isRecette'] == false)
-        .fold(0.0, (sum, t) => sum + t['montant']);
+    return _totals?.totalExpenses.toDouble() ?? 0.0;
   }
 
   double get _soldeActuel {
-    return _totalRecettes - _totalDepenses;
+    return _totals?.balance.toDouble() ?? 0.0;
   }
 
   @override
   void initState() {
     super.initState();
     _initializeAnimations();
-    _startAnimations();
+    _loadCashMovements();
   }
 
   void _initializeAnimations() {
@@ -186,6 +136,57 @@ class _CaissePageState extends State<CaissePage> with TickerProviderStateMixin {
     });
   }
 
+  Future<void> _loadCashMovements() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+
+      String? apiFilter;
+      if (_selectedFilter == 'Recettes') {
+        apiFilter = 'recette';
+      } else if (_selectedFilter == 'Dépenses') {
+        apiFilter = 'depense';
+      }
+
+      final response = await _dataSource.getCashMovements(filter: apiFilter);
+      
+      if (mounted) {
+        setState(() {
+          _cashMovements = response.data.cashMovements;
+          _totals = response.data.totals;
+          _isLoading = false;
+        });
+        _startAnimations();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _onRefresh() async {
+    HapticFeedback.lightImpact();
+    _fadeController.reset();
+    _slideController.reset();
+    _scaleController.reset();
+    
+    await _loadCashMovements();
+  }
+
+  void _onFilterChanged(String filter) {
+    HapticFeedback.lightImpact();
+    setState(() {
+      _selectedFilter = filter;
+    });
+    _loadCashMovements();
+  }
+
   @override
   void dispose() {
     _slideController.dispose();
@@ -223,23 +224,64 @@ class _CaissePageState extends State<CaissePage> with TickerProviderStateMixin {
                 color: const Color(0xFF4F46E5),
                 backgroundColor: Colors.white,
                 strokeWidth: 2.5,
-                onRefresh: () async {
-                  HapticFeedback.lightImpact();
-                  // Restart animations on refresh
-                  _fadeController.reset();
-                  _slideController.reset();
-                  _scaleController.reset();
-                  
-                  await Future.delayed(const Duration(milliseconds: 800));
-                  
-                  // Restart animations
-                  _startAnimations();
-                },
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                onRefresh: _onRefresh,
+                child: _isLoading
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(32.0),
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF4F46E5),
+                          ),
+                        ),
+                      )
+                    : _error != null
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(32.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    size: 64,
+                                    color: Colors.grey.shade400,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Erreur de chargement',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    _error!,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey.shade500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  ElevatedButton(
+                                    onPressed: _loadCashMovements,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF4F46E5),
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    child: const Text('Réessayer'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        : SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
                       // Contenu avec padding sauf pour la liste
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -300,11 +342,11 @@ class _CaissePageState extends State<CaissePage> with TickerProviderStateMixin {
                         }).toList(),
                       ),
                       
-                      // Padding bottom pour le scroll
-                      const SizedBox(height: 96),
-                    ],
-                  ),
-                ),
+                                // Padding bottom pour le scroll
+                                const SizedBox(height: 96),
+                              ],
+                            ),
+                          ),
               ),
             ),
           ],
@@ -521,12 +563,7 @@ class _CaissePageState extends State<CaissePage> with TickerProviderStateMixin {
               return Container(
                 margin: EdgeInsets.only(right: index < _filters.length - 1 ? 12 : 0),
                 child: InkWell(
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    setState(() {
-                      _selectedFilter = filter;
-                    });
-                  },
+                  onTap: () => _onFilterChanged(filter),
                   borderRadius: BorderRadius.circular(20),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -607,10 +644,10 @@ class _CaissePageState extends State<CaissePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildTransactionItem(Map<String, dynamic> transaction, bool isLast) {
-    final isRecette = transaction['isRecette'] as bool;
-    final montant = transaction['montant'] as int;
-    final type = transaction['type'] as String;
+  Widget _buildTransactionItem(CashMovement transaction, bool isLast) {
+    final isRecette = transaction.isCredit;
+    final montant = transaction.amount;
+    final type = transaction.typeDisplay;
     
     // Fonction pour obtenir l'icône selon le type de transaction
     IconData getTransactionIcon(String type) {
@@ -688,7 +725,7 @@ class _CaissePageState extends State<CaissePage> with TickerProviderStateMixin {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              transaction['type'],
+                              transaction.typeDisplay,
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -700,7 +737,7 @@ class _CaissePageState extends State<CaissePage> with TickerProviderStateMixin {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              transaction['description'],
+                              '${transaction.methodDisplay} - ${transaction.statusDisplay}',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey.shade500,

@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 // import 'package:share_plus/share_plus.dart';
 import '../../../../core/widgets/app_header.dart';
+import '../../data/models/cash_movement.dart';
 
 class TransactionDetailPage extends StatelessWidget {
-  final Map<String, dynamic> transaction;
+  final CashMovement transaction;
 
   const TransactionDetailPage({
     super.key,
@@ -13,21 +14,18 @@ class TransactionDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isRecette = transaction['isRecette'] as bool;
-    final montant = transaction['montant'] as int;
-    final type = transaction['type'] as String;
-    final description = transaction['description'] as String;
-    final date = transaction['dateFormatted'] as String;
+    final isRecette = transaction.isCredit;
+    final montant = transaction.amount;
+    final type = transaction.typeDisplay;
+    final description = '${transaction.methodDisplay} - ${transaction.statusDisplay}';
+    final date = _formatDate(transaction.date);
 
     // Génération d'un ID de transaction fictif
-    final transactionId = 'TXN${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+    final transactionId = 'TXN${transaction.id}';
     
     // Extraction du nom de la personne depuis la description
     String getPersonName() {
-      if (description.contains(' - ')) {
-        return description.split(' - ').last;
-      }
-      return description;
+      return transaction.methodDisplay;
     }
 
     return Scaffold(
@@ -187,21 +185,27 @@ class TransactionDetailPage extends StatelessWidget {
                       child: Column(
                         children: [
                           _buildDetailRow(
-                            'Montant reçu',
+                            isRecette ? 'Montant reçu' : 'Montant débité',
                             '${montant.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')}F',
                             false,
                           ),
                           _buildDetailRow(
                             'Statut',
-                            'Effectué',
+                            transaction.statusDisplay,
                             true,
-                            valueColor: const Color(0xFF10B981),
-                            hasIcon: true,
+                            valueColor: transaction.status == 'VALIDATED' ? const Color(0xFF10B981) : 
+                                       transaction.status == 'PENDING' ? const Color(0xFFF59E0B) : const Color(0xFFEF4444),
+                            hasIcon: transaction.status == 'VALIDATED',
                           ),
                           _buildDetailRow(
                             'Type',
                             type,
                             false,
+                          ),
+                          _buildDetailRow(
+                            'Méthode',
+                            transaction.methodDisplay,
+                            true,
                           ),
                           _buildDetailRow(
                             'Date et heure',
@@ -303,6 +307,14 @@ class TransactionDetailPage extends StatelessWidget {
     );
   }
 
+  String _formatDate(DateTime date) {
+    final months = [
+      'Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin',
+      'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year} à ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
   IconData _getTransactionIcon(String type) {
     if (type.contains('Cotisation')) {
       return Icons.account_balance_wallet;
@@ -318,18 +330,19 @@ class TransactionDetailPage extends StatelessWidget {
   }
 
   void _shareTransaction(BuildContext context) {
-    final isRecette = transaction['isRecette'] as bool;
-    final montant = transaction['montant'] as int;
-    final type = transaction['type'] as String;
-    final date = transaction['dateFormatted'] as String;
+    final isRecette = transaction.isCredit;
+    final montant = transaction.amount;
+    final type = transaction.typeDisplay;
+    final date = _formatDate(transaction.date);
     
     final shareText = '''
 Transaction GestCity
 
 Type: $type
 Montant: ${isRecette ? '+' : '-'}${montant.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')}F
+Méthode: ${transaction.methodDisplay}
 Date: $date
-Statut: Effectué
+Statut: ${transaction.statusDisplay}
 
 Généré via GestCity
 ''';

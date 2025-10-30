@@ -60,7 +60,7 @@ class ContributionData {
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
       description: json['description'],
-      amountByPerson: json['amount_by_person'] ?? '0.00',
+      amountByPerson: json['amount_by_person']?.toString() ?? '0.00',
       deadlineDay: json['deadline_day'] ?? 1,
       createdAt: json['created_at'] ?? '',
       updatedAt: json['updated_at'] ?? '',
