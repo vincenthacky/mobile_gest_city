@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../controller/auth_controller.dart';
 
 class LoginPage extends StatefulWidget {
@@ -38,7 +39,7 @@ class _LoginPageState extends State<LoginPage> {
     final verticalPadding = isSmallScreen ? 16.0 : 32.0;
     
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF9FAFB),
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Consumer<AuthController>(
@@ -60,14 +61,17 @@ class _LoginPageState extends State<LoginPage> {
                       IconButton(
                         onPressed: () => context.go('/onboarding/choice'),
                         icon: const Icon(
-                          Icons.arrow_back,
+                          Icons.arrow_back_ios,
                           color: Color(0xFF6B7280),
+                          size: 20,
                         ),
                         style: IconButton.styleFrom(
-                          backgroundColor: const Color(0xFFF3F4F6),
+                          backgroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(50),
+                            borderRadius: BorderRadius.circular(16),
                           ),
+                          elevation: 0,
+                          shadowColor: Colors.black.withValues(alpha: 0.08),
                         ),
                       ),
                     ],
@@ -92,35 +96,26 @@ class _LoginPageState extends State<LoginPage> {
                           mainAxisAlignment: keyboardVisible ? MainAxisAlignment.start : MainAxisAlignment.center,
                           children: [
                             if (keyboardVisible) const SizedBox(height: 20),
-                            Container(
-                              height: isVerySmallScreen ? 60 : (isSmallScreen ? 70 : 80),
-                              width: isVerySmallScreen ? 60 : (isSmallScreen ? 70 : 80),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.shade50,
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Icon(
-                                Icons.lock,
-                                size: isVerySmallScreen ? 36 : (isSmallScreen ? 42 : 48),
-                                color: const Color(0xFF3B82F6),
-                              ),
-                            ),
-                            SizedBox(height: isVerySmallScreen ? 16 : (isSmallScreen ? 24 : 32)),
+                            
+                            // Titre principal
                             Text(
                               'Connexion',
-                              style: TextStyle(
-                                fontSize: isVerySmallScreen ? 24 : (isSmallScreen ? 26 : 28),
-                                fontWeight: FontWeight.bold,
+                              style: GoogleFonts.poppins(
+                                fontSize: isVerySmallScreen ? 28 : (isSmallScreen ? 32 : 36),
+                                fontWeight: FontWeight.w600,
                                 color: const Color(0xFF1F2937),
+                                height: 1.2,
                               ),
                               textAlign: TextAlign.center,
                             ),
-                            const SizedBox(height: 8),
+                            SizedBox(height: isVerySmallScreen ? 12 : (isSmallScreen ? 16 : 20)),
                             Text(
-                              'Content de vous revoir !',
-                              style: TextStyle(
-                                fontSize: isVerySmallScreen ? 14 : 16,
+                              'Bienvenue dans ta cité ! 👋',
+                              style: GoogleFonts.nunito(
+                                fontSize: isVerySmallScreen ? 16 : 18,
                                 color: const Color(0xFF6B7280),
+                                fontWeight: FontWeight.w400,
+                                height: 1.5,
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -132,12 +127,12 @@ class _LoginPageState extends State<LoginPage> {
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
+                                      Text(
                                         'Téléphone ou Email',
-                                        style: TextStyle(
+                                        style: GoogleFonts.nunito(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w500,
-                                          color: Color(0xFF374151),
+                                          color: const Color(0xFF374151),
                                         ),
                                       ),
                                       const SizedBox(height: 8),
@@ -150,19 +145,23 @@ class _LoginPageState extends State<LoginPage> {
                                             color: Color(0xFF9CA3AF),
                                           ),
                                           filled: true,
-                                          fillColor: const Color(0xFFF3F4F6),
+                                          fillColor: Colors.white,
                                           border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                            borderSide: BorderSide.none,
-                                          ),
-                                          enabledBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(20),
                                             borderSide: const BorderSide(
                                               color: Color(0xFFE5E7EB),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(20),
+                                            borderSide: const BorderSide(
+                                              color: Color(0xFFE5E7EB),
+                                              width: 1,
                                             ),
                                           ),
                                           focusedBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(20),
                                             borderSide: const BorderSide(
                                               color: Color(0xFF3B82F6),
                                               width: 2,
@@ -219,19 +218,23 @@ class _LoginPageState extends State<LoginPage> {
                                             },
                                           ),
                                           filled: true,
-                                          fillColor: const Color(0xFFF3F4F6),
+                                          fillColor: Colors.white,
                                           border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                            borderSide: BorderSide.none,
-                                          ),
-                                          enabledBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(20),
                                             borderSide: const BorderSide(
                                               color: Color(0xFFE5E7EB),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(20),
+                                            borderSide: const BorderSide(
+                                              color: Color(0xFFE5E7EB),
+                                              width: 1,
                                             ),
                                           ),
                                           focusedBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(20),
                                             borderSide: const BorderSide(
                                               color: Color(0xFF3B82F6),
                                               width: 2,
@@ -339,9 +342,11 @@ class _LoginPageState extends State<LoginPage> {
                                         backgroundColor: const Color(0xFF3B82F6),
                                         foregroundColor: Colors.white,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(24),
                                         ),
                                         elevation: 0,
+                                        shadowColor: Colors.black.withValues(alpha: 0.08),
+                                        padding: const EdgeInsets.symmetric(vertical: 16),
                                       ),
                                       child: authController.isLoading
                                           ? const SizedBox(
@@ -354,11 +359,12 @@ class _LoginPageState extends State<LoginPage> {
                                                 ),
                                               ),
                                             )
-                                          : const Text(
+                                          : Text(
                                               'Connexion',
-                                              style: TextStyle(
+                                              style: GoogleFonts.poppins(
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.w600,
+                                                color: Colors.white,
                                               ),
                                             ),
                                     ),
@@ -381,9 +387,10 @@ class _LoginPageState extends State<LoginPage> {
                             children: [
                               Text(
                                 'Pas encore de compte ? ',
-                                style: TextStyle(
+                                style: GoogleFonts.nunito(
                                   fontSize: isVerySmallScreen ? 12 : 14,
                                   color: const Color(0xFF6B7280),
+                                  fontWeight: FontWeight.w400,
                                 ),
                               ),
                               TextButton(
@@ -397,7 +404,7 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                                 child: Text(
                                   'S\'inscrire',
-                                  style: TextStyle(
+                                  style: GoogleFonts.poppins(
                                     fontSize: isVerySmallScreen ? 12 : 14,
                                     fontWeight: FontWeight.w600,
                                     color: const Color(0xFF3B82F6),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../controller/register_controller.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -45,7 +46,7 @@ class _RegisterPageState extends State<RegisterPage> {
     return Consumer<RegisterController>(
       builder: (context, registerController, child) {
         return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF9FAFB),
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Column(
@@ -59,14 +60,17 @@ class _RegisterPageState extends State<RegisterPage> {
                   IconButton(
                     onPressed: () => context.go('/qr-scan'),
                     icon: const Icon(
-                      Icons.arrow_back,
+                      Icons.arrow_back_ios,
                       color: Color(0xFF6B7280),
+                      size: 20,
                     ),
                     style: IconButton.styleFrom(
-                      backgroundColor: const Color(0xFFF3F4F6),
+                      backgroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(50),
+                        borderRadius: BorderRadius.circular(16),
                       ),
+                      elevation: 0,
+                      shadowColor: Colors.black.withValues(alpha: 0.08),
                     ),
                   ),
                 ],
@@ -84,10 +88,22 @@ class _RegisterPageState extends State<RegisterPage> {
                     if (!keyboardVisible) SizedBox(height: isVerySmallScreen ? 16 : (isSmallScreen ? 20 : 32)),
                     Text(
                       'Inscription',
-                      style: TextStyle(
-                        fontSize: isVerySmallScreen ? 24 : (isSmallScreen ? 28 : 32),
-                        fontWeight: FontWeight.bold,
+                      style: GoogleFonts.poppins(
+                        fontSize: isVerySmallScreen ? 28 : (isSmallScreen ? 32 : 36),
+                        fontWeight: FontWeight.w600,
                         color: const Color(0xFF1F2937),
+                        height: 1.2,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: isVerySmallScreen ? 8 : (isSmallScreen ? 12 : 16)),
+                    Text(
+                      'Rejoins ta communauté ! 🏠',
+                      style: GoogleFonts.nunito(
+                        fontSize: isVerySmallScreen ? 16 : 18,
+                        color: const Color(0xFF6B7280),
+                        fontWeight: FontWeight.w400,
+                        height: 1.5,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -100,12 +116,12 @@ class _RegisterPageState extends State<RegisterPage> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'Nom complet',
-                                style: TextStyle(
+                                style: GoogleFonts.nunito(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
-                                  color: Color(0xFF374151),
+                                  color: const Color(0xFF374151),
                                 ),
                               ),
                               const SizedBox(height: 8),
@@ -116,21 +132,23 @@ class _RegisterPageState extends State<RegisterPage> {
                                   filled: true,
                                   fillColor: Colors.white,
                                   border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(20),
                                     borderSide: const BorderSide(
-                                      color: Color(0xFFD1D5DB),
+                                      color: Color(0xFFE5E7EB),
+                                      width: 1,
                                     ),
                                   ),
                                   enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(20),
                                     borderSide: const BorderSide(
-                                      color: Color(0xFFD1D5DB),
+                                      color: Color(0xFFE5E7EB),
+                                      width: 1,
                                     ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(20),
                                     borderSide: const BorderSide(
-                                      color: Color(0xFF6366F1),
+                                      color: Color(0xFF3B82F6),
                                       width: 2,
                                     ),
                                   ),
@@ -169,21 +187,23 @@ class _RegisterPageState extends State<RegisterPage> {
                                   filled: true,
                                   fillColor: Colors.white,
                                   border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(20),
                                     borderSide: const BorderSide(
-                                      color: Color(0xFFD1D5DB),
+                                      color: Color(0xFFE5E7EB),
+                                      width: 1,
                                     ),
                                   ),
                                   enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(20),
                                     borderSide: const BorderSide(
-                                      color: Color(0xFFD1D5DB),
+                                      color: Color(0xFFE5E7EB),
+                                      width: 1,
                                     ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(20),
                                     borderSide: const BorderSide(
-                                      color: Color(0xFF6366F1),
+                                      color: Color(0xFF3B82F6),
                                       width: 2,
                                     ),
                                   ),
@@ -226,21 +246,23 @@ class _RegisterPageState extends State<RegisterPage> {
                                   filled: true,
                                   fillColor: Colors.white,
                                   border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(20),
                                     borderSide: const BorderSide(
-                                      color: Color(0xFFD1D5DB),
+                                      color: Color(0xFFE5E7EB),
+                                      width: 1,
                                     ),
                                   ),
                                   enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(20),
                                     borderSide: const BorderSide(
-                                      color: Color(0xFFD1D5DB),
+                                      color: Color(0xFFE5E7EB),
+                                      width: 1,
                                     ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(20),
                                     borderSide: const BorderSide(
-                                      color: Color(0xFF6366F1),
+                                      color: Color(0xFF3B82F6),
                                       width: 2,
                                     ),
                                   ),
@@ -294,21 +316,23 @@ class _RegisterPageState extends State<RegisterPage> {
                                   filled: true,
                                   fillColor: Colors.white,
                                   border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(20),
                                     borderSide: const BorderSide(
-                                      color: Color(0xFFD1D5DB),
+                                      color: Color(0xFFE5E7EB),
+                                      width: 1,
                                     ),
                                   ),
                                   enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(20),
                                     borderSide: const BorderSide(
-                                      color: Color(0xFFD1D5DB),
+                                      color: Color(0xFFE5E7EB),
+                                      width: 1,
                                     ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(20),
                                     borderSide: const BorderSide(
-                                      color: Color(0xFF6366F1),
+                                      color: Color(0xFF3B82F6),
                                       width: 2,
                                     ),
                                   ),
@@ -350,21 +374,23 @@ class _RegisterPageState extends State<RegisterPage> {
                                   filled: true,
                                   fillColor: Colors.white,
                                   border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(20),
                                     borderSide: const BorderSide(
-                                      color: Color(0xFFD1D5DB),
+                                      color: Color(0xFFE5E7EB),
+                                      width: 1,
                                     ),
                                   ),
                                   enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(20),
                                     borderSide: const BorderSide(
-                                      color: Color(0xFFD1D5DB),
+                                      color: Color(0xFFE5E7EB),
+                                      width: 1,
                                     ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(20),
                                     borderSide: const BorderSide(
-                                      color: Color(0xFF6366F1),
+                                      color: Color(0xFF3B82F6),
                                       width: 2,
                                     ),
                                   ),
@@ -394,14 +420,16 @@ class _RegisterPageState extends State<RegisterPage> {
                             child: ElevatedButton(
                               onPressed: registerController.isLoading ? null : () => _register(registerController),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF6366F1),
+                                backgroundColor: const Color(0xFF3B82F6),
                                 foregroundColor: Colors.white,
                                 disabledBackgroundColor: const Color(0xFFE5E7EB),
                                 disabledForegroundColor: const Color(0xFF9CA3AF),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(24),
                                 ),
                                 elevation: 0,
+                                shadowColor: Colors.black.withValues(alpha: 0.08),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
                               ),
                               child: registerController.isLoading
                                 ? const SizedBox(
@@ -412,11 +440,12 @@ class _RegisterPageState extends State<RegisterPage> {
                                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                     ),
                                   )
-                                : const Text(
+                                : Text(
                                     'Inscription',
-                                    style: TextStyle(
+                                    style: GoogleFonts.poppins(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
+                                      color: Colors.white,
                                     ),
                                   ),
                             ),
