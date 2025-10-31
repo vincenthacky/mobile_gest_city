@@ -12,10 +12,10 @@ import '../../features/authentication/presentation/pages/qr_scan_page.dart';
 import '../pages/home_page.dart';
 import '../../features/cotisation/presentation/pages/cotisations_page.dart';
 import '../../features/projets/presentation/pages/projets_page.dart';
-import '../../features/projets/presentation/pages/ajouter_projet_page.dart';
+import '../../features/projets/presentation/pages/create_project_page.dart';
 import '../../features/signalement/presentation/pages/signalements_page.dart';
 import '../../features/signalement/presentation/pages/ajouter_signalement_page.dart';
-import '../../features/caisse/presentation/pages/caisse_page.dart';
+import '../../features/cadre_de_vie/presentation/pages/cadre_de_vie_page.dart';
 import '../../features/compte/presentation/pages/compte_page.dart';
 import '../widgets/main_layout.dart';
 
@@ -111,7 +111,7 @@ class AppRouter {
             GoRoute(
               path: '/projets/ajouter',
               name: 'ajouter-projet',
-              builder: (context, state) => const AjouterProjetPage(),
+              builder: (context, state) => const CreateProjectPage(),
             ),
             GoRoute(
               path: '/signalements',
@@ -124,9 +124,9 @@ class AppRouter {
               builder: (context, state) => const AjouterSignalementPage(),
             ),
             GoRoute(
-              path: '/caisse',
-              name: 'caisse',
-              builder: (context, state) => const CaissePage(),
+              path: '/cadre-de-vie',
+              name: 'cadre-de-vie',
+              builder: (context, state) => const CadreDeViePage(),
             ),
             GoRoute(
               path: '/compte',
