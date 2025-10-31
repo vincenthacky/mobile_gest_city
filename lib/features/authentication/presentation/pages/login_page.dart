@@ -49,11 +49,37 @@ class _LoginPageState extends State<LoginPage> {
               });
             }
 
-            return SingleChildScrollView(
-              padding: EdgeInsets.symmetric(
-                horizontal: horizontalPadding,
-                vertical: verticalPadding,
-              ),
+            return Column(
+              children: [
+                // Header avec bouton retour
+                Container(
+                  height: isVerySmallScreen ? 56 : 64,
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => context.go('/onboarding/choice'),
+                        icon: const Icon(
+                          Icons.arrow_back,
+                          color: Color(0xFF6B7280),
+                        ),
+                        style: IconButton.styleFrom(
+                          backgroundColor: const Color(0xFFF3F4F6),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(50),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Contenu principal
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                      vertical: verticalPadding,
+                    ),
               child: ConstrainedBox(
                 constraints: BoxConstraints(
                   minHeight: screenHeight - mediaQuery.padding.top - mediaQuery.padding.bottom - (verticalPadding * 2),
@@ -385,6 +411,9 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
               ),
+                  ),
+                ),
+              ],
             );
           },
         ),

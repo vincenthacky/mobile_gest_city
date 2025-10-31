@@ -57,7 +57,7 @@ class _RegisterPageState extends State<RegisterPage> {
               child: Row(
                 children: [
                   IconButton(
-                    onPressed: () => context.go('/login'),
+                    onPressed: () => context.go('/onboarding/choice'),
                     icon: const Icon(
                       Icons.arrow_back,
                       color: Color(0xFF6B7280),

@@ -6,6 +6,8 @@ import '../../features/authentication/presentation/pages/splash_page.dart';
 import '../../features/authentication/presentation/pages/login_page.dart';
 import '../../features/authentication/presentation/pages/register_page.dart';
 import '../../features/authentication/presentation/pages/forgot_password_page.dart';
+import '../../features/authentication/presentation/pages/onboarding_page.dart';
+import '../../features/authentication/presentation/pages/onboarding_choice_page.dart';
 import '../pages/home_page.dart';
 import '../../features/cotisation/presentation/pages/cotisations_page.dart';
 import '../../features/projets/presentation/pages/projets_page.dart';
@@ -19,7 +21,7 @@ import '../widgets/main_layout.dart';
 class AppRouter {
   static GoRouter createRouter() {
     return GoRouter(
-      initialLocation: '/',
+      initialLocation: '/onboarding',
       redirect: (context, state) {
         final authController = context.read<AuthController>();
         final isAuthenticated = authController.isAuthenticated;
@@ -31,24 +33,38 @@ class AppRouter {
           return null;
         }
 
-        final isGoingToLogin = state.matchedLocation == '/login';
-        final isGoingToRegister = state.matchedLocation == '/register';
-        final isGoingToForgotPassword = state.matchedLocation == '/forgot-password';
+        final currentPath = state.matchedLocation;
+        final isOnAuthPages = currentPath == '/login' || 
+                             currentPath == '/register' || 
+                             currentPath == '/forgot-password';
+        final isOnOnboardingPages = currentPath == '/onboarding' || 
+                                   currentPath == '/onboarding/choice';
+        final isOnSplash = currentPath == '/';
 
-        // Si pas authentifié et pas sur login/register/forgot-password, rediriger vers login
-        if (!isAuthenticated && !isGoingToLogin && !isGoingToRegister && !isGoingToForgotPassword) {
-          return '/login';
+        // Si utilisateur authentifié et sur les pages d'auth/onboarding/splash, rediriger vers home
+        if (isAuthenticated && (isOnAuthPages || isOnOnboardingPages || isOnSplash)) {
+          return '/home';
         }
 
-        // Si authentifié et sur login/register/forgot-password, rediriger vers home
-        if (isAuthenticated && (isGoingToLogin || isGoingToRegister || isGoingToForgotPassword)) {
-          return '/home';
+        // Si pas authentifié et pas sur les pages d'auth/onboarding, rediriger vers onboarding
+        if (!isAuthenticated && !isOnAuthPages && !isOnOnboardingPages) {
+          return '/onboarding';
         }
 
         return null;
       },
       refreshListenable: RouterRefreshNotifier(),
       routes: [
+        GoRoute(
+          path: '/onboarding',
+          name: 'onboarding',
+          builder: (context, state) => const OnboardingPage(),
+        ),
+        GoRoute(
+          path: '/onboarding/choice',
+          name: 'onboarding-choice',
+          builder: (context, state) => const OnboardingChoicePage(),
+        ),
         GoRoute(
           path: '/login',
           name: 'login',
