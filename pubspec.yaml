@@ -56,6 +56,9 @@ dependencies:
   # Camera
   camera: ^0.10.5+9
   
+  # QR Code Scanner
+  mobile_scanner: ^5.2.3
+  
   # Permissions
   permission_handler: ^11.2.0
   

@@ -1,0 +1,131 @@
+je dois une harmonie visuelle globale, ce qu’on appelle un système de design cohérent.
+Puisque j utilises les illustrations Storyset, mon app doit respirer douceur, fluidité, humanité et modernité, sans tomber dans le "trop cartoon".
+Je vais te décrire tout le langage visuel complet à suivre (forme, couleur, animation, typographie, composition, navigation),
+pour que l app “Gestion de Cité” ait une âme claire et uniforme.
+
+🧩 1. Identité visuelle générale : “Soft Community UI”
+Ambiance recherchée :
+Une application communautaire conviviale, simple, fluide et positive, avec une esthétique claire et accueillante.
+Émotions à transmettre :
+Sécurité 🤝
+Bienveillance 💬
+Confiance 💚
+Simplicité 🧘
+Organisation 🗂️
+
+🎨 2. Palette de couleurs
+Rôle
+Couleur suggérée
+Exemple
+Couleur primaire
+Pastel chaud ou bleu doux
+#3B82F6 (bleu) ou #10B981 (vert)
+Couleur secondaire
+Teinte d’accent pastel
+#FBBF24 (jaune) ou #F97316 (orange doux)
+Fond clair
+Très clair / neutre
+#F9FAFB ou #FFFFFF
+Texte principal
+Gris foncé doux
+#374151
+Texte secondaire
+Gris clair
+#6B7280
+Succès / Alerte
+#16A34A / #EF4444
+
+
+
+⚠️ Garde toujours une dominante claire avec une accentuation pastel.
+
+🔘 3. Boutons
+Forme :
+Arrondis (radius entre 16 et 28px)
+Pas d’angles vifs : tout doit être fluide
+Pas de bordures épaisses
+Légère ombre douce ou effet de flottement
+Style visuel :
+Type
+Style
+Primary
+Couleur principale pleine (ex : bleu ou vert) avec texte blanc
+Secondary
+Fond blanc, bordure fine colorée, texte coloré
+Ghost / Icon
+Icône seule avec cercle clair autour
+
+Animation :
+Légère montée au clic (transform: scale(0.96))
+Opacité en hover (ex. 0.9)
+Ombre douce (box-shadow: 0 4px 10px rgba(0,0,0,0.08))
+
+🧱 4. Widgets et cartes
+Cartes arrondies (radius 20px ou plus)
+Fond blanc ou légèrement teinté (#F3F4F6)
+Espacement généreux (padding: 16–20px)
+Ombre douce et diffuse (jamais dure)
+Icônes ou illustrations Storyset mini pour les illustrer
+Un titre en Poppins Medium, texte en Nunito Regular
+Exemple : une carte “Cotisation du mois” avec icône pièce, total en grand, et petit texte “à jour / en attente”.
+
+🧭 5. Navigation (Bottom Bar / Nav Drawer)
+Si tu fais une bottom navigation bar (Flutter) :
+Forme arrondie (courbe en haut)
+Fond clair translucide (blanc + ombre douce)
+Icônes simples (outline, non colorées sauf actif)
+État actif coloré (bleu/vert principal)
+Icône active légèrement plus grande ou animée (petit scale + glow)
+Ex. Paie ton cotisation → Maison → Événement → Signalement → Profil
+Si Drawer :
+Couleur de fond claire
+Espacement vertical important
+Illustrations mini à gauche de chaque item
+
+🧭 6. Headers / AppBars
+Pas de bande noire ou colorée forte
+Fond blanc ou transparent sur fond clair
+Grand titre avec Poppins SemiBold
+Petites icônes à droite (notification, profil)
+Possibilité d’avoir une illustration Storyset en haut de l’écran d’accueil (hero section)
+
+📋 7. Listes et affichages
+Liste aérée (espacement entre les éléments)
+Chaque élément doit être une carte douce avec ombre légère
+Icône / avatar à gauche, titre et sous-texte à droite
+Utilise slidable actions (glisser pour supprimer, signaler…)
+Police légère (Nunito 400)
+Animation d’entrée fluide (fade + slideUp)
+
+✨ 8. Esprit des vues
+Accueil
+Illustration douce Storyset (ex. quartier ou habitants)
+Carte de résumé : “Cotisation du mois”, “Événements à venir”, “Derniers signalements”
+Tons clairs et aérés
+Peu de texte, beaucoup d’espace blanc
+Cotisation
+Liste de cotisations avec barre de progression
+Carte du mois en cours en haut
+Couleurs vertes pour "à jour", rouge/orange pour "en retard"
+Événements
+Affichage calendrier + cartes d’événements à venir
+Animation subtile d’entrée (fade)
+Bouton “Participer” arrondi
+Signalement
+Bouton “+ Signaler un problème” flottant
+Liste claire avec tags (“En cours”, “Résolu”)
+Icônes simples (outil, panneau, maison)
+
+⚙️ 9. Micro-animations
+Petits mouvements doux : scale, fade, slide (jamais brusque)
+Boutons : feedback visuel (rebond léger)
+Transitions entre pages : fondu / slide latéral
+Icônes : animation subtile (ex. check qui s’affiche doucement)
+
+💬 10. Tonalité UX / wording
+Ton app doit parler comme un voisin :
+“Bienvenue dans la cité ! 👋”
+“Vous êtes à jour pour octobre, bravo ! 🎉”
+“Un souci dans votre quartier ? Signalez-le ici.”
+
+

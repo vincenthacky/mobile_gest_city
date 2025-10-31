@@ -8,6 +8,7 @@ import '../../features/authentication/presentation/pages/register_page.dart';
 import '../../features/authentication/presentation/pages/forgot_password_page.dart';
 import '../../features/authentication/presentation/pages/onboarding_page.dart';
 import '../../features/authentication/presentation/pages/onboarding_choice_page.dart';
+import '../../features/authentication/presentation/pages/qr_scan_page.dart';
 import '../pages/home_page.dart';
 import '../../features/cotisation/presentation/pages/cotisations_page.dart';
 import '../../features/projets/presentation/pages/projets_page.dart';
@@ -36,7 +37,8 @@ class AppRouter {
         final currentPath = state.matchedLocation;
         final isOnAuthPages = currentPath == '/login' || 
                              currentPath == '/register' || 
-                             currentPath == '/forgot-password';
+                             currentPath == '/forgot-password' ||
+                             currentPath == '/qr-scan';
         final isOnOnboardingPages = currentPath == '/onboarding' || 
                                    currentPath == '/onboarding/choice';
         final isOnSplash = currentPath == '/';
@@ -64,6 +66,11 @@ class AppRouter {
           path: '/onboarding/choice',
           name: 'onboarding-choice',
           builder: (context, state) => const OnboardingChoicePage(),
+        ),
+        GoRoute(
+          path: '/qr-scan',
+          name: 'qr-scan',
+          builder: (context, state) => const QrScanPage(),
         ),
         GoRoute(
           path: '/login',

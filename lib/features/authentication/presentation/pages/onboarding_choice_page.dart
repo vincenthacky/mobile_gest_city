@@ -183,7 +183,7 @@ class _OnboardingChoicePageState extends State<OnboardingChoicePage>
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () => context.go('/register'),
+                    onPressed: () => context.go('/qr-scan'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF3B82F6),
                       foregroundColor: Colors.white,
