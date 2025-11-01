@@ -86,7 +86,7 @@ class AuthDataSource {
 
   Future<Map<String, dynamic>> verifyVilla(String code) async {
     try {
-      final response = await _dio.post(
+      final response = await _dio.get(
         '/auth/verify-villa',
         data: {
           'code': code,
