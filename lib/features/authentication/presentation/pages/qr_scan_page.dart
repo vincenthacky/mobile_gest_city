@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:provider/provider.dart';
+import '../../controller/auth_controller.dart';
 
 class QrScanPage extends StatefulWidget {
   const QrScanPage({super.key});
@@ -72,18 +74,68 @@ class _QrScanPageState extends State<QrScanPage>
     }
   }
 
-  void _showSuccessAndNavigate(String code) {
-    // Afficher un feedback de succès
+  void _showSuccessAndNavigate(String code) async {
+    final authController = Provider.of<AuthController>(context, listen: false);
+    
+    try {
+      // Appeler l'API pour vérifier le QR code
+      final response = await authController.verifyVilla(code);
+      
+      if (!mounted) return;
+      
+      if (response != null && response['success'] == true) {
+        // Succès - naviguer vers register avec villa_id
+        final villaId = response['data']['villa_id'];
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Code QR scanné avec succès ! 🎉',
+              style: GoogleFonts.nunito(
+                fontWeight: FontWeight.w500,
+                color: Colors.white,
+              ),
+            ),
+            backgroundColor: const Color(0xFF10B981),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+
+        // Attendre un peu puis naviguer vers register avec villa_id
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          if (mounted) {
+            context.go('/register?villa_id=$villaId');
+          }
+        });
+      } else {
+        // Échec - afficher message d'erreur
+        _showErrorMessage('QR code incorrect.');
+        _resetScanning();
+      }
+    } catch (e) {
+      // Erreur - afficher message d'erreur
+      if (mounted) {
+        _showErrorMessage('QR code incorrect.');
+        _resetScanning();
+      }
+    }
+  }
+
+  void _showErrorMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Code QR scanné avec succès ! 🎉',
+          message,
           style: GoogleFonts.nunito(
             fontWeight: FontWeight.w500,
             color: Colors.white,
           ),
         ),
-        backgroundColor: const Color(0xFF10B981),
+        backgroundColor: const Color(0xFFEF4444),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
@@ -91,12 +143,14 @@ class _QrScanPageState extends State<QrScanPage>
         margin: const EdgeInsets.all(16),
       ),
     );
+  }
 
-    // Attendre un peu puis naviguer vers register
-    Future.delayed(const Duration(milliseconds: 1500), () {
+  void _resetScanning() {
+    Future.delayed(const Duration(milliseconds: 2000), () {
       if (mounted) {
-        // TODO: Passer les données du QR code au register
-        context.go('/register');
+        setState(() {
+          _isScanning = true;
+        });
       }
     });
   }

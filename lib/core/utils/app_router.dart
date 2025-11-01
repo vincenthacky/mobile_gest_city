@@ -80,7 +80,10 @@ class AppRouter {
         GoRoute(
           path: '/register',
           name: 'register',
-          builder: (context, state) => const RegisterPage(),
+          builder: (context, state) {
+            final villaId = state.uri.queryParameters['villa_id'];
+            return RegisterPage(villaId: villaId);
+          },
         ),
         GoRoute(
           path: '/forgot-password',

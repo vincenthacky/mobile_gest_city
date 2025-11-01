@@ -5,7 +5,9 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../controller/register_controller.dart';
 
 class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key});
+  final String? villaId;
+  
+  const RegisterPage({super.key, this.villaId});
 
   @override
   State<RegisterPage> createState() => _RegisterPageState();
@@ -19,6 +21,15 @@ class _RegisterPageState extends State<RegisterPage> {
   final _motDePasseController = TextEditingController();
   final _villaIdController = TextEditingController();
   bool _obscurePassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    // Si un villaId est fourni, le mettre dans le contrôleur
+    if (widget.villaId != null) {
+      _villaIdController.text = widget.villaId!;
+    }
+  }
 
   @override
   void dispose() {
@@ -353,65 +364,67 @@ class _RegisterPageState extends State<RegisterPage> {
                               ),
                             ],
                           ),
-                          SizedBox(height: isVerySmallScreen ? 16 : (isSmallScreen ? 20 : 24)),
-                          // Villa ID
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'ID de la villa',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: Color(0xFF374151),
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              TextFormField(
-                                controller: _villaIdController,
-                                decoration: InputDecoration(
-                                  hintText: '1',
-                                  filled: true,
-                                  fillColor: Colors.white,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFFE5E7EB),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFFE5E7EB),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFF3B82F6),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
+                          // Villa ID - masqué si fourni par QR scan
+                          if (widget.villaId == null) ...[
+                            SizedBox(height: isVerySmallScreen ? 16 : (isSmallScreen ? 20 : 24)),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'ID de la villa',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF374151),
                                   ),
                                 ),
-                                keyboardType: TextInputType.number,
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Veuillez entrer l\'ID de votre villa';
-                                  }
-                                  if (int.tryParse(value) == null) {
-                                    return 'Veuillez entrer un ID valide';
-                                  }
-                                  return null;
-                                },
-                              ),
-                            ],
-                          ),
+                                const SizedBox(height: 8),
+                                TextFormField(
+                                  controller: _villaIdController,
+                                  decoration: InputDecoration(
+                                    hintText: '1',
+                                    filled: true,
+                                    fillColor: Colors.white,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFFE5E7EB),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFFE5E7EB),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFF3B82F6),
+                                        width: 2,
+                                      ),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                  keyboardType: TextInputType.number,
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Veuillez entrer l\'ID de votre villa';
+                                    }
+                                    if (int.tryParse(value) == null) {
+                                      return 'Veuillez entrer un ID valide';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                              ],
+                            ),
+                          ],
                           SizedBox(height: isVerySmallScreen ? 20 : (isSmallScreen ? 24 : 32)),
                           // Bouton inscription
                           SizedBox(

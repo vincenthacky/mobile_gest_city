@@ -113,4 +113,19 @@ class AuthController extends ChangeNotifier {
     _clearError();
     _setStatus(AuthStatus.unauthenticated);
   }
+
+  Future<Map<String, dynamic>?> verifyVilla(String code) async {
+    _setStatus(AuthStatus.loading);
+    _clearError();
+
+    try {
+      final response = await _authDataSource.verifyVilla(code);
+      _setStatus(AuthStatus.initial);
+      return response;
+    } catch (e) {
+      _setError(e.toString());
+      _setStatus(AuthStatus.error);
+      return null;
+    }
+  }
 }
