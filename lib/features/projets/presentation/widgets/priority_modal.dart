@@ -133,27 +133,34 @@ class _PriorityModalState extends State<PriorityModal>
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      const Color(0xFF1a1a1a).withValues(alpha: 0.95),
-                      const Color(0xFF2a2a2a).withValues(alpha: 0.90),
-                      const Color(0xFF1a1a1a).withValues(alpha: 0.95),
+                      Colors.white.withValues(alpha: 0.25),
+                      Colors.white.withValues(alpha: 0.15),
+                      Colors.white.withValues(alpha: 0.08),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(25),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.1),
+                    color: Colors.white.withValues(alpha: 0.4),
                     width: 1.5,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      blurRadius: 60,
-                      offset: const Offset(0, 20),
-                      spreadRadius: 5,
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 30,
+                      offset: const Offset(0, 12),
+                      spreadRadius: 2,
                     ),
                     BoxShadow(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      blurRadius: 10,
+                      color: Colors.white.withValues(alpha: 0.8),
+                      blurRadius: 8,
                       offset: const Offset(-2, -2),
+                      spreadRadius: 0,
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 15,
+                      offset: const Offset(2, 2),
+                      spreadRadius: 0,
                     ),
                   ],
                 ),
@@ -176,10 +183,10 @@ class _PriorityModalState extends State<PriorityModal>
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.fromLTRB(30, 30, 30, 25),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: Color(0xFF444444),
+            color: const Color(0xFF1F2937).withValues(alpha: 0.1),
             width: 1,
           ),
         ),
@@ -190,7 +197,7 @@ class _PriorityModalState extends State<PriorityModal>
           const Text(
             'Ordre de priorité des projets',
             style: TextStyle(
-              color: Colors.white,
+              color: Color(0xFF1F2937),
               fontSize: 22,
               fontWeight: FontWeight.w600,
               fontFamily: 'Poppins',
@@ -202,16 +209,16 @@ class _PriorityModalState extends State<PriorityModal>
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: const Color(0xFF333333),
+                color: const Color(0xFF1F2937).withValues(alpha: 0.1),
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.1),
+                  color: const Color(0xFF1F2937).withValues(alpha: 0.2),
                   width: 1,
                 ),
               ),
               child: const Icon(
                 Icons.close,
-                color: Colors.white,
+                color: Color(0xFF1F2937),
                 size: 20,
               ),
             ),
@@ -260,18 +267,18 @@ class _PriorityModalState extends State<PriorityModal>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF2a2a2a).withValues(alpha: 0.8),
-            const Color(0xFF1f1f1f).withValues(alpha: 0.9),
+            Colors.white.withValues(alpha: 0.3),
+            Colors.white.withValues(alpha: 0.15),
           ],
         ),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.05),
+          color: Colors.white.withValues(alpha: 0.3),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -326,7 +333,7 @@ class _PriorityModalState extends State<PriorityModal>
                   Text(
                     project.title,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: Color(0xFF1F2937),
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                       fontFamily: 'Poppins',
@@ -339,7 +346,7 @@ class _PriorityModalState extends State<PriorityModal>
                     child: Text(
                       project.shortDescription,
                       style: const TextStyle(
-                        color: Color(0xFF888888),
+                        color: Color(0xFF6B7280),
                         fontSize: 11,
                         fontFamily: 'Nunito',
                       ),
@@ -353,7 +360,7 @@ class _PriorityModalState extends State<PriorityModal>
             // Icône drag
             const Icon(
               Icons.drag_handle,
-              color: Color(0xFF666666),
+              color: Color(0xFF6B7280),
               size: 20,
             ),
           ],
@@ -365,10 +372,10 @@ class _PriorityModalState extends State<PriorityModal>
   Widget _buildFooter() {
     return Container(
       padding: const EdgeInsets.fromLTRB(30, 20, 30, 30),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(
           top: BorderSide(
-            color: Color(0xFF444444),
+            color: const Color(0xFF1F2937).withValues(alpha: 0.1),
             width: 1,
           ),
         ),
@@ -382,17 +389,17 @@ class _PriorityModalState extends State<PriorityModal>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFF333333),
+                color: const Color(0xFF1F2937).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.1),
+                  color: const Color(0xFF1F2937).withValues(alpha: 0.2),
                   width: 1,
                 ),
               ),
               child: const Text(
                 'Annuler',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Color(0xFF1F2937),
                   fontSize: 15,
                   fontWeight: FontWeight.w500,
                   fontFamily: 'Poppins',
