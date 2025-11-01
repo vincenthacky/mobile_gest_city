@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/project_card.dart';
 import '../widgets/project_filters.dart';
-import '../widgets/vote_popup.dart';
 import '../widgets/priority_modal.dart';
+import '../widgets/project_detail_modal.dart';
 import '../../models/project_model.dart';
 import 'create_project_page.dart';
 import '../../../../core/widgets/app_header.dart';
@@ -68,8 +68,14 @@ class _ProjetsPageState extends State<ProjetsPage> {
       longDescription: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
       estimatedAmount: 25000,
       implementationType: ImplementationType.withoutProvider,
-      status: ProjectStatus.voteNotOpen,
+      status: ProjectStatus.voteOpen,
       voteCloseDate: DateTime.now().add(const Duration(days: 15)),
+      votesYes: 25,
+      votesNo: 5,
+      votesYesWithReserve: 3,
+      votesBlank: 2,
+      userVote: VoteChoice.yes,
+      userVoteJustification: 'Très bon pour la santé publique',
       createdAt: DateTime.now().subtract(const Duration(days: 2)),
       updatedAt: DateTime.now(),
       authorId: 'user3',
@@ -82,15 +88,40 @@ class _ProjetsPageState extends State<ProjetsPage> {
       longDescription: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
       estimatedAmount: 200000,
       implementationType: ImplementationType.withTender,
-      status: ProjectStatus.accepted,
+      status: ProjectStatus.voteOpen,
+      voteCloseDate: DateTime.now().add(const Duration(days: 5)),
       votesYes: 78,
       votesNo: 15,
       votesYesWithReserve: 12,
       votesBlank: 5,
+      userVote: VoteChoice.yesWithReserve,
+      userVoteJustification: 'Important mais attention aux coûts',
       createdAt: DateTime.now().subtract(const Duration(days: 30)),
       updatedAt: DateTime.now().subtract(const Duration(days: 2)),
       authorId: 'user4',
       authorName: 'Pierre Lefebvre',
+    ),
+    ProjectModel(
+      id: '5',
+      title: 'Système de recyclage intelligent',
+      shortDescription: 'Installation de conteneurs connectés avec capteurs',
+      longDescription: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+      estimatedAmount: 120000,
+      implementationType: ImplementationType.knownProvider,
+      providerName: 'EcoTech Solutions',
+      providerAmount: 115000,
+      status: ProjectStatus.voteOpen,
+      voteCloseDate: DateTime.now().add(const Duration(days: 12)),
+      votesYes: 38,
+      votesNo: 8,
+      votesYesWithReserve: 6,
+      votesBlank: 1,
+      userVote: VoteChoice.yes,
+      userVoteJustification: 'Innovation nécessaire pour l\'environnement',
+      createdAt: DateTime.now().subtract(const Duration(days: 8)),
+      updatedAt: DateTime.now(),
+      authorId: 'user5',
+      authorName: 'Amélie Dubois',
     ),
   ];
 
@@ -125,17 +156,6 @@ class _ProjetsPageState extends State<ProjetsPage> {
     });
   }
 
-  void _showVotePopup(ProjectModel project) {
-    showDialog(
-      context: context,
-      builder: (context) => VotePopup(
-        project: project,
-        onVoteSubmitted: (choice, justification) {
-          _handleVoteSubmitted(project, choice, justification);
-        },
-      ),
-    );
-  }
 
   void _handleVoteSubmitted(ProjectModel project, VoteChoice choice, String? justification) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -202,423 +222,18 @@ class _ProjetsPageState extends State<ProjetsPage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _buildProjectDetailsModal(project),
-    );
-  }
-
-  Widget _buildProjectDetailsModal(ProjectModel project) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
-      decoration: const BoxDecoration(
-        color: Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
-        ),
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(top: 12, bottom: 20),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE5E7EB),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.account_balance,
-                          color: Color(0xFF3B82F6),
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              project.title,
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF1F2937),
-                                fontFamily: 'Poppins',
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Par ${project.authorName}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFF6B7280),
-                                fontFamily: 'Nunito',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: project.statusColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          project.statusText,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: project.statusColor,
-                            fontFamily: 'Nunito',
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Description complète',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF1F2937),
-                            fontFamily: 'Poppins',
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          project.longDescription,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF6B7280),
-                            height: 1.5,
-                            fontFamily: 'Nunito',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Informations du projet',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF1F2937),
-                            fontFamily: 'Poppins',
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildInfoRow('💰', 'Budget estimé', project.formattedEstimatedAmount),
-                        _buildInfoRow('⚙️', 'Mise en œuvre', project.implementationTypeText),
-                        if (project.providerName != null)
-                          _buildInfoRow('🏢', 'Prestataire', project.providerName!),
-                        if (project.voteCloseDate != null)
-                          _buildInfoRow('⏰', 'Clôture du vote', project.formattedVoteCloseDate),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  if (project.totalVotes > 0) ...[
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Résultats du vote',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF1F2937),
-                              fontFamily: 'Poppins',
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          _buildVoteResult('👍', 'Oui', project.votesYes, project.yesPercentage, const Color(0xFF10B981)),
-                          _buildVoteResult('👎', 'Non', project.votesNo, project.noPercentage, const Color(0xFFEF4444)),
-                          _buildVoteResult('⚠️', 'Oui sous réserve', project.votesYesWithReserve, project.yesWithReservePercentage, const Color(0xFFF97316)),
-                          _buildVoteResult('⚪', 'Blanc', project.votesBlank, project.blankPercentage, const Color(0xFF6B7280)),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-
-                  if (project.canVote) ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          const Text(
-                            'Votre vote',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF1F2937),
-                              fontFamily: 'Poppins',
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                                _showVotePopup(project);
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF3B82F6),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: const Text(
-                                'Voter sur ce projet',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  fontFamily: 'Poppins',
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ] else if (project.hasUserVoted) ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: project.voteChoiceColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: project.voteChoiceColor.withValues(alpha: 0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.how_to_vote,
-                                color: project.voteChoiceColor,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Vous avez voté: ${project.voteChoiceText}',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: project.voteChoiceColor,
-                                  fontFamily: 'Poppins',
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (project.userVoteJustification != null) ...[
-                            const SizedBox(height: 12),
-                            Text(
-                              project.userVoteJustification!,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: project.voteChoiceColor,
-                                fontStyle: FontStyle.italic,
-                                fontFamily: 'Nunito',
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ],
+      builder: (context) => ProjectDetailModal(
+        project: project,
+        onVoteSubmitted: _handleVoteSubmitted,
       ),
     );
   }
 
-  Widget _buildInfoRow(String emoji, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 16)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF6B7280),
-                    fontFamily: 'Nunito',
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1F2937),
-                    fontFamily: 'Nunito',
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildVoteResult(String emoji, String label, int votes, double percentage, Color color) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 16)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF6B7280),
-                        fontFamily: 'Nunito',
-                      ),
-                    ),
-                    Text(
-                      '$votes votes (${(percentage * 100).round()}%)',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: color,
-                        fontFamily: 'Nunito',
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Container(
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF3F4F6),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                  child: FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: percentage,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: color,
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
+
+
+
 
   @override
   Widget build(BuildContext context) {

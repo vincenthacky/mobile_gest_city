@@ -21,6 +21,7 @@ class ProjectCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final GlobalKey buttonKey = GlobalKey();
+    final GlobalKey statusKey = GlobalKey();
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -229,7 +230,7 @@ class ProjectCard extends StatelessWidget {
             ] else ...[
               const SizedBox(height: 6),
               // Message conditionnel en remplacement du bouton
-              _statusMessage(project),
+              _statusMessage(context, project, statusKey),
             ],
 
             const SizedBox(height: 14),
@@ -303,33 +304,69 @@ class ProjectCard extends StatelessWidget {
     );
   }
 
-  Widget _statusMessage(ProjectModel project) {
+  Widget _statusMessage(BuildContext context, ProjectModel project, GlobalKey statusKey) {
     // Trois cas principaux : vote pas encore ouvert, vote terminé, utilisateur a voté
     if (project.hasUserVoted) {
-      // Affiche type de vote choisi par l'utilisateur
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: project.voteChoiceColor.withOpacity(0.10),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: project.voteChoiceColor.withOpacity(0.2)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(_iconForChoice(project.voteChoiceText), color: project.voteChoiceColor, size: 18),
-            const SizedBox(width: 8),
-            Text(
-              'Vous avez voté : ${project.voteChoiceText}',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: project.voteChoiceColor,
-                fontFamily: 'Poppins',
-              ),
+      // Affiche type de vote choisi par l'utilisateur - CLIQUABLE pour modifier
+      return GestureDetector(
+        onTap: onVote != null ? () {
+          FacebookStyleVoteManager.showVotePopup(
+            context: context,
+            project: project,
+            onVoteSubmitted: onVote!,
+            buttonKey: statusKey,
+          );
+        } : null,
+        child: Container(
+          key: statusKey,
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                project.voteChoiceColor.withValues(alpha: 0.15),
+                project.voteChoiceColor.withValues(alpha: 0.08),
+              ],
             ),
-          ],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: project.voteChoiceColor.withValues(alpha: 0.3),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(_iconForChoice(project.voteChoiceText), color: project.voteChoiceColor, size: 18),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Vous avez voté : ${project.voteChoiceText}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: project.voteChoiceColor,
+                    fontFamily: 'Poppins',
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              Icon(
+                Icons.edit,
+                color: project.voteChoiceColor.withValues(alpha: 0.7),
+                size: 16,
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -339,7 +376,7 @@ class ProjectCard extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.orange.withOpacity(0.10),
+          color: Colors.orange.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(12),
         ),
         child: const Row(
@@ -366,7 +403,7 @@ class ProjectCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF6B7280).withOpacity(0.08),
+        color: const Color(0xFF6B7280).withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
       ),
       child: const Row(
@@ -397,4 +434,5 @@ class ProjectCard extends StatelessWidget {
     if (lower.contains('neutre') || lower.contains('blanc')) return Icons.radio_button_unchecked;
     return Icons.radio_button_unchecked;
   }
+
 }

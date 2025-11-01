@@ -145,8 +145,20 @@ class _FacebookStyleVotePopupState extends State<FacebookStyleVotePopup>
           child: Container(
             width: double.infinity,
             height: double.infinity,
-            color: Colors.transparent,
-            child: Stack(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment.center,
+                radius: 1.2,
+                colors: [
+                  Colors.black.withValues(alpha: 0.15),
+                  Colors.black.withValues(alpha: 0.35),
+                  Colors.black.withValues(alpha: 0.55),
+                ],
+              ),
+            ),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              child: Stack(
               children: [
                 Positioned(
                   left: leftPosition,
@@ -157,6 +169,7 @@ class _FacebookStyleVotePopupState extends State<FacebookStyleVotePopup>
                   ),
                 ),
               ],
+            ),
             ),
           ),
         ),
@@ -175,55 +188,82 @@ class _FacebookStyleVotePopupState extends State<FacebookStyleVotePopup>
             child: ClipRRect(
               borderRadius: BorderRadius.circular(50),
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(50),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      width: 1,
+                filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.white.withValues(alpha: 0.25),
+                            Colors.white.withValues(alpha: 0.15),
+                            Colors.white.withValues(alpha: 0.08),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(50),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.4),
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.15),
+                            blurRadius: 30,
+                            offset: const Offset(0, 12),
+                            spreadRadius: 2,
+                          ),
+                          BoxShadow(
+                            color: Colors.white.withValues(alpha: 0.8),
+                            blurRadius: 8,
+                            offset: const Offset(-2, -2),
+                            spreadRadius: 0,
+                          ),
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 15,
+                            offset: const Offset(2, 2),
+                            spreadRadius: 0,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildReactionItem(
+                            icon: Icons.thumb_up,
+                            label: 'Oui',
+                            color: const Color(0xFF10B981),
+                            onTap: () => _onVoteSelected(VoteChoice.yes),
+                          ),
+                          const SizedBox(width: 18),
+                          _buildReactionItem(
+                            icon: Icons.thumb_down,
+                            label: 'Non',
+                            color: const Color(0xFFEF4444),
+                            onTap: () => _onVoteSelected(VoteChoice.no),
+                          ),
+                          const SizedBox(width: 18),
+                          _buildReactionItem(
+                            icon: Icons.edit_note,
+                            label: 'Oui sous réserve',
+                            color: const Color(0xFFF97316),
+                            onTap: () => _onVoteSelected(VoteChoice.yesWithReserve),
+                          ),
+                          const SizedBox(width: 18),
+                          _buildReactionItem(
+                            icon: Icons.radio_button_unchecked,
+                            label: 'Neutre',
+                            color: const Color(0xFF6B7280),
+                            onTap: () => _onVoteSelected(VoteChoice.blank),
+                          ),
+                        ],
+                      ),
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildReactionItem(
-                        icon: Icons.thumb_up,
-                        label: 'Oui',
-                        color: const Color(0xFF10B981),
-                        onTap: () => _onVoteSelected(VoteChoice.yes),
-                      ),
-                      const SizedBox(width: 18),
-                      _buildReactionItem(
-                        icon: Icons.thumb_down,
-                        label: 'Non',
-                        color: const Color(0xFFEF4444),
-                        onTap: () => _onVoteSelected(VoteChoice.no),
-                      ),
-                      const SizedBox(width: 18),
-                      _buildReactionItem(
-                        icon: Icons.edit_note,
-                        label: 'Sous réserve',
-                        color: const Color(0xFFF97316),
-                        onTap: () => _onVoteSelected(VoteChoice.yesWithReserve),
-                      ),
-                      const SizedBox(width: 18),
-                      _buildReactionItem(
-                        icon: Icons.radio_button_unchecked,
-                        label: 'Abstention',
-                        color: const Color(0xFF6B7280),
-                        onTap: () => _onVoteSelected(VoteChoice.blank),
-                      ),
-                    ],
                   ),
                 ),
               ),
@@ -269,17 +309,42 @@ class _FacebookStyleVotePopupState extends State<FacebookStyleVotePopup>
                     ),
                   ),
                 ),
-                const SizedBox(height: 3),
-                AnimatedOpacity(
-                  opacity: isHovered ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 150),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.95),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                      BoxShadow(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        blurRadius: 4,
+                        offset: const Offset(0, -1),
+                      ),
+                    ],
+                  ),
                   child: Text(
                     label,
                     style: const TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
                       color: Color(0xFF1F2937),
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                       fontFamily: 'Poppins',
+                      shadows: [
+                        Shadow(
+                          color: Colors.white,
+                          blurRadius: 1,
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -300,25 +365,50 @@ class _FacebookStyleVotePopupState extends State<FacebookStyleVotePopup>
           child: ClipRRect(
             borderRadius: BorderRadius.circular(25),
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-              child: Container(
-                width: 350,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(25),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    width: 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
+              filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+                  child: Container(
+                    width: 350,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.white.withValues(alpha: 0.25),
+                          Colors.white.withValues(alpha: 0.15),
+                          Colors.white.withValues(alpha: 0.08),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(25),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.4),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.15),
+                          blurRadius: 30,
+                          offset: const Offset(0, 12),
+                          spreadRadius: 2,
+                        ),
+                        BoxShadow(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          blurRadius: 8,
+                          offset: const Offset(-2, -2),
+                          spreadRadius: 0,
+                        ),
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 15,
+                          offset: const Offset(2, 2),
+                          spreadRadius: 0,
+                        ),
+                      ],
                     ),
-                  ],
-                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -329,19 +419,33 @@ class _FacebookStyleVotePopupState extends State<FacebookStyleVotePopup>
                           color: Color(0xFF1F2937),
                           fontSize: 16,
                           fontFamily: 'Nunito',
+                          fontWeight: FontWeight.w600,
+                          shadows: [
+                            Shadow(
+                              color: Colors.white,
+                              blurRadius: 1,
+                            ),
+                          ],
                         ),
                         decoration: InputDecoration(
                           hintText: 'Ajouter un commentaire...',
                           hintStyle: TextStyle(
-                            color: Colors.grey[600],
+                            color: Colors.grey[700],
                             fontFamily: 'Nunito',
+                            fontWeight: FontWeight.w500,
+                            shadows: [
+                              Shadow(
+                                color: Colors.white.withValues(alpha: 0.8),
+                                blurRadius: 1,
+                              ),
+                            ],
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(20),
                             borderSide: BorderSide.none,
                           ),
                           filled: true,
-                          fillColor: Colors.white.withValues(alpha: 0.3),
+                          fillColor: Colors.white.withValues(alpha: 0.4),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 15,
                             vertical: 10,
@@ -368,6 +472,8 @@ class _FacebookStyleVotePopupState extends State<FacebookStyleVotePopup>
                       ),
                     ),
                   ],
+                    ),
+                  ),
                 ),
               ),
             ),

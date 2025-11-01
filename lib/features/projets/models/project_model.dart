@@ -156,11 +156,11 @@ class ProjectModel {
 
   String get formattedEstimatedAmount {
     if (estimatedAmount >= 1000000) {
-      return '${(estimatedAmount / 1000000).toStringAsFixed(1)}M €';
+      return '${(estimatedAmount / 1000000).toStringAsFixed(1)}M FCFA';
     } else if (estimatedAmount >= 1000) {
-      return '${(estimatedAmount / 1000).toStringAsFixed(1)}k €';
+      return '${(estimatedAmount / 1000).toStringAsFixed(1)}k FCFA';
     } else {
-      return '${estimatedAmount.toStringAsFixed(0)} €';
+      return '${estimatedAmount.toStringAsFixed(0)} FCFA';
     }
   }
 

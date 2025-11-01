@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestion Priorités Projets</title>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        background: #222;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    #openModalBtn {
+        background: #007bff;
+        border: none;
+        color: #fff;
+        font-size: 18px;
+        padding: 14px 30px;
+        border-radius: 30px;
+        cursor: pointer;
+        transition: 0.3s;
+        box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+    }
+
+    #openModalBtn:hover {
+        background: #0056b3;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+    }
+
+    /* Modal overlay */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(5px);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .modal-overlay.active {
+        display: flex;
+        opacity: 1;
+    }
+
+    /* Modal container */
+    .modal {
+        background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
+        border-radius: 25px;
+        padding: 30px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 80vh;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
+        position: relative;
+    }
+
+    .modal-overlay.active .modal {
+        transform: scale(1);
+    }
+
+    /* Header */
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #444;
+    }
+
+    .modal-title {
+        color: #fff;
+        font-size: 22px;
+        font-weight: 600;
+    }
+
+    .close-btn {
+        background: #333;
+        border: none;
+        color: #fff;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s;
+        font-size: 20px;
+    }
+
+    .close-btn:hover {
+        background: #444;
+        transform: rotate(90deg);
+    }
+
+    /* Liste des projets */
+    .projects-container {
+        max-height: 50vh;
+        overflow-y: auto;
+        padding-right: 10px;
+    }
+
+    .projects-container::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .projects-container::-webkit-scrollbar-track {
+        background: #1a1a1a;
+        border-radius: 10px;
+    }
+
+    .projects-container::-webkit-scrollbar-thumb {
+        background: #444;
+        border-radius: 10px;
+    }
+
+    .projects-container::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+
+    /* Item projet */
+    .project-item {
+        background: linear-gradient(145deg, #2a2a2a, #1f1f1f);
+        border-radius: 10px;
+        padding: 8px 12px;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: grab;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        border: 1px solid transparent;
+        min-height: 45px;
+    }
+
+    .project-item:hover {
+        background: linear-gradient(145deg, #323232, #252525);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .project-item.dragging {
+        opacity: 0.6;
+        cursor: grabbing;
+        transform: rotate(2deg);
+    }
+
+    .drop-zone {
+        min-height: 4px;
+        background: #007bff;
+        margin: 2px 0;
+        border-radius: 2px;
+        opacity: 0;
+        transition: all 0.2s ease;
+    }
+
+    .drop-zone.active {
+        opacity: 1;
+        min-height: 8px;
+    }
+
+    /* Numéro de priorité */
+    .priority-number {
+        width: 24px;
+        height: 24px;
+        background: linear-gradient(145deg, #007bff, #0056b3);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-weight: 600;
+        font-size: 12px;
+        flex-shrink: 0;
+        box-shadow: 0 1px 4px rgba(0, 123, 255, 0.3);
+    }
+
+    /* Contenu du projet */
+    .project-content {
+        flex: 1;
+    }
+
+    .project-name {
+        color: #fff;
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 2px;
+    }
+
+    .project-description {
+        color: #888;
+        font-size: 11px;
+    }
+
+    /* Footer du modal */
+    .modal-footer {
+        margin-top: 25px;
+        padding-top: 20px;
+        border-top: 1px solid #444;
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+    }
+
+    .btn {
+        padding: 10px 24px;
+        border-radius: 20px;
+        border: none;
+        cursor: pointer;
+        font-size: 15px;
+        transition: 0.3s;
+        font-weight: 500;
+    }
+
+    .btn-cancel {
+        background: #333;
+        color: #fff;
+    }
+
+    .btn-cancel:hover {
+        background: #444;
+    }
+
+    .btn-save {
+        background: #34c759;
+        color: #fff;
+        box-shadow: 0 4px 15px rgba(52, 199, 89, 0.3);
+    }
+
+    .btn-save:hover {
+        background: #2fb34d;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(52, 199, 89, 0.4);
+    }
+</style>
+</head>
+<body>
+
+<button id="openModalBtn">Gérer les priorités</button>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 class="modal-title">Ordre de priorité des projets</h2>
+            <button class="close-btn" id="closeBtn">×</button>
+        </div>
+
+        <div class="projects-container" id="projectsContainer">
+            <!-- Les projets seront générés ici -->
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-cancel" id="cancelBtn">Annuler</button>
+            <button class="btn btn-save" id="saveBtn">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Données des projets
+    let projects = [
+        { id: 1, name: "Refonte du site web", description: "Mise à jour complète de l'interface" },
+        { id: 2, name: "Application mobile", description: "Développement iOS et Android" },
+        { id: 3, name: "Système de paiement", description: "Intégration Stripe et PayPal" },
+        { id: 4, name: "Dashboard analytics", description: "Tableaux de bord en temps réel" },
+        { id: 5, name: "API REST v2", description: "Nouvelle version de l'API" },
+        { id: 6, name: "Migration cloud", description: "Passage vers AWS" }
+    ];
+
+    const openModalBtn = document.getElementById('openModalBtn');
+    const modalOverlay = document.getElementById('modalOverlay');
+    const closeBtn = document.getElementById('closeBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const projectsContainer = document.getElementById('projectsContainer');
+
+    let originalProjects = [...projects];
+    let draggedElement = null;
+    let draggedIndex = -1;
+
+    // Ouvrir le modal
+    openModalBtn.addEventListener('click', () => {
+        originalProjects = [...projects];
+        renderProjects();
+        modalOverlay.classList.add('active');
+    });
+
+    // Fermer le modal
+    function closeModal() {
+        modalOverlay.classList.remove('active');
+    }
+
+    closeBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+
+    // Fermer au clic sur l'overlay
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) {
+            closeModal();
+        }
+    });
+
+    // Sauvegarder
+    saveBtn.addEventListener('click', () => {
+        console.log('Nouvel ordre de priorité:', projects);
+        closeModal();
+    });
+
+    // Afficher les projets
+    function renderProjects() {
+        projectsContainer.innerHTML = '';
+        
+        projects.forEach((project, index) => {
+            // Zone de drop avant chaque élément
+            const dropZone = document.createElement('div');
+            dropZone.className = 'drop-zone';
+            dropZone.dataset.index = index;
+            projectsContainer.appendChild(dropZone);
+            
+            // Élément projet
+            const projectEl = createProjectElement(project, index + 1, index);
+            projectsContainer.appendChild(projectEl);
+        });
+        
+        // Zone de drop après le dernier élément
+        const lastDropZone = document.createElement('div');
+        lastDropZone.className = 'drop-zone';
+        lastDropZone.dataset.index = projects.length;
+        projectsContainer.appendChild(lastDropZone);
+        
+        // Ajouter les événements aux zones de drop
+        addDropZoneEvents();
+    }
+
+    // Créer un élément projet
+    function createProjectElement(project, priority, index) {
+        const div = document.createElement('div');
+        div.className = 'project-item';
+        div.draggable = true;
+        div.dataset.id = project.id;
+        div.dataset.index = index;
+        
+        div.innerHTML = `
+            <div class="priority-number">${priority}</div>
+            <div class="project-content">
+                <div class="project-name">${project.name}</div>
+                <div class="project-description">${project.description}</div>
+            </div>
+        `;
+
+        // Événements drag
+        div.addEventListener('dragstart', handleDragStart);
+        div.addEventListener('dragend', handleDragEnd);
+
+        return div;
+    }
+
+    function addDropZoneEvents() {
+        document.querySelectorAll('.drop-zone').forEach(zone => {
+            zone.addEventListener('dragover', handleDragOver);
+            zone.addEventListener('drop', handleDrop);
+            zone.addEventListener('dragleave', handleDragLeave);
+        });
+    }
+
+    function handleDragStart(e) {
+        draggedElement = this;
+        draggedIndex = parseInt(this.dataset.index);
+        this.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleDragEnd(e) {
+        this.classList.remove('dragging');
+        
+        // Nettoyer toutes les zones actives
+        document.querySelectorAll('.drop-zone').forEach(zone => {
+            zone.classList.remove('active');
+        });
+        
+        draggedElement = null;
+        draggedIndex = -1;
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        this.classList.add('active');
+    }
+
+    function handleDragLeave(e) {
+        this.classList.remove('active');
+    }
+
+    function handleDrop(e) {
+        e.preventDefault();
+        this.classList.remove('active');
+        
+        if (!draggedElement) return;
+        
+        const dropIndex = parseInt(this.dataset.index);
+        
+        if (draggedIndex !== dropIndex) {
+            // Déplacer l'élément dans le tableau
+            const [draggedProject] = projects.splice(draggedIndex, 1);
+            
+            // Ajuster l'index si nécessaire
+            const newIndex = dropIndex > draggedIndex ? dropIndex - 1 : dropIndex;
+            projects.splice(newIndex, 0, draggedProject);
+            
+            // Re-render
+            renderProjects();
+        }
+    }
+
+    // Initialisation
+    renderProjects();
+</script>
+
+</body>
+</html>
