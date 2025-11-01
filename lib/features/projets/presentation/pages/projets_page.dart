@@ -791,7 +791,7 @@ class _ProjetsPageState extends State<ProjetsPage> {
                               child: ProjectCard(
                                 project: project,
                                 onTap: () => _showProjectDetails(project),
-                                onVote: () => _showVotePopup(project),
+                                onVote: (choice, justification) => _handleVoteSubmitted(project, choice, justification),
                               ),
                             );
                           }).toList(),

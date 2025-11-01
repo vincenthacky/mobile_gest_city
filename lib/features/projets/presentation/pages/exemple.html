@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Réactions Vote Facebook Style</title>
+<style>
+    body {
+        background:#222;
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        height:100vh;
+        font-family:sans-serif;
+        margin:0;
+    }
+    #voteBtn {
+        background:#007bff;
+        border:none;
+        color:#fff;
+        font-size:18px;
+        padding:12px 25px;
+        border-radius:30px;
+        cursor:pointer;
+        transition:0.3s;
+    }
+    #voteBtn:hover {
+        background:#0056b3;
+    }
+    .reactions-container {
+        position: absolute;
+        bottom:90px;
+        background:#111;
+        padding:12px 20px;
+        border-radius:50px;
+        display:flex;
+        gap:18px;
+        opacity:0;
+        pointer-events:none;
+        transform:translateY(20px);
+        transition:all 0.25s ease;
+    }
+    .reactions-container.active {
+        opacity:1;
+        pointer-events:auto;
+        transform:translateY(0);
+    }
+    .reaction {
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        cursor:pointer;
+        transition:transform 0.2s ease;
+    }
+    .reaction img {
+        width:38px;
+        transition:transform 0.2s ease;
+    }
+    .reaction:hover img {
+        transform:scale(1.4);
+    }
+    
+    .reaction span {
+        font-size:12px;
+        color:#fff;
+        margin-top:3px;
+        opacity:0;
+        transition:0.15s;
+    }
+    .reaction:hover span {
+        opacity:1;
+    }
+
+    /* Style iMessage pour le champ de texte */
+    .input-container {
+        position: absolute;
+        bottom:90px;
+        background:#111;
+        padding:8px 12px;
+        border-radius:25px;
+        display:none;
+        align-items:center;
+        gap:10px;
+        min-width:350px;
+        transition:all 0.25s ease;
+    }
+    .input-container.active {
+        display:flex;
+    }
+    .input-container input {
+        flex:1;
+        background:#2a2a2a;
+        border:none;
+        color:#fff;
+        font-size:16px;
+        padding:10px 15px;
+        border-radius:20px;
+        outline:none;
+    }
+    .input-container input::placeholder {
+        color:#888;
+    }
+    .send-btn {
+        width:32px;
+        height:32px;
+        background:#34c759;
+        border:none;
+        border-radius:50%;
+        cursor:pointer;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        transition:0.2s;
+        flex-shrink:0;
+    }
+    .send-btn:hover {
+        background:#2fb34d;
+        transform:scale(1.05);
+    }
+    .send-btn:active {
+        transform:scale(0.95);
+    }
+    .send-btn svg {
+        width:18px;
+        height:18px;
+        fill:#fff;
+    }
+</style>
+</head>
+<body>
+<button id="voteBtn">Voter</button>
+
+<!-- Zone de réactions -->
+<div id="reactions" class="reactions-container">
+    <div class="reaction" data-vote="oui">
+        <img src="https://i.imgur.com/LwCYMCF.png" alt="Oui">
+        <span>Oui</span>
+    </div>
+    <div class="reaction" data-vote="non">
+        <img src="https://i.imgur.com/E7K1Q1v.png" alt="Non">
+        <span>Non</span>
+    </div>
+    <div class="reaction" data-vote="sous-reserve">
+        <img src="https://i.imgur.com/Nnzw6dm.png" alt="Sous réserve">
+        <span>Sous réserve</span>
+    </div>
+    <div class="reaction" data-vote="abstention">
+        <img src="https://i.imgur.com/Qp8qR2M.png" alt="Abstention">
+        <span>Abstention</span>
+    </div>
+</div>
+
+<!-- Zone de texte style iMessage -->
+<div id="inputContainer" class="input-container">
+    <input type="text" id="commentInput" placeholder="Ajouter un commentaire...">
+    <button class="send-btn" id="sendBtn">
+        <svg viewBox="0 0 24 24">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+        </svg>
+    </button>
+</div>
+
+<script>
+    const voteBtn = document.getElementById("voteBtn");
+    const reactions = document.getElementById("reactions");
+    const inputContainer = document.getElementById("inputContainer");
+    const commentInput = document.getElementById("commentInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const reactionBtns = document.querySelectorAll(".reaction");
+
+    // Ouvrir/fermer les réactions
+    voteBtn.addEventListener("click", () => {
+        reactions.classList.toggle("active");
+        inputContainer.classList.remove("active");
+    });
+
+    // Gérer le clic sur chaque réaction
+    reactionBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+            const vote = btn.getAttribute("data-vote");
+            
+            if (vote === "sous-reserve") {
+                // Masquer les réactions et afficher le champ de texte
+                reactions.classList.remove("active");
+                inputContainer.classList.add("active");
+                commentInput.focus();
+            } else {
+                // Pour les autres options, afficher simplement le choix
+                console.log("Vote sélectionné:", vote);
+                reactions.classList.remove("active");
+                // Ici vous pouvez ajouter votre logique d'envoi
+            }
+        });
+    });
+
+    // Envoyer le commentaire
+    function sendComment() {
+        const comment = commentInput.value.trim();
+        if (comment) {
+            console.log("Commentaire envoyé:", comment);
+            // Ici vous pouvez ajouter votre logique d'envoi
+            
+            // Réinitialiser
+            commentInput.value = "";
+            inputContainer.classList.remove("active");
+        }
+    }
+
+    sendBtn.addEventListener("click", sendComment);
+
+    // Envoyer avec la touche Entrée
+    commentInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+            sendComment();
+        }
+    });
+
+    // Fermer au clic extérieur
+    document.addEventListener("click", (e) => {
+        if (!voteBtn.contains(e.target) && 
+            !reactions.contains(e.target) && 
+            !inputContainer.contains(e.target)) {
+            reactions.classList.remove("active");
+            inputContainer.classList.remove("active");
+        }
+    });
+</script>
+</body>
+</html>
