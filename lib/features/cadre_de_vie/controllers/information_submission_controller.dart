@@ -1,0 +1,158 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import '../data_sources/information_data_source.dart';
+
+enum InformationSubmissionStatus { initial, loading, success, error }
+
+enum InformationType { security, drugs, suspiciousPerson, noisePollution, infrastructure, other }
+enum PriorityLevel { low, medium, high }
+
+class InformationSubmissionController extends ChangeNotifier {
+  final InformationDataSource _informationDataSource = InformationDataSource();
+  final ImagePicker _imagePicker = ImagePicker();
+  
+  InformationSubmissionStatus _status = InformationSubmissionStatus.initial;
+  String? _errorMessage;
+  List<File> _selectedImages = [];
+
+  InformationSubmissionStatus get status => _status;
+  String? get errorMessage => _errorMessage;
+  List<File> get selectedImages => List.unmodifiable(_selectedImages);
+  bool get isLoading => _status == InformationSubmissionStatus.loading;
+  bool get hasImages => _selectedImages.isNotEmpty;
+
+  Future<void> pickImages() async {
+    try {
+      final List<XFile> images = await _imagePicker.pickMultiImage(
+        imageQuality: 80,
+      );
+      
+      if (images.isNotEmpty) {
+        _selectedImages.addAll(images.map((xfile) => File(xfile.path)));
+        notifyListeners();
+      }
+    } catch (e) {
+      _setError('Erreur lors de la sélection des images: $e');
+    }
+  }
+
+  Future<void> pickImageFromCamera() async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 80,
+      );
+      
+      if (image != null) {
+        _selectedImages.add(File(image.path));
+        notifyListeners();
+      }
+    } catch (e) {
+      _setError('Erreur lors de la prise de photo: $e');
+    }
+  }
+
+  void removeImage(int index) {
+    if (index >= 0 && index < _selectedImages.length) {
+      _selectedImages.removeAt(index);
+      notifyListeners();
+    }
+  }
+
+  void clearImages() {
+    _selectedImages.clear();
+    notifyListeners();
+  }
+
+  String _mapInformationTypeToApi(InformationType type) {
+    switch (type) {
+      case InformationType.security:
+        return 'security';
+      case InformationType.drugs:
+        return 'drugs';
+      case InformationType.suspiciousPerson:
+        return 'suspicious_person';
+      case InformationType.noisePollution:
+        return 'noise_pollution';
+      case InformationType.infrastructure:
+        return 'infrastructure';
+      case InformationType.other:
+        return 'other';
+    }
+  }
+
+  String _mapPriorityToApi(PriorityLevel priority) {
+    switch (priority) {
+      case PriorityLevel.low:
+        return 'low';
+      case PriorityLevel.medium:
+        return 'medium';
+      case PriorityLevel.high:
+        return 'high';
+    }
+  }
+
+  Future<bool> createInformation({
+    required String title,
+    required String description,
+    required InformationType reportType,
+    required String place,
+    required PriorityLevel priority,
+    required bool isAnonymous,
+  }) async {
+    _setStatus(InformationSubmissionStatus.loading);
+    _clearError();
+
+    try {
+      final response = await _informationDataSource.createInformation(
+        title: title,
+        description: description,
+        reportType: _mapInformationTypeToApi(reportType),
+        place: place,
+        priority: _mapPriorityToApi(priority),
+        anonymous: isAnonymous,
+        images: _selectedImages,
+      );
+      
+      if (response.success) {
+        _setStatus(InformationSubmissionStatus.success);
+        _selectedImages.clear();
+        return true;
+      } else {
+        _setError(response.message);
+        _setStatus(InformationSubmissionStatus.error);
+        return false;
+      }
+    } catch (e) {
+      _setError(e.toString());
+      _setStatus(InformationSubmissionStatus.error);
+      return false;
+    }
+  }
+
+  void _setStatus(InformationSubmissionStatus status) {
+    _status = status;
+    notifyListeners();
+  }
+
+  void _setError(String error) {
+    _errorMessage = error;
+    notifyListeners();
+  }
+
+  void _clearError() {
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  void clearError() {
+    _clearError();
+  }
+
+  void resetStatus() {
+    _status = InformationSubmissionStatus.initial;
+    _clearError();
+    notifyListeners();
+  }
+}

@@ -295,4 +295,89 @@ class ProjectDataSource {
       throw Exception('Erreur inattendue: $e');
     }
   }
+
+  Future<ApiResponse> modifyVote(String projectId, String voteType, {String? conditions}) async {
+    try {
+      final data = <String, dynamic>{'vote_type': voteType};
+      if (conditions != null && conditions.isNotEmpty) {
+        data['conditions'] = conditions;
+      }
+
+      final response = await _dio.put(
+        '/projects/$projectId/votes',
+        data: data,
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return ApiResponse.fromJson(response.data);
+      } else {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          response: response,
+          message: 'Erreur lors de la modification du vote',
+        );
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final errorMessage = e.response?.data['message'] ?? 'Erreur lors de la modification du vote';
+        throw DioException(
+          requestOptions: e.requestOptions,
+          response: e.response,
+          message: errorMessage,
+        );
+      } else {
+        throw DioException(
+          requestOptions: e.requestOptions,
+          message: 'Erreur de réseau. Vérifiez votre connexion internet.',
+        );
+      }
+    } catch (e) {
+      throw Exception('Erreur inattendue: $e');
+    }
+  }
+
+  Future<ApiResponse> prioritizeProjects(List<int> projectIds) async {
+    try {
+      final response = await _dio.post(
+        '/projects/prioritize',
+        data: {'projects': projectIds},
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return ApiResponse.fromJson(response.data);
+      } else {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          response: response,
+          message: 'Erreur lors de la priorisation des projets',
+        );
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final errorMessage = e.response?.data['message'] ?? 'Erreur lors de la priorisation des projets';
+        throw DioException(
+          requestOptions: e.requestOptions,
+          response: e.response,
+          message: errorMessage,
+        );
+      } else {
+        throw DioException(
+          requestOptions: e.requestOptions,
+          message: 'Erreur de réseau. Vérifiez votre connexion internet.',
+        );
+      }
+    } catch (e) {
+      throw Exception('Erreur inattendue: $e');
+    }
+  }
 }

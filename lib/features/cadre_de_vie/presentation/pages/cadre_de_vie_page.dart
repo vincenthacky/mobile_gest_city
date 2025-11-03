@@ -1,114 +1,12 @@
 import 'package:flutter/material.dart';
-import 'ajouter_activite_page.dart';
+import 'package:provider/provider.dart';
+import 'ajouter_information_page.dart';
 import '../../../../core/widgets/app_header.dart';
+import '../../controllers/information_controller.dart';
+import '../../models/information_model.dart';
 
-enum ActivityFilter { tous, recents, evenements, mariages, naissances, deces, autres }
+enum InformationFilter { tous, recents, security, drugs, suspect, nuisance, infrastructure, autres }
 
-enum ActivityType { mariage, naissance, deces, reunion, fete, travaux, visite, autre }
-
-class CadreDeVieActivity {
-  final int id;
-  final String titre;
-  final String description;
-  final ActivityType type;
-  final DateTime dateCreation;
-  final DateTime? dateEvenement;
-  final String? lieu;
-  final List<String>? photos;
-  final String auteur;
-  final bool isPublic;
-
-  CadreDeVieActivity({
-    required this.id,
-    required this.titre,
-    required this.description,
-    required this.type,
-    required this.dateCreation,
-    this.dateEvenement,
-    this.lieu,
-    this.photos,
-    required this.auteur,
-    this.isPublic = true,
-  });
-
-  IconData get typeIcon {
-    switch (type) {
-      case ActivityType.mariage:
-        return Icons.favorite;
-      case ActivityType.naissance:
-        return Icons.child_care;
-      case ActivityType.deces:
-        return Icons.local_florist;
-      case ActivityType.reunion:
-        return Icons.groups;
-      case ActivityType.fete:
-        return Icons.celebration;
-      case ActivityType.travaux:
-        return Icons.construction;
-      case ActivityType.visite:
-        return Icons.visibility;
-      case ActivityType.autre:
-        return Icons.event;
-    }
-  }
-
-  Color get typeColor {
-    switch (type) {
-      case ActivityType.mariage:
-        return const Color(0xFFEC4899); // Rose
-      case ActivityType.naissance:
-        return const Color(0xFF10B981); // Vert
-      case ActivityType.deces:
-        return const Color(0xFF6B7280); // Gris
-      case ActivityType.reunion:
-        return const Color(0xFF3B82F6); // Bleu
-      case ActivityType.fete:
-        return const Color(0xFFF59E0B); // Orange
-      case ActivityType.travaux:
-        return const Color(0xFFEF4444); // Rouge
-      case ActivityType.visite:
-        return const Color(0xFF8B5CF6); // Violet
-      case ActivityType.autre:
-        return const Color(0xFF6B7280); // Gris
-    }
-  }
-
-  String get typeText {
-    switch (type) {
-      case ActivityType.mariage:
-        return 'Mariage';
-      case ActivityType.naissance:
-        return 'Naissance';
-      case ActivityType.deces:
-        return 'Décès';
-      case ActivityType.reunion:
-        return 'Réunion';
-      case ActivityType.fete:
-        return 'Fête';
-      case ActivityType.travaux:
-        return 'Travaux';
-      case ActivityType.visite:
-        return 'Visite';
-      case ActivityType.autre:
-        return 'Autre';
-    }
-  }
-
-  String get formattedDate {
-    final now = DateTime.now();
-    final difference = now.difference(dateCreation);
-    
-    if (difference.inDays == 0) {
-      return 'Aujourd\'hui';
-    } else if (difference.inDays == 1) {
-      return 'Hier';
-    } else if (difference.inDays < 7) {
-      return 'Il y a ${difference.inDays} jours';
-    } else {
-      return '${dateCreation.day}/${dateCreation.month}/${dateCreation.year}';
-    }
-  }
-}
 
 class CadreDeViePage extends StatefulWidget {
   const CadreDeViePage({super.key});
@@ -119,108 +17,55 @@ class CadreDeViePage extends StatefulWidget {
 
 class _CadreDeViePageState extends State<CadreDeViePage> {
   final TextEditingController _searchController = TextEditingController();
-  ActivityFilter _selectedFilter = ActivityFilter.tous;
+  InformationFilter _selectedFilter = InformationFilter.tous;
+  late InformationController _informationController;
 
-  final List<CadreDeVieActivity> _activities = [
-    CadreDeVieActivity(
-      id: 1,
-      titre: 'Mariage de Marie et Jean',
-      description: 'Célébration du mariage de Marie Dupont et Jean Martin dans la rue des Roses. Grande fête prévue avec tous les voisins !',
-      type: ActivityType.mariage,
-      dateCreation: DateTime.now().subtract(const Duration(days: 2)),
-      dateEvenement: DateTime.now().add(const Duration(days: 15)),
-      lieu: 'Rue des Roses, n°15',
-      auteur: 'Sophie Bernard',
-      photos: ['mariage1.jpg'],
-    ),
-    CadreDeVieActivity(
-      id: 2,
-      titre: 'Naissance de petit Lucas',
-      description: 'Félicitations à la famille Moreau pour la naissance de leur petit Lucas ! Un nouveau membre de notre communauté.',
-      type: ActivityType.naissance,
-      dateCreation: DateTime.now().subtract(const Duration(days: 1)),
-      lieu: 'Avenue des Lilas, n°8',
-      auteur: 'Pierre Lefebvre',
-    ),
-    CadreDeVieActivity(
-      id: 3,
-      titre: 'Travaux de rénovation rue Principale',
-      description: 'Début des travaux de réfection de la chaussée rue Principale. Circulation perturbée pendant 2 semaines.',
-      type: ActivityType.travaux,
-      dateCreation: DateTime.now().subtract(const Duration(days: 3)),
-      dateEvenement: DateTime.now().add(const Duration(days: 1)),
-      lieu: 'Rue Principale',
-      auteur: 'Mairie',
-      photos: ['travaux1.jpg', 'travaux2.jpg'],
-    ),
-    CadreDeVieActivity(
-      id: 4,
-      titre: 'Fête de quartier place centrale',
-      description: 'Organisation d\'une grande fête de quartier avec musique, stands et activités pour toute la famille.',
-      type: ActivityType.fete,
-      dateCreation: DateTime.now().subtract(const Duration(days: 5)),
-      dateEvenement: DateTime.now().add(const Duration(days: 10)),
-      lieu: 'Place Centrale',
-      auteur: 'Comité des fêtes',
-      photos: ['fete1.jpg'],
-    ),
-    CadreDeVieActivity(
-      id: 5,
-      titre: 'Visite du député',
-      description: 'Visite officielle du député local pour rencontrer les habitants et discuter des projets d\'aménagement.',
-      type: ActivityType.visite,
-      dateCreation: DateTime.now().subtract(const Duration(days: 7)),
-      dateEvenement: DateTime.now().subtract(const Duration(days: 1)),
-      lieu: 'Salle communale',
-      auteur: 'Secrétariat mairie',
-    ),
-    CadreDeVieActivity(
-      id: 6,
-      titre: 'Décès de Madame Petit',
-      description: 'Nos pensées vont à la famille de Madame Marguerite Petit, figure respectée de notre communauté.',
-      type: ActivityType.deces,
-      dateCreation: DateTime.now().subtract(const Duration(days: 4)),
-      lieu: 'Rue des Érables, n°22',
-      auteur: 'Famille Petit',
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _informationController = context.read<InformationController>();
+    _informationController.fetchInformations();
+  }
 
-  List<CadreDeVieActivity> get _filteredActivities {
-    List<CadreDeVieActivity> filtered = _activities.where((activity) {
+
+  List<InformationModel> get _filteredInformations {
+    final allInformations = _informationController.informations;
+    List<InformationModel> filtered = allInformations.where((information) {
       final matchesSearch = _searchController.text.isEmpty ||
-          activity.titre.toLowerCase().contains(_searchController.text.toLowerCase()) ||
-          activity.description.toLowerCase().contains(_searchController.text.toLowerCase());
+          information.title.toLowerCase().contains(_searchController.text.toLowerCase()) ||
+          information.description.toLowerCase().contains(_searchController.text.toLowerCase());
       
       bool matchesFilter = true;
       switch (_selectedFilter) {
-        case ActivityFilter.tous:
+        case InformationFilter.tous:
           matchesFilter = true;
           break;
-        case ActivityFilter.recents:
-          matchesFilter = activity.dateCreation.isAfter(DateTime.now().subtract(const Duration(days: 7)));
+        case InformationFilter.recents:
+          matchesFilter = information.createdAt.isAfter(DateTime.now().subtract(const Duration(days: 7)));
           break;
-        case ActivityFilter.evenements:
-          matchesFilter = activity.dateEvenement != null;
+        case InformationFilter.security:
+          matchesFilter = information.reportType == InformationType.security;
           break;
-        case ActivityFilter.mariages:
-          matchesFilter = activity.type == ActivityType.mariage;
+        case InformationFilter.drugs:
+          matchesFilter = information.reportType == InformationType.drugs;
           break;
-        case ActivityFilter.naissances:
-          matchesFilter = activity.type == ActivityType.naissance;
+        case InformationFilter.suspect:
+          matchesFilter = information.reportType == InformationType.suspect;
           break;
-        case ActivityFilter.deces:
-          matchesFilter = activity.type == ActivityType.deces;
+        case InformationFilter.nuisance:
+          matchesFilter = information.reportType == InformationType.nuisance;
           break;
-        case ActivityFilter.autres:
-          matchesFilter = ![ActivityType.mariage, ActivityType.naissance, ActivityType.deces].contains(activity.type);
+        case InformationFilter.infrastructure:
+          matchesFilter = information.reportType == InformationType.infrastructure;
+          break;
+        case InformationFilter.autres:
+          matchesFilter = information.reportType == InformationType.other;
           break;
       }
       
       return matchesSearch && matchesFilter;
     }).toList();
 
-    // Trier par date de création (plus récent en premier)
-    filtered.sort((a, b) => b.dateCreation.compareTo(a.dateCreation));
     return filtered;
   }
 
@@ -257,7 +102,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () async {
-                  await Future.delayed(const Duration(seconds: 1));
+                  await _informationController.refreshInformations();
                 },
                 color: const Color(0xFF10B981),
                 child: SingleChildScrollView(
@@ -286,7 +131,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                                 controller: _searchController,
                                 onChanged: (value) => setState(() {}),
                                 decoration: InputDecoration(
-                                  hintText: 'Rechercher une activité...',
+                                  hintText: 'Rechercher une information...',
                                   hintStyle: const TextStyle(
                                     color: Color(0xFF6B7280),
                                     fontFamily: 'Nunito',
@@ -327,7 +172,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const AjouterActivitePage(),
+                                    builder: (context) => const AjouterInformationPage(),
                                   ),
                                 );
                               },
@@ -348,79 +193,143 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                         child: ListView(
                           scrollDirection: Axis.horizontal,
                           children: [
-                            _buildFilterChip('Tous', ActivityFilter.tous, Icons.apps),
+                            _buildFilterChip('Tous', InformationFilter.tous, Icons.apps),
                             const SizedBox(width: 12),
-                            _buildFilterChip('Récents', ActivityFilter.recents, Icons.schedule),
+                            _buildFilterChip('Récents', InformationFilter.recents, Icons.schedule),
                             const SizedBox(width: 12),
-                            _buildFilterChip('Événements', ActivityFilter.evenements, Icons.event),
+                            _buildFilterChip('Sécurité', InformationFilter.security, Icons.security),
                             const SizedBox(width: 12),
-                            _buildFilterChip('Mariages', ActivityFilter.mariages, Icons.favorite),
+                            _buildFilterChip('Drogue', InformationFilter.drugs, Icons.medical_services),
                             const SizedBox(width: 12),
-                            _buildFilterChip('Naissances', ActivityFilter.naissances, Icons.child_care),
+                            _buildFilterChip('Suspect', InformationFilter.suspect, Icons.person_search),
                             const SizedBox(width: 12),
-                            _buildFilterChip('Décès', ActivityFilter.deces, Icons.local_florist),
+                            _buildFilterChip('Nuisance', InformationFilter.nuisance, Icons.volume_up),
                             const SizedBox(width: 12),
-                            _buildFilterChip('Autres', ActivityFilter.autres, Icons.more_horiz),
+                            _buildFilterChip('Infrastructure', InformationFilter.infrastructure, Icons.construction),
+                            const SizedBox(width: 12),
+                            _buildFilterChip('Autres', InformationFilter.autres, Icons.more_horiz),
                           ],
                         ),
                       ),
                       const SizedBox(height: 24),
                       
-                      // Liste des activités
-                      if (_filteredActivities.isEmpty)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(40),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
+                      // Liste des informations
+                      Consumer<InformationController>(
+                        builder: (context, controller, child) {
+                          if (controller.isLoadingInformations) {
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                color: Color(0xFF10B981),
                               ),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.search_off,
-                                size: 48,
-                                color: Colors.grey.shade400,
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Aucune activité trouvée',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey.shade600,
-                                  fontFamily: 'Poppins',
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Essayez de modifier vos filtres de recherche',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey.shade500,
-                                  fontFamily: 'Nunito',
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        )
-                      else
-                        Column(
-                          children: _filteredActivities.map((activity) {
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: _buildActivityCard(activity),
                             );
-                          }).toList(),
-                        ),
+                          }
+
+                          if (controller.loadingErrorMessage != null) {
+                            return Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(40),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.05),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    size: 48,
+                                    color: Colors.red.shade400,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Erreur de chargement',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey.shade600,
+                                      fontFamily: 'Poppins',
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    controller.loadingErrorMessage!,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey.shade500,
+                                      fontFamily: 'Nunito',
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+
+                          final filteredInformations = _filteredInformations;
+                          
+                          if (filteredInformations.isEmpty) {
+                            return Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(40),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.05),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Icons.search_off,
+                                    size: 48,
+                                    color: Colors.grey.shade400,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'Aucune information trouvée',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey.shade600,
+                                      fontFamily: 'Poppins',
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Essayez de modifier vos filtres de recherche',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey.shade500,
+                                      fontFamily: 'Nunito',
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                          
+                          return Column(
+                            children: filteredInformations.map((information) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: _buildInformationCard(information),
+                              );
+                            }).toList(),
+                          );
+                        },
+                      ),
                     ],
                   ),
                 ),
@@ -432,7 +341,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
     );
   }
 
-  Widget _buildFilterChip(String label, ActivityFilter filter, IconData icon) {
+  Widget _buildFilterChip(String label, InformationFilter filter, IconData icon) {
     final isSelected = _selectedFilter == filter;
     
     return GestureDetector(
@@ -489,9 +398,9 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
     );
   }
 
-  Widget _buildActivityCard(CadreDeVieActivity activity) {
+  Widget _buildInformationCard(InformationModel information) {
     return GestureDetector(
-      onTap: () => _showActivityDetails(activity),
+      onTap: () => _showInformationDetails(information),
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -513,12 +422,12 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: activity.typeColor.withValues(alpha: 0.1),
+                    color: information.statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
-                    activity.typeIcon,
-                    color: activity.typeColor,
+                    information.typeIcon,
+                    color: information.statusColor,
                     size: 20,
                   ),
                 ),
@@ -528,7 +437,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        activity.titre,
+                        information.title,
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
@@ -546,7 +455,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            activity.auteur,
+                            information.authorText,
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey.shade500,
@@ -561,15 +470,15 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: activity.typeColor.withValues(alpha: 0.1),
+                    color: information.priorityColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    activity.typeText,
+                    information.priorityText,
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: activity.typeColor,
+                      color: information.priorityColor,
                       fontFamily: 'Nunito',
                     ),
                   ),
@@ -579,7 +488,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
             const SizedBox(height: 16),
             
             Text(
-              activity.description,
+              information.description,
               style: const TextStyle(
                 fontSize: 14,
                 color: Color(0xFF6B7280),
@@ -593,7 +502,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
             
             Row(
               children: [
-                if (activity.lieu != null) ...[
+                if (information.place != null) ...[
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
@@ -610,7 +519,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          activity.lieu!,
+                          information.place!,
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -639,7 +548,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        activity.formattedDate,
+                        information.formattedDate,
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -651,7 +560,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                   ),
                 ),
                 const Spacer(),
-                if (activity.photos != null && activity.photos!.isNotEmpty) ...[
+                if (information.hasImages) ...[
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
@@ -668,7 +577,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '${activity.photos!.length}',
+                          '${information.imageCount}',
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -685,7 +594,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
             
             const SizedBox(height: 12),
             GestureDetector(
-              onTap: () => _showActivityDetails(activity),
+              onTap: () => _showInformationDetails(information),
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 12),
@@ -721,7 +630,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
     );
   }
 
-  void _showActivityDetails(CadreDeVieActivity activity) {
+  void _showInformationDetails(InformationModel information) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -757,12 +666,12 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: activity.typeColor.withValues(alpha: 0.1),
+                            color: information.statusColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
-                            activity.typeIcon,
-                            color: activity.typeColor,
+                            information.typeIcon,
+                            color: information.statusColor,
                             size: 24,
                           ),
                         ),
@@ -772,7 +681,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                activity.titre,
+                                information.title,
                                 style: const TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w600,
@@ -782,7 +691,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Par ${activity.auteur}',
+                                'Par ${information.authorText}',
                                 style: const TextStyle(
                                   fontSize: 14,
                                   color: Color(0xFF6B7280),
@@ -795,15 +704,15 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: activity.typeColor.withValues(alpha: 0.1),
+                            color: information.statusColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            activity.typeText,
+                            information.statusText,
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: activity.typeColor,
+                              color: information.statusColor,
                               fontFamily: 'Nunito',
                             ),
                           ),
@@ -839,7 +748,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            activity.description,
+                            information.description,
                             style: const TextStyle(
                               fontSize: 14,
                               color: Color(0xFF6B7280),
@@ -878,18 +787,18 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                             ),
                           ),
                           const SizedBox(height: 16),
-                          if (activity.lieu != null)
-                            _buildInfoRow('📍', 'Lieu', activity.lieu!),
-                          if (activity.dateEvenement != null)
-                            _buildInfoRow('📅', 'Date de l\'événement', 
-                              '${activity.dateEvenement!.day}/${activity.dateEvenement!.month}/${activity.dateEvenement!.year}'),
-                          _buildInfoRow('⏰', 'Publié', activity.formattedDate),
-                          _buildInfoRow('👤', 'Auteur', activity.auteur),
+                          if (information.place != null)
+                            _buildInfoRow('📍', 'Lieu', information.place!),
+                          _buildInfoRow('📋', 'Type', information.typeText),
+                          _buildInfoRow('🔥', 'Priorité', information.priorityText),
+                          _buildInfoRow('📊', 'Statut', information.statusText),
+                          _buildInfoRow('⏰', 'Publié', information.formattedDate),
+                          _buildInfoRow('👤', 'Auteur', information.authorText),
                         ],
                       ),
                     ),
                     
-                    if (activity.photos != null && activity.photos!.isNotEmpty) ...[
+                    if (information.hasImages) ...[
                       const SizedBox(height: 20),
                       Container(
                         padding: const EdgeInsets.all(20),
@@ -908,7 +817,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Photos (${activity.photos!.length})',
+                              'Photos (${information.imageCount})',
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -921,23 +830,31 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                               height: 100,
                               child: ListView.builder(
                                 scrollDirection: Axis.horizontal,
-                                itemCount: activity.photos!.length,
+                                itemCount: information.imageCount,
                                 itemBuilder: (context, index) {
                                   return Container(
                                     width: 100,
                                     height: 100,
                                     margin: EdgeInsets.only(
-                                      right: index < activity.photos!.length - 1 ? 12 : 0,
+                                      right: index < information.imageCount - 1 ? 12 : 0,
                                     ),
                                     decoration: BoxDecoration(
                                       color: Colors.grey.shade200,
                                       borderRadius: BorderRadius.circular(12),
+                                      image: information.images.isNotEmpty && index < information.images.length
+                                          ? DecorationImage(
+                                              image: NetworkImage(information.images[index]),
+                                              fit: BoxFit.cover,
+                                            )
+                                          : null,
                                     ),
-                                    child: const Icon(
-                                      Icons.image,
-                                      size: 40,
-                                      color: Color(0xFF6B7280),
-                                    ),
+                                    child: information.images.isEmpty || index >= information.images.length
+                                        ? const Icon(
+                                            Icons.image,
+                                            size: 40,
+                                            color: Color(0xFF6B7280),
+                                          )
+                                        : null,
                                   );
                                 },
                               ),

@@ -141,22 +141,37 @@ class _ProjetsPageState extends State<ProjetsPage> {
 
 
   Future<void> _handleVoteSubmitted(ProjectModel project, VoteChoice choice, String? justification) async {
-    final success = await _projectController.voteOnProject(
-      project.id,
-      choice,
-      justification: justification,
-    );
+    final bool success;
+    if (project.hasUserVoted) {
+      success = await _projectController.modifyVote(
+        project.id,
+        choice,
+        justification: justification,
+      );
+    } else {
+      success = await _projectController.voteOnProject(
+        project.id,
+        choice,
+        justification: justification,
+      );
+    }
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Vote enregistré: ${_getVoteText(choice)}'),
-          backgroundColor: const Color(0xFF10B981),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
+      final messageText = project.hasUserVoted 
+          ? 'Vote modifié: ${_getVoteText(choice)}'
+          : 'Vote enregistré: ${_getVoteText(choice)}';
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(messageText),
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
 
       // Vérifier si il faut afficher le modal de priorité
       final yesVotedProjects = _projectController.projects
@@ -169,15 +184,17 @@ class _ProjetsPageState extends State<ProjetsPage> {
         });
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_projectController.voteErrorMessage ?? 'Erreur lors du vote'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_projectController.voteErrorMessage ?? 'Erreur lors du vote'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
     }
   }
 
@@ -491,7 +508,7 @@ class _ProjetsPageState extends State<ProjetsPage> {
                                   ],
                                 ),
                               );
-                            }).toList(),
+                            }),
                             
                             // Indicateur de chargement pour la pagination
                             if (_isLoadingMore)

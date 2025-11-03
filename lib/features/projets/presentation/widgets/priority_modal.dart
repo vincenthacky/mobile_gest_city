@@ -1,15 +1,17 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../models/project_model.dart';
+import '../../controllers/project_controller.dart';
 
 class PriorityModal extends StatefulWidget {
   final List<ProjectModel> projects;
-  final Function(List<String>) onPrioritySubmitted;
+  final Function(List<String>)? onPrioritySubmitted;
 
   const PriorityModal({
     super.key,
     required this.projects,
-    required this.onPrioritySubmitted,
+    this.onPrioritySubmitted,
   });
 
   @override
@@ -57,10 +59,36 @@ class _PriorityModalState extends State<PriorityModal>
     });
   }
 
-  void _saveOrder() {
-    final projectIds = _orderedProjects.map((p) => p.id).toList();
-    widget.onPrioritySubmitted(projectIds);
-    _closeModal();
+  Future<void> _saveOrder() async {
+    final projectController = context.read<ProjectController>();
+    final projectIds = _orderedProjects.map((p) => int.parse(p.id)).toList();
+    
+    final success = await projectController.prioritizeProjects(projectIds);
+    
+    if (success) {
+      // Succès - optionnellement appeler le callback
+      widget.onPrioritySubmitted?.call(_orderedProjects.map((p) => p.id).toList());
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Priorités des projets mises à jour avec succès'),
+            backgroundColor: Color(0xFF34c759),
+          ),
+        );
+        _closeModal();
+      }
+    } else {
+      // Erreur
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(projectController.prioritizationErrorMessage ?? 'Erreur lors de la mise à jour des priorités'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -410,38 +438,58 @@ class _PriorityModalState extends State<PriorityModal>
           ),
           const SizedBox(width: 12),
           // Bouton Enregistrer
-          GestureDetector(
-            onTap: _saveOrder,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF34c759),
-                    Color(0xFF2fb34d),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF34c759).withValues(alpha: 0.3),
-                    blurRadius: 15,
-                    offset: const Offset(0, 4),
+          Consumer<ProjectController>(
+            builder: (context, projectController, child) {
+              return GestureDetector(
+                onTap: projectController.isPrioritizing ? null : _saveOrder,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: projectController.isPrioritizing
+                          ? [
+                              const Color(0xFF6B7280),
+                              const Color(0xFF4B5563),
+                            ]
+                          : [
+                              const Color(0xFF34c759),
+                              const Color(0xFF2fb34d),
+                            ],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (projectController.isPrioritizing 
+                            ? const Color(0xFF6B7280) 
+                            : const Color(0xFF34c759)).withValues(alpha: 0.3),
+                        blurRadius: 15,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: const Text(
-                'Enregistrer',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  fontFamily: 'Poppins',
+                  child: projectController.isPrioritizing
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text(
+                          'Enregistrer',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            fontFamily: 'Poppins',
+                          ),
+                        ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         ],
       ),

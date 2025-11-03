@@ -1,0 +1,20 @@
+ public function prioritizeProjects(Request $request)
+    {
+        $projects = $request->projects; // [3, 1, 5, 8, 2]
+
+        $count = count($projects);
+        $score = $count; // Score max = nombre de projets
+
+        foreach ($projects as $position => $projectId) {
+            Vote::where('user_id', auth()->id())
+                ->where('project_id', $projectId)
+                ->update([
+                    'priority_position' => $position + 1,
+                    'score' => $score - $position,
+                ]);
+        }
+
+        $this->scoreService->updateAllScores();
+
+        return response()->json(['message' => 'Priorisation enregistrée']);
+    }

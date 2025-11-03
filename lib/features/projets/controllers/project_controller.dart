@@ -9,6 +9,7 @@ enum ProjectSubmissionStatus { initial, loading, success, error }
 enum ProjectLoadingStatus { initial, loading, success, error }
 enum VoteStatus { initial, loading, success, error }
 enum ProjectDetailStatus { initial, loading, success, error }
+enum PrioritizationStatus { initial, loading, success, error }
 
 class ProjectController extends ChangeNotifier {
   final ProjectDataSource _projectDataSource = ProjectDataSource();
@@ -33,6 +34,10 @@ class ProjectController extends ChangeNotifier {
   ProjectModel? _selectedProject;
   List<VoterModel> _voters = [];
   String? _detailErrorMessage;
+
+  // Pour la priorisation
+  PrioritizationStatus _prioritizationStatus = PrioritizationStatus.initial;
+  String? _prioritizationErrorMessage;
 
   // Getters pour la soumission de projet
   ProjectSubmissionStatus get status => _status;
@@ -59,6 +64,11 @@ class ProjectController extends ChangeNotifier {
   List<VoterModel> get voters => List.unmodifiable(_voters);
   String? get detailErrorMessage => _detailErrorMessage;
   bool get isLoadingDetail => _detailStatus == ProjectDetailStatus.loading;
+
+  // Getters pour la priorisation
+  PrioritizationStatus get prioritizationStatus => _prioritizationStatus;
+  String? get prioritizationErrorMessage => _prioritizationErrorMessage;
+  bool get isPrioritizing => _prioritizationStatus == PrioritizationStatus.loading;
 
   Future<void> pickImages() async {
     try {
@@ -256,6 +266,45 @@ class ProjectController extends ChangeNotifier {
     }
   }
 
+  Future<bool> modifyVote(String projectId, VoteChoice choice, {String? justification}) async {
+    _setVoteStatus(VoteStatus.loading);
+    _clearVoteError();
+
+    try {
+      String voteType;
+      switch (choice) {
+        case VoteChoice.yes:
+          voteType = 'yes';
+          break;
+        case VoteChoice.no:
+          voteType = 'no';
+          break;
+        case VoteChoice.blank:
+          voteType = 'neutral';
+          break;
+        case VoteChoice.yesWithReserve:
+          voteType = 'yes-subject-to';
+          break;
+      }
+
+      await _projectDataSource.modifyVote(projectId, voteType, conditions: justification);
+
+      _setVoteStatus(VoteStatus.success);
+      
+      // Mettre à jour le projet dans la liste locale immédiatement pour une UX fluide
+      _updateProjectAfterVote(projectId, choice, justification);
+      
+      // Recharger les projets depuis l'API pour avoir l'état exact (en arrière-plan)
+      fetchProjects();
+      
+      return true;
+    } catch (e) {
+      _setVoteError(e.toString());
+      _setVoteStatus(VoteStatus.error);
+      return false;
+    }
+  }
+
   void _updateProjectAfterVote(String projectId, VoteChoice choice, String? justification) {
     final projectIndex = _projects.indexWhere((p) => p.id == projectId);
     if (projectIndex != -1) {
@@ -391,6 +440,57 @@ class ProjectController extends ChangeNotifier {
     _selectedProject = null;
     _voters = [];
     _clearDetailError();
+    notifyListeners();
+  }
+
+  // Méthodes pour la priorisation
+  Future<bool> prioritizeProjects(List<int> projectIds) async {
+    _setPrioritizationStatus(PrioritizationStatus.loading);
+    _clearPrioritizationError();
+
+    try {
+      final response = await _projectDataSource.prioritizeProjects(projectIds);
+      
+      if (response.success) {
+        _setPrioritizationStatus(PrioritizationStatus.success);
+        // Rafraîchir la liste des projets après priorisation
+        await fetchProjects();
+        return true;
+      } else {
+        _setPrioritizationError(response.message);
+        _setPrioritizationStatus(PrioritizationStatus.error);
+        return false;
+      }
+    } catch (e) {
+      _setPrioritizationError(e.toString());
+      _setPrioritizationStatus(PrioritizationStatus.error);
+      return false;
+    }
+  }
+
+  // Méthodes utilitaires pour la priorisation
+  void _setPrioritizationStatus(PrioritizationStatus status) {
+    _prioritizationStatus = status;
+    notifyListeners();
+  }
+
+  void _setPrioritizationError(String error) {
+    _prioritizationErrorMessage = error;
+    notifyListeners();
+  }
+
+  void _clearPrioritizationError() {
+    _prioritizationErrorMessage = null;
+    notifyListeners();
+  }
+
+  void clearPrioritizationError() {
+    _clearPrioritizationError();
+  }
+
+  void resetPrioritizationStatus() {
+    _prioritizationStatus = PrioritizationStatus.initial;
+    _clearPrioritizationError();
     notifyListeners();
   }
 }

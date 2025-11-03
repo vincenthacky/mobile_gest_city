@@ -1,0 +1,93 @@
+{
+  "success": true,
+  "status_code": 200,
+  "message": "Information retrieved successfully.",
+  "data": [
+    {
+      "id": 9,
+      "title": "Un mariage sur le terrain de basket",
+      "description": "hjgkjhlkhlk",
+      "report_type": "other",
+      "status": "pending",
+      "place": "Sur le terrain de sport",
+      "priority": "low",
+      "reported_by": 12,
+      "created_at": "2025-11-03 14:54:23",
+      "updated_at": "2025-11-03 14:54:23",
+      "new": true,
+      "images": [
+        {
+          "id": 6,
+          "url": "http://community-handler-ebd193422452.herokuapp.com/storage/reports/BB9GpmqhGZdtMYgDbFeB8FHiyB6YfK4l9fbuPyJc.jpg"
+        }
+      ],
+      "user": {
+        "id": 12,
+        "full_name": "Mr. Adonis Blick",
+        "email": "klein.jevon@example.net",
+        "phone": "(916) 721-5448",
+        "image_url": null
+      }
+    },
+    {
+      "id": 8,
+      "title": "Des enfants entrain de se droguer sur le terrain",
+      "description": "J'ai vu ...",
+      "report_type": "drugs",
+      "status": "pending",
+      "place": "Sur le terrain de sport",
+      "priority": "high",
+      "reported_by": 9,
+      "created_at": "2025-11-03 12:09:19",
+      "updated_at": "2025-11-03 12:09:19",
+      "new": true,
+      "images": [],
+      "user": {
+        "id": 9,
+        "full_name": "John Doe",
+        "email": "john@example.com",
+        "phone": "+33123456789",
+        "image_url": null
+      }
+    }
+  ],
+  "pagination": {
+    "total": 2,
+    "per_page": 15,
+    "current_page": 1,
+    "last_page": 1,
+    "from": 1,
+    "to": 2
+  }
+}
+
+
+voici comment la methode de l api qui recupere
+/**
+     * List information with filters and pagination
+     */
+    public function getInformation(Request $request)
+    {
+        try {
+            $query = Report::query();
+
+            if ($request->has('status')) {
+                $query->where('status', $request->query('status'));
+            }
+            if ($request->has('priority')) {
+                $query->where('priority', $request->query('priority'));
+            }
+            if ($request->has('report_type')) {
+                $query->where('report_type', $request->query('report_type'));
+            }
+
+            $query->where('report_scope', 'information');
+
+            $perPage = (int)$request->query('per_page', 15);
+            $infos = $query->with(['images', 'user'])->orderBy('created_at', 'desc')->paginate($perPage);
+
+            return $this->responseSuccessPaginate(InformationResource::collection($infos), 'Information retrieved successfully.');
+        } catch (Throwable $e) {
+            return $this->responseError($e->getMessage(), 500);
+        }
+    }
