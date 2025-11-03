@@ -1,85 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/widgets/app_header.dart';
+import '../../models/report_model.dart';
+import '../../controllers/report_controller.dart';
 
 enum SignalementFilter { tous, nouveaux, enCours, resolus, urgents }
 
-enum SignalementType { securite, drogue, suspect, nuisance, infrastructure, autre }
-
-enum SignalementStatus { nouveau, enCours, resolu }
-
-enum PriorityLevel { faible, moyen, eleve, urgent }
-
-class Signalement {
-  final int id;
-  final String titre;
-  final String description;
-  final SignalementType type;
-  final SignalementStatus status;
-  final PriorityLevel priority;
-  final DateTime dateCreation;
-  final String? location;
-  final List<String>? photos;
-  final String? video;
-  final String auteur;
-
-  Signalement({
-    required this.id,
-    required this.titre,
-    required this.description,
-    required this.type,
-    required this.status,
-    required this.priority,
-    required this.dateCreation,
-    this.location,
-    this.photos,
-    this.video,
-    required this.auteur,
-  });
-
-  IconData get typeIcon {
-    switch (type) {
-      case SignalementType.securite:
-        return Icons.security;
-      case SignalementType.drogue:
-        return Icons.medical_services;
-      case SignalementType.suspect:
-        return Icons.person_search;
-      case SignalementType.nuisance:
-        return Icons.volume_up;
-      case SignalementType.infrastructure:
-        return Icons.construction;
-      case SignalementType.autre:
-        return Icons.report;
-    }
-  }
-
-  Color get priorityColor {
-    switch (priority) {
-      case PriorityLevel.faible:
-        return const Color(0xFF10B981);
-      case PriorityLevel.moyen:
-        return const Color(0xFFF59E0B);
-      case PriorityLevel.eleve:
-        return const Color(0xFFEF4444);
-      case PriorityLevel.urgent:
-        return const Color(0xFF7C2D12);
-    }
-  }
-
-  String get priorityText {
-    switch (priority) {
-      case PriorityLevel.faible:
-        return 'Faible';
-      case PriorityLevel.moyen:
-        return 'Moyen';
-      case PriorityLevel.eleve:
-        return 'Élevé';
-      case PriorityLevel.urgent:
-        return 'Urgent';
-    }
-  }
-}
 
 class SignalementsPage extends StatefulWidget {
   const SignalementsPage({super.key});
@@ -90,112 +18,128 @@ class SignalementsPage extends StatefulWidget {
 
 class _SignalementsPageState extends State<SignalementsPage> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   SignalementFilter _selectedFilter = SignalementFilter.tous;
+  late ReportController _reportController;
+  Timer? _searchTimer;
+  int _currentPage = 1;
+  bool _isLoadingMore = false;
+  String _searchQuery = '';
 
-  final List<Signalement> _signalements = [
-    Signalement(
-      id: 1,
-      titre: 'Enfants fumant de la drogue',
-      description: 'J\'ai vu des enfants en train de fumer de la drogue derrière ma maison. C\'est très inquiétant pour la sécurité du quartier.',
-      type: SignalementType.drogue,
-      status: SignalementStatus.nouveau,
-      priority: PriorityLevel.urgent,
-      dateCreation: DateTime.now().subtract(const Duration(hours: 2)),
-      location: 'Derrière résidence A, bloc 3',
-      photos: ['assets/images/enfant_fumant.jpg'],
-      auteur: 'Marie Dupont',
-    ),
-    Signalement(
-      id: 2,
-      titre: 'Individu suspect dans la cité',
-      description: 'J\'ai aperçu un gars très bizarre dans la cité qui rôdait autour des voitures et regardait par les fenêtres.',
-      type: SignalementType.suspect,
-      status: SignalementStatus.enCours,
-      priority: PriorityLevel.eleve,
-      dateCreation: DateTime.now().subtract(const Duration(hours: 5)),
-      location: 'Parking central',
-      photos: ['assets/images/individue_suspect.jpg'],
-      auteur: 'Ahmed Ben Ali',
-    ),
-    Signalement(
-      id: 3,
-      titre: 'Bruit excessif la nuit',
-      description: 'Musique très forte jusqu\'à 3h du matin tous les weekends. Impossible de dormir avec les enfants.',
-      type: SignalementType.nuisance,
-      status: SignalementStatus.nouveau,
-      priority: PriorityLevel.moyen,
-      dateCreation: DateTime.now().subtract(const Duration(hours: 12)),
-      location: 'Appartement 2B, immeuble 5',
-      auteur: 'Fatima Alaoui',
-    ),
-    Signalement(
-      id: 4,
-      titre: 'Éclairage public défaillant',
-      description: 'Plusieurs lampadaires ne fonctionnent plus dans l\'allée principale, rendant le passage dangereux la nuit.',
-      type: SignalementType.infrastructure,
-      status: SignalementStatus.resolu,
-      priority: PriorityLevel.moyen,
-      dateCreation: DateTime.now().subtract(const Duration(days: 3)),
-      location: 'Allée principale, zone 2',
-      auteur: 'Jean Kouassi',
-    ),
-    Signalement(
-      id: 5,
-      titre: 'Agression près du marché',
-      description: 'Une dame a été agressée hier soir près du petit marché. Il faut plus de sécurité dans cette zone.',
-      type: SignalementType.securite,
-      status: SignalementStatus.enCours,
-      priority: PriorityLevel.urgent,
-      dateCreation: DateTime.now().subtract(const Duration(days: 1)),
-      location: 'Près du marché, rue principale',
-      auteur: 'Koffi Assan',
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _reportController = Provider.of<ReportController>(context, listen: false);
+    _loadReports();
+    _setupScrollListener();
+    _setupSearchListener();
+  }
 
-  List<Signalement> get _filteredSignalements {
-    List<Signalement> filtered = _signalements.where((signalement) {
-      // Filtre par recherche
-      if (_searchController.text.isNotEmpty) {
-        final searchTerm = _searchController.text.toLowerCase();
-        if (!signalement.titre.toLowerCase().contains(searchTerm) &&
-            !signalement.description.toLowerCase().contains(searchTerm) &&
-            !signalement.location!.toLowerCase().contains(searchTerm)) {
-          return false;
-        }
+  void _setupScrollListener() {
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+        _loadMoreReports();
       }
-
-      // Filtre par statut
-      switch (_selectedFilter) {
-        case SignalementFilter.tous:
-          return true;
-        case SignalementFilter.nouveaux:
-          return signalement.status == SignalementStatus.nouveau;
-        case SignalementFilter.enCours:
-          return signalement.status == SignalementStatus.enCours;
-        case SignalementFilter.resolus:
-          return signalement.status == SignalementStatus.resolu;
-        case SignalementFilter.urgents:
-          return signalement.priority == PriorityLevel.urgent;
-      }
-    }).toList();
-
-    // Trier par priorité et date (les plus récents et urgents en premier)
-    filtered.sort((a, b) {
-      // D'abord par priorité
-      final priorityComparison = b.priority.index.compareTo(a.priority.index);
-      if (priorityComparison != 0) return priorityComparison;
-      
-      // Puis par date
-      return b.dateCreation.compareTo(a.dateCreation);
     });
+  }
+
+  void _setupSearchListener() {
+    _searchController.addListener(() {
+      final query = _searchController.text;
+      if (query != _searchQuery) {
+        _searchQuery = query;
+        _searchTimer?.cancel();
+        
+        // Démarrer la recherche après 300ms de délai
+        _searchTimer = Timer(const Duration(milliseconds: 300), () {
+          _resetAndSearch();
+        });
+      }
+    });
+  }
+
+  Future<void> _loadReports() async {
+    _currentPage = 1;
+    await _reportController.fetchReports(
+      status: _mapFilterToStatus(_selectedFilter),
+      priority: _mapFilterToPriority(_selectedFilter),
+      page: _currentPage,
+    );
+  }
+
+  Future<void> _loadMoreReports() async {
+    if (_isLoadingMore || _reportController.isLoadingReports) return;
     
-    return filtered;
+    final pagination = _reportController.pagination;
+    if (pagination != null && _currentPage < pagination['last_page']) {
+      setState(() {
+        _isLoadingMore = true;
+        _currentPage++;
+      });
+
+      await _reportController.fetchReports(
+        status: _mapFilterToStatus(_selectedFilter),
+        priority: _mapFilterToPriority(_selectedFilter),
+        page: _currentPage,
+        append: true,
+      );
+
+      setState(() {
+        _isLoadingMore = false;
+      });
+    }
+  }
+
+  Future<void> _resetAndSearch() async {
+    _currentPage = 1;
+    await _reportController.fetchReports(
+      status: _mapFilterToStatus(_selectedFilter),
+      priority: _mapFilterToPriority(_selectedFilter),
+      page: _currentPage,
+    );
+  }
+
+  String? _mapFilterToStatus(SignalementFilter filter) {
+    switch (filter) {
+      case SignalementFilter.nouveaux:
+        return 'pending';
+      case SignalementFilter.enCours:
+        return 'in_progress';
+      case SignalementFilter.resolus:
+        return 'resolved';
+      default:
+        return null;
+    }
+  }
+
+  String? _mapFilterToPriority(SignalementFilter filter) {
+    switch (filter) {
+      case SignalementFilter.urgents:
+        return 'urgent';
+      default:
+        return null;
+    }
+  }
+
+  List<ReportModel> get _filteredReports {
+    return _reportController.getFilteredReports(
+      searchQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
+    );
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
+    _searchTimer?.cancel();
     super.dispose();
+  }
+
+  void _onFilterChanged(SignalementFilter filter) {
+    setState(() {
+      _selectedFilter = filter;
+    });
+    _resetAndSearch();
   }
 
   @override
@@ -224,11 +168,63 @@ class _SignalementsPageState extends State<SignalementsPage> {
             
             Expanded(
               child: RefreshIndicator(
-                onRefresh: () async {
-                  await Future.delayed(const Duration(seconds: 1));
-                  setState(() {});
-                },
-                child: SingleChildScrollView(
+                onRefresh: _loadReports,
+                child: Consumer<ReportController>(
+                  builder: (context, reportController, child) {
+                    if (reportController.isLoadingReports && reportController.reports.isEmpty) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFFEF4444),
+                        ),
+                      );
+                    }
+
+                    if (reportController.loadingStatus == ReportLoadingStatus.error) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              size: 64,
+                              color: Colors.grey.shade400,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Erreur de chargement',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade600,
+                                fontFamily: 'Poppins',
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              reportController.loadingErrorMessage ?? 'Une erreur est survenue',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade500,
+                                fontFamily: 'Nunito',
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: _loadReports,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFEF4444),
+                                foregroundColor: Colors.white,
+                              ),
+                              child: const Text('Réessayer'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return SingleChildScrollView(
+                  controller: _scrollController,
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                   child: Column(
@@ -253,15 +249,20 @@ class _SignalementsPageState extends State<SignalementsPage> {
                               ),
                               child: TextField(
                                 controller: _searchController,
-                                onChanged: (value) {
-                                  setState(() {});
-                                },
                                 decoration: InputDecoration(
-                                  hintText: 'Rechercher un signalement',
+                                  hintText: 'Rechercher un signalement...',
                                   prefixIcon: const Icon(
                                     Icons.search,
                                     color: Color(0xFF6B7280),
                                   ),
+                                  suffixIcon: _searchController.text.isNotEmpty
+                                      ? IconButton(
+                                          icon: const Icon(Icons.clear),
+                                          onPressed: () {
+                                            _searchController.clear();
+                                          },
+                                        )
+                                      : null,
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
                                     borderSide: BorderSide.none,
@@ -311,7 +312,7 @@ class _SignalementsPageState extends State<SignalementsPage> {
                           children: [
                             _buildFilterChip('Tous', SignalementFilter.tous),
                             const SizedBox(width: 8),
-                            _buildFilterChip('Nouveaux', SignalementFilter.nouveaux),
+                            _buildFilterChip('En attente', SignalementFilter.nouveaux),
                             const SizedBox(width: 8),
                             _buildFilterChip('En cours', SignalementFilter.enCours),
                             const SizedBox(width: 8),
@@ -324,7 +325,7 @@ class _SignalementsPageState extends State<SignalementsPage> {
                       const SizedBox(height: 24),
                       
                       // Liste des signalements
-                      if (_filteredSignalements.isEmpty)
+                      if (_filteredReports.isEmpty)
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(24),
@@ -344,15 +345,61 @@ class _SignalementsPageState extends State<SignalementsPage> {
                         )
                       else
                         Column(
-                          children: _filteredSignalements.map((signalement) {
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: _buildSignalementCard(signalement),
-                            );
-                          }).toList(),
+                          children: [
+                            ..._filteredReports.map((report) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: _buildSignalementCard(report),
+                              );
+                            }),
+                            
+                            // Indicateur de chargement pour la pagination
+                            if (_isLoadingMore)
+                              Container(
+                                padding: const EdgeInsets.all(20),
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Color(0xFFEF4444),
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                    SizedBox(width: 12),
+                                    Text(
+                                      'Chargement...',
+                                      style: TextStyle(
+                                        color: Color(0xFF6B7280),
+                                        fontFamily: 'Nunito',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            
+                            // Information sur la pagination
+                            if (reportController.pagination != null && !_isLoadingMore)
+                              Container(
+                                padding: const EdgeInsets.all(20),
+                                child: Text(
+                                  '${reportController.pagination!['from']} - ${reportController.pagination!['to']} sur ${reportController.pagination!['total']} signalements',
+                                  style: const TextStyle(
+                                    color: Color(0xFF6B7280),
+                                    fontSize: 12,
+                                    fontFamily: 'Nunito',
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                          ],
                         ),
                     ],
                   ),
+                );
+                  },
                 ),
               ),
             ),
@@ -362,14 +409,14 @@ class _SignalementsPageState extends State<SignalementsPage> {
     );
   }
 
-  Widget _buildSignalementCard(Signalement signalement) {
+  Widget _buildSignalementCard(ReportModel report) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: signalement.priority == PriorityLevel.urgent
-            ? Border.all(color: signalement.priorityColor, width: 2)
+        border: report.priority == PriorityLevel.urgent
+            ? Border.all(color: report.priorityColor, width: 2)
             : null,
         boxShadow: [
           BoxShadow(
@@ -387,12 +434,12 @@ class _SignalementsPageState extends State<SignalementsPage> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: signalement.priorityColor.withValues(alpha: 0.1),
+                  color: report.priorityColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
-                  signalement.typeIcon,
-                  color: signalement.priorityColor,
+                  report.typeIcon,
+                  color: report.priorityColor,
                   size: 20,
                 ),
               ),
@@ -402,7 +449,7 @@ class _SignalementsPageState extends State<SignalementsPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      signalement.titre,
+                      report.title,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -419,7 +466,7 @@ class _SignalementsPageState extends State<SignalementsPage> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          _formatDate(signalement.dateCreation),
+                          report.formattedDate,
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey.shade500,
@@ -433,15 +480,15 @@ class _SignalementsPageState extends State<SignalementsPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: signalement.priorityColor.withValues(alpha: 0.1),
+                  color: report.priorityColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  signalement.priorityText,
+                  report.priorityText,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: signalement.priorityColor,
+                    color: report.priorityColor,
                   ),
                 ),
               ),
@@ -450,7 +497,7 @@ class _SignalementsPageState extends State<SignalementsPage> {
           const SizedBox(height: 12),
           
           Text(
-            signalement.description,
+            report.description,
             style: const TextStyle(
               fontSize: 14,
               color: Color(0xFF6B7280),
@@ -462,7 +509,7 @@ class _SignalementsPageState extends State<SignalementsPage> {
           const SizedBox(height: 12),
           
           // Localisation
-          if (signalement.location != null) ...[
+          if (report.place != null) ...[
             Row(
               children: [
                 Icon(
@@ -473,7 +520,7 @@ class _SignalementsPageState extends State<SignalementsPage> {
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    signalement.location!,
+                    report.place!,
                     style: TextStyle(
                       fontSize: 13,
                       color: Colors.grey.shade600,
@@ -492,13 +539,13 @@ class _SignalementsPageState extends State<SignalementsPage> {
                 child: Row(
                   children: [
                     Icon(
-                      Icons.person,
+                      report.anonymous ? Icons.visibility_off : Icons.person,
                       size: 16,
                       color: Colors.grey.shade500,
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Par ${signalement.auteur}',
+                      report.authorText,
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.grey.shade600,
@@ -510,15 +557,15 @@ class _SignalementsPageState extends State<SignalementsPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _getStatusColor(signalement.status).withValues(alpha: 0.1),
+                  color: report.statusColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  _getStatusText(signalement.status),
+                  report.statusText,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: _getStatusColor(signalement.status),
+                    color: report.statusColor,
                   ),
                 ),
               ),
@@ -526,17 +573,17 @@ class _SignalementsPageState extends State<SignalementsPage> {
           ),
           
           // Images attachées
-          if (signalement.photos != null && signalement.photos!.isNotEmpty) ...[
+          if (report.hasImages) ...[
             const SizedBox(height: 12),
-            Container(
+            SizedBox(
               height: 120,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                itemCount: signalement.photos!.length,
+                itemCount: report.images.length,
                 itemBuilder: (context, index) {
                   return Padding(
                     padding: EdgeInsets.only(
-                      right: index < signalement.photos!.length - 1 ? 8 : 0,
+                      right: index < report.images.length - 1 ? 8 : 0,
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
@@ -547,8 +594,8 @@ class _SignalementsPageState extends State<SignalementsPage> {
                           color: Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Image.asset(
-                          signalement.photos![index],
+                        child: Image.network(
+                          report.images[index],
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
                             return Container(
@@ -590,29 +637,7 @@ class _SignalementsPageState extends State<SignalementsPage> {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  '${signalement.photos!.length} photo(s) attachée(s)',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-              ],
-            ),
-          ],
-          
-          // Indicateur vidéo
-          if (signalement.video != null) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(
-                  Icons.videocam,
-                  size: 16,
-                  color: Colors.grey.shade500,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  'Vidéo attachée',
+                  '${report.imageCount} photo(s) attachée(s)',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey.shade600,
@@ -635,11 +660,7 @@ class _SignalementsPageState extends State<SignalementsPage> {
     }
     
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedFilter = filter;
-        });
-      },
+      onTap: () => _onFilterChanged(filter),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
@@ -660,45 +681,5 @@ class _SignalementsPageState extends State<SignalementsPage> {
         ),
       ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-    
-    if (difference.inDays == 0) {
-      if (difference.inHours == 0) {
-        return 'Il y a ${difference.inMinutes} min';
-      }
-      return 'Il y a ${difference.inHours}h';
-    } else if (difference.inDays == 1) {
-      return 'Hier';
-    } else if (difference.inDays < 7) {
-      return 'Il y a ${difference.inDays} jours';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
-  }
-
-  Color _getStatusColor(SignalementStatus status) {
-    switch (status) {
-      case SignalementStatus.nouveau:
-        return const Color(0xFF3B82F6);
-      case SignalementStatus.enCours:
-        return const Color(0xFFF59E0B);
-      case SignalementStatus.resolu:
-        return const Color(0xFF10B981);
-    }
-  }
-
-  String _getStatusText(SignalementStatus status) {
-    switch (status) {
-      case SignalementStatus.nouveau:
-        return 'Nouveau';
-      case SignalementStatus.enCours:
-        return 'En cours';
-      case SignalementStatus.resolu:
-        return 'Résolu';
-    }
   }
 }

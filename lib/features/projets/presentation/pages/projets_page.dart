@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../widgets/project_card.dart';
 import '../widgets/project_filters.dart';
 import '../widgets/priority_modal.dart';
 import '../widgets/project_detail_modal.dart';
 import '../../models/project_model.dart';
+import '../../controllers/project_controller.dart';
 import 'create_project_page.dart';
 import '../../../../core/widgets/app_header.dart';
 
@@ -19,163 +22,162 @@ class _ProjetsPageState extends State<ProjetsPage> {
   final ScrollController _scrollController = ScrollController();
   String _searchQuery = '';
   ProjectStatus? _statusFilter;
+  late ProjectController _projectController;
+  Timer? _searchTimer;
+  int _currentPage = 1;
+  bool _isLoadingMore = false;
 
-  List<ProjectModel> get _mockProjects => [
-    ProjectModel(
-      id: '1',
-      title: 'Aménagement parc central',
-      shortDescription: 'Rénovation complète du parc avec nouvelles aires de jeux et espaces verts',
-      longDescription: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-      estimatedAmount: 150000,
-      implementationType: ImplementationType.withTender,
-      status: ProjectStatus.voteOpen,
-      voteCloseDate: DateTime.now().add(const Duration(days: 7)),
-      votesYes: 45,
-      votesNo: 12,
-      votesYesWithReserve: 8,
-      votesBlank: 3,
-      createdAt: DateTime.now().subtract(const Duration(days: 10)),
-      updatedAt: DateTime.now(),
-      authorId: 'user1',
-      authorName: 'Marie Dupont',
-    ),
-    ProjectModel(
-      id: '2',
-      title: 'Installation éclairage LED',
-      shortDescription: 'Remplacement de tous les lampadaires par des LED économiques',
-      longDescription: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-      estimatedAmount: 80000,
-      implementationType: ImplementationType.knownProvider,
-      providerName: 'Éclairage Plus',
-      providerAmount: 75000,
-      status: ProjectStatus.voteOpen,
-      voteCloseDate: DateTime.now().add(const Duration(days: 3)),
-      votesYes: 32,
-      votesNo: 18,
-      votesYesWithReserve: 5,
-      votesBlank: 2,
-      userVote: VoteChoice.yes,
-      userVoteJustification: 'Excellent projet pour l\'environnement',
-      createdAt: DateTime.now().subtract(const Duration(days: 5)),
-      updatedAt: DateTime.now(),
-      authorId: 'user2',
-      authorName: 'Jean Martin',
-    ),
-    ProjectModel(
-      id: '3',
-      title: 'Aire de fitness extérieure',
-      shortDescription: 'Installation d\'équipements de fitness en plein air',
-      longDescription: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-      estimatedAmount: 25000,
-      implementationType: ImplementationType.withoutProvider,
-      status: ProjectStatus.voteOpen,
-      voteCloseDate: DateTime.now().add(const Duration(days: 15)),
-      votesYes: 25,
-      votesNo: 5,
-      votesYesWithReserve: 3,
-      votesBlank: 2,
-      userVote: VoteChoice.yes,
-      userVoteJustification: 'Très bon pour la santé publique',
-      createdAt: DateTime.now().subtract(const Duration(days: 2)),
-      updatedAt: DateTime.now(),
-      authorId: 'user3',
-      authorName: 'Sophie Bernard',
-    ),
-    ProjectModel(
-      id: '4',
-      title: 'Réfection de la voirie',
-      shortDescription: 'Réparation des nids de poule et marquage au sol',
-      longDescription: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-      estimatedAmount: 200000,
-      implementationType: ImplementationType.withTender,
-      status: ProjectStatus.voteOpen,
-      voteCloseDate: DateTime.now().add(const Duration(days: 5)),
-      votesYes: 78,
-      votesNo: 15,
-      votesYesWithReserve: 12,
-      votesBlank: 5,
-      userVote: VoteChoice.yesWithReserve,
-      userVoteJustification: 'Important mais attention aux coûts',
-      createdAt: DateTime.now().subtract(const Duration(days: 30)),
-      updatedAt: DateTime.now().subtract(const Duration(days: 2)),
-      authorId: 'user4',
-      authorName: 'Pierre Lefebvre',
-    ),
-    ProjectModel(
-      id: '5',
-      title: 'Système de recyclage intelligent',
-      shortDescription: 'Installation de conteneurs connectés avec capteurs',
-      longDescription: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-      estimatedAmount: 120000,
-      implementationType: ImplementationType.knownProvider,
-      providerName: 'EcoTech Solutions',
-      providerAmount: 115000,
-      status: ProjectStatus.voteOpen,
-      voteCloseDate: DateTime.now().add(const Duration(days: 12)),
-      votesYes: 38,
-      votesNo: 8,
-      votesYesWithReserve: 6,
-      votesBlank: 1,
-      userVote: VoteChoice.yes,
-      userVoteJustification: 'Innovation nécessaire pour l\'environnement',
-      createdAt: DateTime.now().subtract(const Duration(days: 8)),
-      updatedAt: DateTime.now(),
-      authorId: 'user5',
-      authorName: 'Amélie Dubois',
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _projectController = Provider.of<ProjectController>(context, listen: false);
+    _loadProjects();
+    _setupScrollListener();
+    _setupSearchListener();
+  }
+
+  void _setupScrollListener() {
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+        _loadMoreProjects();
+      }
+    });
+  }
+
+  void _setupSearchListener() {
+    _searchController.addListener(() {
+      final query = _searchController.text;
+      if (query != _searchQuery) {
+        _searchQuery = query;
+        _searchTimer?.cancel();
+        
+        // Démarrer la recherche après 2 caractères et 500ms de délai
+        if (query.length >= 2 || query.isEmpty) {
+          _searchTimer = Timer(const Duration(milliseconds: 500), () {
+            _resetAndSearch();
+          });
+        }
+      }
+    });
+  }
+
+  Future<void> _loadProjects() async {
+    _currentPage = 1;
+    await _projectController.fetchProjects(
+      search: _searchQuery.length >= 2 ? _searchQuery : null,
+      status: _mapStatusToApi(_statusFilter),
+      page: _currentPage,
+    );
+  }
+
+  Future<void> _loadMoreProjects() async {
+    if (_isLoadingMore || _projectController.isLoadingProjects) return;
+    
+    final pagination = _projectController.pagination;
+    if (pagination != null && _currentPage < pagination['last_page']) {
+      setState(() {
+        _isLoadingMore = true;
+        _currentPage++;
+      });
+
+      await _projectController.fetchProjects(
+        search: _searchQuery.length >= 2 ? _searchQuery : null,
+        status: _mapStatusToApi(_statusFilter),
+        page: _currentPage,
+        append: true,
+      );
+
+      setState(() {
+        _isLoadingMore = false;
+      });
+    }
+  }
+
+  Future<void> _resetAndSearch() async {
+    _currentPage = 1;
+    await _projectController.fetchProjects(
+      search: _searchQuery.length >= 2 ? _searchQuery : null,
+      status: _mapStatusToApi(_statusFilter),
+      page: _currentPage,
+    );
+  }
+
+  String? _mapStatusToApi(ProjectStatus? status) {
+    if (status == null) return null;
+    
+    switch (status) {
+      case ProjectStatus.voteOpen:
+        return 'open';
+      case ProjectStatus.voteNotOpen:
+        return 'not_open';
+      case ProjectStatus.voteClosed:
+        return 'closed';
+      case ProjectStatus.accepted:
+        return 'project_accepted';
+      case ProjectStatus.rejected:
+        return 'project_rejected';
+    }
+  }
 
   List<ProjectModel> get _filteredProjects {
-    return _mockProjects.where((project) {
-      final matchesSearch = _searchQuery.isEmpty ||
-          project.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          project.shortDescription.toLowerCase().contains(_searchQuery.toLowerCase());
-      
-      final matchesStatus = _statusFilter == null || project.status == _statusFilter;
-      
-      return matchesSearch && matchesStatus;
-    }).toList();
+    // Plus besoin de filtrage local, l'API fait tout
+    return _projectController.projects;
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     _scrollController.dispose();
+    _searchTimer?.cancel();
     super.dispose();
-  }
-
-  void _onSearchChanged(String query) {
-    setState(() {
-      _searchQuery = query;
-    });
   }
 
   void _onFilterChanged(ProjectStatus? status) {
     setState(() {
       _statusFilter = status;
     });
+    _resetAndSearch();
   }
 
 
-  void _handleVoteSubmitted(ProjectModel project, VoteChoice choice, String? justification) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Vote enregistré: ${_getVoteText(choice)}'),
-        backgroundColor: const Color(0xFF10B981),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-      ),
+  Future<void> _handleVoteSubmitted(ProjectModel project, VoteChoice choice, String? justification) async {
+    final success = await _projectController.voteOnProject(
+      project.id,
+      choice,
+      justification: justification,
     );
 
-    final yesVotedProjects = _mockProjects
-        .where((p) => p.userVote == VoteChoice.yes || p.userVote == VoteChoice.yesWithReserve)
-        .length;
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Vote enregistré: ${_getVoteText(choice)}'),
+          backgroundColor: const Color(0xFF10B981),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
 
-    if ((choice == VoteChoice.yes || choice == VoteChoice.yesWithReserve) && yesVotedProjects >= 1) {
-      Future.delayed(const Duration(milliseconds: 500), () {
-        _showPriorityModal();
-      });
+      // Vérifier si il faut afficher le modal de priorité
+      final yesVotedProjects = _projectController.projects
+          .where((p) => p.userVote == VoteChoice.yes || p.userVote == VoteChoice.yesWithReserve)
+          .length;
+
+      if ((choice == VoteChoice.yes || choice == VoteChoice.yesWithReserve) && yesVotedProjects >= 2) {
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _showPriorityModal();
+        });
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_projectController.voteErrorMessage ?? 'Erreur lors du vote'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
     }
   }
 
@@ -193,9 +195,11 @@ class _ProjetsPageState extends State<ProjetsPage> {
   }
 
   void _showPriorityModal() {
-    final yesVotedProjects = _mockProjects
+    final yesVotedProjects = _projectController.projects
         .where((p) => p.userVote == VoteChoice.yes || p.userVote == VoteChoice.yesWithReserve)
         .toList();
+
+    if (yesVotedProjects.length < 2) return;
 
     showDialog(
       context: context,
@@ -260,11 +264,63 @@ class _ProjetsPageState extends State<ProjetsPage> {
             
             Expanded(
               child: RefreshIndicator(
-                onRefresh: () async {
-                  await Future.delayed(const Duration(seconds: 1));
-                },
+                onRefresh: _loadProjects,
                 color: const Color(0xFF3B82F6),
-                child: SingleChildScrollView(
+                child: Consumer<ProjectController>(
+                  builder: (context, projectController, child) {
+                    if (projectController.isLoadingProjects && projectController.projects.isEmpty) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF3B82F6),
+                        ),
+                      );
+                    }
+
+                    if (projectController.loadingStatus == ProjectLoadingStatus.error) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              size: 64,
+                              color: Colors.grey.shade400,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Erreur de chargement',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade600,
+                                fontFamily: 'Poppins',
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              projectController.loadingErrorMessage ?? 'Une erreur est survenue',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade500,
+                                fontFamily: 'Nunito',
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: _loadProjects,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF3B82F6),
+                                foregroundColor: Colors.white,
+                              ),
+                              child: const Text('Réessayer'),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return SingleChildScrollView(
                   controller: _scrollController,
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(20),
@@ -289,9 +345,8 @@ class _ProjetsPageState extends State<ProjetsPage> {
                               ),
                               child: TextField(
                                 controller: _searchController,
-                                onChanged: _onSearchChanged,
                                 decoration: InputDecoration(
-                                  hintText: 'Rechercher un projet...',
+                                  hintText: 'Rechercher un projet (2+ caractères)...',
                                   hintStyle: const TextStyle(
                                     color: Color(0xFF6B7280),
                                     fontFamily: 'Nunito',
@@ -300,6 +355,14 @@ class _ProjetsPageState extends State<ProjetsPage> {
                                     Icons.search,
                                     color: Color(0xFF6B7280),
                                   ),
+                                  suffixIcon: _searchController.text.isNotEmpty
+                                      ? IconButton(
+                                          icon: const Icon(Icons.clear),
+                                          onPressed: () {
+                                            _searchController.clear();
+                                          },
+                                        )
+                                      : null,
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(16),
                                     borderSide: BorderSide.none,
@@ -400,19 +463,83 @@ class _ProjetsPageState extends State<ProjetsPage> {
                         )
                       else
                         Column(
-                          children: _filteredProjects.map((project) {
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: ProjectCard(
-                                project: project,
-                                onTap: () => _showProjectDetails(project),
-                                onVote: (choice, justification) => _handleVoteSubmitted(project, choice, justification),
+                          children: [
+                            ..._filteredProjects.map((project) {
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: Stack(
+                                  children: [
+                                    ProjectCard(
+                                      project: project,
+                                      onTap: () => _showProjectDetails(project),
+                                      onVote: (choice, justification) => _handleVoteSubmitted(project, choice, justification),
+                                    ),
+                                    if (projectController.isVoting)
+                                      Positioned.fill(
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withValues(alpha: 0.3),
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          child: const Center(
+                                            child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                            
+                            // Indicateur de chargement pour la pagination
+                            if (_isLoadingMore)
+                              Container(
+                                padding: const EdgeInsets.all(20),
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Color(0xFF3B82F6),
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                    SizedBox(width: 12),
+                                    Text(
+                                      'Chargement...',
+                                      style: TextStyle(
+                                        color: Color(0xFF6B7280),
+                                        fontFamily: 'Nunito',
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            );
-                          }).toList(),
+                            
+                            // Information sur la pagination
+                            if (projectController.pagination != null && !_isLoadingMore)
+                              Container(
+                                padding: const EdgeInsets.all(20),
+                                child: Text(
+                                  '${projectController.pagination!['from']} - ${projectController.pagination!['to']} sur ${projectController.pagination!['total']} projets',
+                                  style: const TextStyle(
+                                    color: Color(0xFF6B7280),
+                                    fontSize: 12,
+                                    fontFamily: 'Nunito',
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                          ],
                         ),
                     ],
                   ),
+                );
+                  },
                 ),
               ),
             ),

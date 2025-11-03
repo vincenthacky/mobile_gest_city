@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-import 'dart:io';
-
-enum SignalementType { securite, drogue, suspect, nuisance, infrastructure, autre }
-enum PriorityLevel { faible, moyen, eleve, urgent }
+import '../../controllers/signalement_controller.dart';
 
 class AjouterSignalementPage extends StatefulWidget {
   const AjouterSignalementPage({super.key});
@@ -14,608 +13,863 @@ class AjouterSignalementPage extends StatefulWidget {
 
 class _AjouterSignalementPageState extends State<AjouterSignalementPage> {
   final _formKey = GlobalKey<FormState>();
-  final _titreController = TextEditingController();
+  final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _locationController = TextEditingController();
-  SignalementType _selectedType = SignalementType.autre;
-  PriorityLevel _selectedPriority = PriorityLevel.moyen;
+  final _placeController = TextEditingController();
+  
+  SignalementType _selectedType = SignalementType.other;
+  PriorityLevel _selectedPriority = PriorityLevel.medium;
   bool _isAnonymous = false;
-  List<File> _selectedPhotos = [];
-  File? _selectedVideo;
+  late SignalementController _signalementController;
 
-  final Map<SignalementType, String> _typeLabels = {
-    SignalementType.securite: 'Sécurité',
-    SignalementType.drogue: 'Drogue',
-    SignalementType.suspect: 'Personne suspecte',
-    SignalementType.nuisance: 'Nuisance sonore',
-    SignalementType.infrastructure: 'Infrastructure',
-    SignalementType.autre: 'Autre',
-  };
-
-  final Map<SignalementType, IconData> _typeIcons = {
-    SignalementType.securite: Icons.security,
-    SignalementType.drogue: Icons.medical_services,
-    SignalementType.suspect: Icons.person_search,
-    SignalementType.nuisance: Icons.volume_up,
-    SignalementType.infrastructure: Icons.construction,
-    SignalementType.autre: Icons.report,
-  };
-
-  final Map<PriorityLevel, String> _priorityLabels = {
-    PriorityLevel.faible: 'Faible',
-    PriorityLevel.moyen: 'Moyen',
-    PriorityLevel.eleve: 'Élevé',
-    PriorityLevel.urgent: 'Urgent',
-  };
-
-  final Map<PriorityLevel, Color> _priorityColors = {
-    PriorityLevel.faible: const Color(0xFF10B981),
-    PriorityLevel.moyen: const Color(0xFFF59E0B),
-    PriorityLevel.eleve: const Color(0xFFEF4444),
-    PriorityLevel.urgent: const Color(0xFF7C2D12),
-  };
+  @override
+  void initState() {
+    super.initState();
+    _signalementController = Provider.of<SignalementController>(context, listen: false);
+  }
 
   @override
   void dispose() {
-    _titreController.dispose();
+    _titleController.dispose();
     _descriptionController.dispose();
-    _locationController.dispose();
+    _placeController.dispose();
     super.dispose();
+  }
+
+  void _addImages() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => _ImagePickerBottomSheet(
+        onImageSelected: () {
+          setState(() {});
+        },
+      ),
+    );
+  }
+
+  void _submitSignalement() async {
+    if (_formKey.currentState!.validate()) {
+      if (_placeController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('La localisation est obligatoire'),
+            backgroundColor: Color(0xFFEF4444),
+          ),
+        );
+        return;
+      }
+
+      final success = await _signalementController.createSignalement(
+        title: _titleController.text,
+        description: _descriptionController.text,
+        reportType: _selectedType,
+        place: _placeController.text,
+        priority: _selectedPriority,
+        isAnonymous: _isAnonymous,
+      );
+
+      if (!mounted) return;
+      
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_isAnonymous 
+                ? 'Signalement anonyme envoyé avec succès !'
+                : 'Signalement envoyé avec succès !'),
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+        context.go('/signalements');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_signalementController.errorMessage ?? 'Erreur lors de l\'envoi'),
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF374151)),
-          onPressed: () => context.go('/signalements'),
-        ),
-        title: const Text(
-          'Nouveau signalement',
-          style: TextStyle(
-            color: Color(0xFF1F2937),
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
+      backgroundColor: const Color(0xFFF9FAFB),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9FAFB),
+                border: Border(
+                  bottom: BorderSide(
+                    color: Colors.grey.shade200,
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => context.go('/signalements'),
+                    icon: const Icon(
+                      Icons.arrow_back_ios,
+                      color: Color(0xFF1F2937),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    '🚨 Nouveau signalement',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1F2937),
+                      fontFamily: 'Poppins',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                  key: _formKey,
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Form(
-                        key: _formKey,
-                        child: Column(
-                          children: [
-                            // Titre
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Titre du signalement',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFF374151),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                TextFormField(
-                                  controller: _titreController,
-                                  decoration: InputDecoration(
-                                    hintText: 'Ex: Enfants fumant de la drogue',
-                                    prefixIcon: const Icon(
-                                      Icons.title,
-                                      color: Color(0xFF9CA3AF),
-                                    ),
-                                    filled: true,
-                                    fillColor: const Color(0xFFF3F4F6),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(
-                                        color: Color(0xFFE5E7EB),
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(
-                                        color: Color(0xFF3B82F6),
-                                        width: 2,
-                                      ),
-                                    ),
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
-                                    ),
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Veuillez entrer un titre';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ],
+                      _buildSection(
+                        'Informations générales',
+                        Icons.info_outline,
+                        [
+                          _buildTextField(
+                            controller: _titleController,
+                            label: 'Titre du signalement',
+                            hint: 'Ex: Enfants fumant de la drogue',
+                            icon: Icons.title,
+                            validator: (value) => value?.isEmpty ?? true ? 'Le titre est requis' : null,
+                          ),
+                          const SizedBox(height: 16),
+                          _buildTextField(
+                            controller: _descriptionController,
+                            label: 'Description détaillée',
+                            hint: 'Décrivez le problème en détail...\nQuand ? Où ? Qui ? Que s\'est-il passé ?',
+                            icon: Icons.description,
+                            maxLines: 4,
+                            validator: (value) => value?.isEmpty ?? true ? 'La description est requise' : null,
+                          ),
+                          const SizedBox(height: 16),
+                          _buildTextField(
+                            controller: _placeController,
+                            label: 'Localisation *',
+                            hint: 'Ex: Derrière résidence A, bloc 3',
+                            icon: Icons.location_on,
+                            validator: (value) => value?.isEmpty ?? true ? 'La localisation est requise' : null,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      
+                      _buildSection(
+                        'Type de problème',
+                        Icons.report_problem,
+                        [
+                          _buildTypeSelector(),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      
+                      _buildSection(
+                        'Priorité et options',
+                        Icons.priority_high,
+                        [
+                          _buildPrioritySelector(),
+                          const SizedBox(height: 16),
+                          _buildAnonymousSwitch(),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      
+                      _buildSection(
+                        'Preuves visuelles',
+                        Icons.photo_camera,
+                        [
+                          _buildImagesSection(),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      
+                      Consumer<SignalementController>(
+                        builder: (context, controller, child) {
+                          if (controller.hasImages) {
+                            return _buildSection(
+                              'Images sélectionnées (${controller.selectedImages.length})',
+                              Icons.image,
+                              [_buildSelectedImagesSection()],
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
+                      const SizedBox(height: 32),
+                      
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _signalementController.isLoading ? null : _submitSignalement,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFEF4444),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 18),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                            const SizedBox(height: 24),
-                            
-                            // Type de signalement
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Type de problème',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFF374151),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF3F4F6),
-                                    border: Border.all(
-                                      color: const Color(0xFFE5E7EB),
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Column(
-                                    children: _typeLabels.entries.map((entry) {
-                                      final isSelected = entry.key == _selectedType;
-                                      return Padding(
-                                        padding: const EdgeInsets.only(bottom: 8),
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            setState(() {
-                                              _selectedType = entry.key;
-                                            });
-                                          },
-                                          child: Container(
-                                            padding: const EdgeInsets.all(12),
-                                            decoration: BoxDecoration(
-                                              color: isSelected
-                                                  ? const Color(0xFF3B82F6).withValues(alpha: 0.1)
-                                                  : Colors.white,
-                                              border: Border.all(
-                                                color: isSelected
-                                                    ? const Color(0xFF3B82F6)
-                                                    : const Color(0xFFE5E7EB),
-                                                width: isSelected ? 2 : 1,
-                                              ),
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                Icon(
-                                                  _typeIcons[entry.key]!,
-                                                  color: isSelected
-                                                      ? const Color(0xFF3B82F6)
-                                                      : const Color(0xFF6B7280),
-                                                  size: 20,
-                                                ),
-                                                const SizedBox(width: 12),
-                                                Text(
-                                                  entry.value,
-                                                  style: TextStyle(
-                                                    fontSize: 14,
-                                                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                                                    color: isSelected
-                                                        ? const Color(0xFF3B82F6)
-                                                        : const Color(0xFF374151),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 24),
-                            
-                            // Description
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Description détaillée',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFF374151),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                TextFormField(
-                                  controller: _descriptionController,
-                                  maxLines: 5,
-                                  decoration: InputDecoration(
-                                    hintText: 'Décrivez le problème en détail...\nQuand ? Où ? Qui ? Que s\'est-il passé ?',
-                                    prefixIcon: const Padding(
-                                      padding: EdgeInsets.only(bottom: 80),
-                                      child: Icon(
-                                        Icons.description,
-                                        color: Color(0xFF9CA3AF),
+                            elevation: 0,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Consumer<SignalementController>(
+                                builder: (context, controller, child) {
+                                  if (controller.isLoading) {
+                                    return const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                       ),
-                                    ),
-                                    filled: true,
-                                    fillColor: const Color(0xFFF3F4F6),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(
-                                        color: Color(0xFFE5E7EB),
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(
-                                        color: Color(0xFF3B82F6),
-                                        width: 2,
-                                      ),
-                                    ),
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
-                                    ),
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Veuillez entrer une description';
-                                    }
-                                    return null;
-                                  },
+                                    );
+                                  }
+                                  return const Icon(Icons.send, size: 20);
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Envoyer le signalement',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  fontFamily: 'Poppins',
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 24),
-                            
-                            // Localisation
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Localisation (optionnel)',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFF374151),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                TextFormField(
-                                  controller: _locationController,
-                                  decoration: InputDecoration(
-                                    hintText: 'Ex: Derrière résidence A, bloc 3',
-                                    prefixIcon: const Icon(
-                                      Icons.location_on,
-                                      color: Color(0xFF9CA3AF),
-                                    ),
-                                    filled: true,
-                                    fillColor: const Color(0xFFF3F4F6),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(
-                                        color: Color(0xFFE5E7EB),
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: const BorderSide(
-                                        color: Color(0xFF3B82F6),
-                                        width: 2,
-                                      ),
-                                    ),
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 24),
-                            
-                            // Niveau de priorité
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Niveau de priorité',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFF374151),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF3F4F6),
-                                    border: Border.all(
-                                      color: const Color(0xFFE5E7EB),
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Wrap(
-                                    spacing: 12,
-                                    runSpacing: 12,
-                                    children: _priorityLabels.entries.map((entry) {
-                                      final isSelected = entry.key == _selectedPriority;
-                                      return GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            _selectedPriority = entry.key;
-                                          });
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                          decoration: BoxDecoration(
-                                            color: isSelected
-                                                ? _priorityColors[entry.key]!.withValues(alpha: 0.1)
-                                                : Colors.white,
-                                            border: Border.all(
-                                              color: isSelected
-                                                  ? _priorityColors[entry.key]!
-                                                  : const Color(0xFFE5E7EB),
-                                              width: isSelected ? 2 : 1,
-                                            ),
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: Text(
-                                            entry.value,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                                              color: isSelected
-                                                  ? _priorityColors[entry.key]!
-                                                  : const Color(0xFF374151),
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 24),
-                            
-                            // Photos et vidéos
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Photos et vidéos (optionnel)',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFF374151),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF3F4F6),
-                                    border: Border.all(
-                                      color: const Color(0xFFE5E7EB),
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: ElevatedButton.icon(
-                                              onPressed: _pickPhotos,
-                                              icon: const Icon(Icons.photo_camera, size: 18),
-                                              label: const Text('Ajouter photos'),
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: const Color(0xFF3B82F6),
-                                                foregroundColor: Colors.white,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(8),
-                                                ),
-                                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: ElevatedButton.icon(
-                                              onPressed: _pickVideo,
-                                              icon: const Icon(Icons.videocam, size: 18),
-                                              label: const Text('Ajouter vidéo'),
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: const Color(0xFF10B981),
-                                                foregroundColor: Colors.white,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(8),
-                                                ),
-                                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      
-                                      // Affichage des médias sélectionnés
-                                      if (_selectedPhotos.isNotEmpty || _selectedVideo != null) ...[
-                                        const SizedBox(height: 16),
-                                        if (_selectedPhotos.isNotEmpty) ...[
-                                          Text(
-                                            '${_selectedPhotos.length} photo(s) sélectionnée(s)',
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              color: Color(0xFF374151),
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                        ],
-                                        if (_selectedVideo != null) ...[
-                                          const Text(
-                                            'Vidéo sélectionnée',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: Color(0xFF374151),
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                        ],
-                                        if (_selectedPhotos.isNotEmpty || _selectedVideo != null)
-                                          TextButton(
-                                            onPressed: () {
-                                              setState(() {
-                                                _selectedPhotos.clear();
-                                                _selectedVideo = null;
-                                              });
-                                            },
-                                            child: const Text(
-                                              'Supprimer tout',
-                                              style: TextStyle(
-                                                color: Color(0xFFEF4444),
-                                              ),
-                                            ),
-                                          ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 24),
-                            
-                            // Signalement anonyme
-                            Row(
-                              children: [
-                                SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: Checkbox(
-                                    value: _isAnonymous,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _isAnonymous = value ?? false;
-                                      });
-                                    },
-                                    activeColor: const Color(0xFF3B82F6),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                const Expanded(
-                                  child: Text(
-                                    'Signalement anonyme',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Color(0xFF374151),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 32),
-                          ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _submitSignalement,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEF4444),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Envoyer le signalement',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSection(String title, IconData icon, List<Widget> children) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  icon,
+                  color: const Color(0xFFEF4444),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1F2937),
+                  fontFamily: 'Poppins',
                 ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 20),
+          ...children,
+        ],
       ),
     );
   }
 
-  void _pickPhotos() {
-    // TODO: Implémenter la sélection de photos
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Fonctionnalité de sélection de photos à implémenter'),
-        backgroundColor: Color(0xFF3B82F6),
-      ),
-    );
-  }
-
-  void _pickVideo() {
-    // TODO: Implémenter la sélection de vidéo
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Fonctionnalité de sélection de vidéo à implémenter'),
-        backgroundColor: Color(0xFF10B981),
-      ),
-    );
-  }
-
-  void _submitSignalement() {
-    if (_formKey.currentState!.validate()) {
-      // TODO: Envoyer le signalement
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _isAnonymous 
-                ? 'Signalement anonyme envoyé avec succès !'
-                : 'Signalement envoyé avec succès !',
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    int maxLines = 1,
+    TextInputType? keyboardType,
+    List<TextInputFormatter>? inputFormatters,
+    String? Function(String?)? validator,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF374151),
+            fontFamily: 'Poppins',
           ),
-          backgroundColor: const Color(0xFF10B981),
         ),
-      );
-      
-      context.go('/signalements');
-    }
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          maxLines: maxLines,
+          keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+          validator: validator,
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(
+              color: Color(0xFF9CA3AF),
+              fontFamily: 'Nunito',
+            ),
+            prefixIcon: Icon(icon, color: const Color(0xFF6B7280), size: 20),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFEF4444), width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFEF4444)),
+            ),
+            filled: true,
+            fillColor: const Color(0xFFF9FAFB),
+            contentPadding: const EdgeInsets.all(16),
+          ),
+          style: const TextStyle(fontFamily: 'Nunito'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTypeSelector() {
+    final Map<SignalementType, String> typeLabels = {
+      SignalementType.security: 'Sécurité',
+      SignalementType.drugs: 'Drogue',
+      SignalementType.suspiciousPerson: 'Personne suspecte',
+      SignalementType.noisePollution: 'Nuisance sonore',
+      SignalementType.infrastructure: 'Infrastructure',
+      SignalementType.other: 'Autre',
+    };
+
+    final Map<SignalementType, IconData> typeIcons = {
+      SignalementType.security: Icons.security,
+      SignalementType.drugs: Icons.medical_services,
+      SignalementType.suspiciousPerson: Icons.person_search,
+      SignalementType.noisePollution: Icons.volume_up,
+      SignalementType.infrastructure: Icons.construction,
+      SignalementType.other: Icons.report,
+    };
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Sélectionnez le type de problème',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF374151),
+            fontFamily: 'Poppins',
+          ),
+        ),
+        const SizedBox(height: 12),
+        Column(
+          children: typeLabels.entries.map((entry) {
+            final isSelected = entry.key == _selectedType;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9FAFB),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isSelected
+                      ? const Color(0xFFEF4444)
+                      : const Color(0xFFE5E7EB),
+                  width: isSelected ? 2 : 1,
+                ),
+              ),
+              child: InkWell(
+                onTap: () {
+                  setState(() {
+                    _selectedType = entry.key;
+                  });
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Icon(
+                        typeIcons[entry.key]!,
+                        color: isSelected
+                            ? const Color(0xFFEF4444)
+                            : const Color(0xFF6B7280),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          entry.value,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                            color: isSelected
+                                ? const Color(0xFFEF4444)
+                                : const Color(0xFF1F2937),
+                            fontFamily: 'Nunito',
+                          ),
+                        ),
+                      ),
+                      if (isSelected)
+                        const Icon(
+                          Icons.check_circle,
+                          color: Color(0xFFEF4444),
+                          size: 20,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPrioritySelector() {
+    final Map<PriorityLevel, String> priorityLabels = {
+      PriorityLevel.low: 'Faible',
+      PriorityLevel.medium: 'Moyen',
+      PriorityLevel.high: 'Élevé',
+    };
+
+    final Map<PriorityLevel, Color> priorityColors = {
+      PriorityLevel.low: const Color(0xFF10B981),
+      PriorityLevel.medium: const Color(0xFFF59E0B),
+      PriorityLevel.high: const Color(0xFFEF4444),
+    };
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Niveau de priorité',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF374151),
+            fontFamily: 'Poppins',
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: priorityLabels.entries.map((entry) {
+            final isSelected = entry.key == _selectedPriority;
+            return Expanded(
+              child: Container(
+                margin: const EdgeInsets.only(right: 8),
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _selectedPriority = entry.key;
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? priorityColors[entry.key]!.withValues(alpha: 0.1)
+                          : const Color(0xFFF9FAFB),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected
+                            ? priorityColors[entry.key]!
+                            : const Color(0xFFE5E7EB),
+                        width: isSelected ? 2 : 1,
+                      ),
+                    ),
+                    child: Text(
+                      entry.value,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        color: isSelected
+                            ? priorityColors[entry.key]!
+                            : const Color(0xFF374151),
+                        fontFamily: 'Nunito',
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAnonymousSwitch() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: _isAnonymous 
+                  ? const Color(0xFF10B981).withValues(alpha: 0.1)
+                  : const Color(0xFF6B7280).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.visibility_off,
+              color: _isAnonymous ? const Color(0xFF10B981) : const Color(0xFF6B7280),
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Signalement anonyme',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1F2937),
+                    fontFamily: 'Nunito',
+                  ),
+                ),
+                Text(
+                  'Votre identité ne sera pas révélée',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF6B7280),
+                    fontFamily: 'Nunito',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: _isAnonymous,
+            onChanged: (value) {
+              setState(() {
+                _isAnonymous = value;
+              });
+            },
+            activeThumbColor: const Color(0xFF10B981),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImagesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Text(
+              'Photos et preuves',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF374151),
+                fontFamily: 'Poppins',
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              '(optionnel)',
+              style: TextStyle(
+                fontSize: 12,
+                color: Color(0xFF6B7280),
+                fontFamily: 'Nunito',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        GestureDetector(
+          onTap: _addImages,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF9FAFB),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFFE5E7EB),
+                style: BorderStyle.solid,
+              ),
+            ),
+            child: const Column(
+              children: [
+                Icon(
+                  Icons.cloud_upload,
+                  color: Color(0xFF6B7280),
+                  size: 32,
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Ajouter des photos',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF374151),
+                    fontFamily: 'Nunito',
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Cliquez pour sélectionner vos preuves',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF6B7280),
+                    fontFamily: 'Nunito',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSelectedImagesSection() {
+    return Consumer<SignalementController>(
+      builder: (context, controller, child) {
+        if (controller.selectedImages.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            childAspectRatio: 1,
+          ),
+          itemCount: controller.selectedImages.length,
+          itemBuilder: (context, index) {
+            final image = controller.selectedImages[index];
+            return Stack(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.file(
+                      image,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: GestureDetector(
+                    onTap: () => controller.removeImage(index),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEF4444),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _ImagePickerBottomSheet extends StatelessWidget {
+  final VoidCallback onImageSelected;
+
+  const _ImagePickerBottomSheet({required this.onImageSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Ajouter des preuves',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1F2937),
+              fontFamily: 'Poppins',
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _buildOptionTile(
+                  context,
+                  icon: Icons.photo_library,
+                  title: 'Galerie',
+                  onTap: () async {
+                    Navigator.pop(context);
+                    await Provider.of<SignalementController>(context, listen: false).pickImages();
+                    onImageSelected();
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildOptionTile(
+                  context,
+                  icon: Icons.camera_alt,
+                  title: 'Caméra',
+                  onTap: () async {
+                    Navigator.pop(context);
+                    await Provider.of<SignalementController>(context, listen: false).pickImageFromCamera();
+                    onImageSelected();
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOptionTile(BuildContext context, {
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF9FAFB),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: const Color(0xFFEF4444),
+                size: 24,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF374151),
+                fontFamily: 'Nunito',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

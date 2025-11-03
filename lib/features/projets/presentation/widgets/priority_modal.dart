@@ -23,7 +23,6 @@ class _PriorityModalState extends State<PriorityModal>
   late Animation<double> _scaleAnimation;
   
   List<ProjectModel> _orderedProjects = [];
-  String? _lastMovedProjectId;
 
   @override
   void initState() {
@@ -251,18 +250,6 @@ class _PriorityModalState extends State<PriorityModal>
               }
               final item = _orderedProjects.removeAt(oldIndex);
               _orderedProjects.insert(newIndex, item);
-              
-              // Marquer l'élément déplacé pour l'animation
-              _lastMovedProjectId = item.id;
-              
-              // Effacer l'animation après 2 secondes
-              Future.delayed(const Duration(seconds: 2), () {
-                if (mounted) {
-                  setState(() {
-                    _lastMovedProjectId = null;
-                  });
-                }
-              });
             });
           },
         ),
@@ -271,53 +258,31 @@ class _PriorityModalState extends State<PriorityModal>
   }
 
   Widget _buildProjectItem(ProjectModel project, int priority, {required Key key}) {
-    final isRecentlyMoved = _lastMovedProjectId == project.id;
-    
-    return AnimatedContainer(
+    return Container(
       key: key,
-      duration: const Duration(milliseconds: 600),
-      curve: Curves.elasticOut,
       margin: const EdgeInsets.only(bottom: 6),
-      height: 55, // Hauteur augmentée pour voir les descriptions
-      transform: isRecentlyMoved 
-        ? (Matrix4.identity()..scale(1.02)..translate(0.0, -2.0, 0.0))
-        : Matrix4.identity(),
+      height: 55,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isRecentlyMoved ? [
-            const Color(0xFF3B82F6).withValues(alpha: 0.25),
-            const Color(0xFF1E40AF).withValues(alpha: 0.15),
-            const Color(0xFF3B82F6).withValues(alpha: 0.08),
-          ] : [
+          colors: [
             Colors.white.withValues(alpha: 0.3),
             Colors.white.withValues(alpha: 0.15),
           ],
         ),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: isRecentlyMoved 
-            ? const Color(0xFF3B82F6).withValues(alpha: 0.6)
-            : Colors.white.withValues(alpha: 0.3),
-          width: isRecentlyMoved ? 2.5 : 1,
+          color: Colors.white.withValues(alpha: 0.3),
+          width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: isRecentlyMoved 
-              ? const Color(0xFF3B82F6).withValues(alpha: 0.3)
-              : Colors.black.withValues(alpha: 0.1),
-            blurRadius: isRecentlyMoved ? 15 : 8,
-            offset: isRecentlyMoved ? const Offset(0, 4) : const Offset(0, 2),
-            spreadRadius: isRecentlyMoved ? 3 : 0,
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+            spreadRadius: 0,
           ),
-          if (isRecentlyMoved)
-            BoxShadow(
-              color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
-              blurRadius: 25,
-              offset: const Offset(0, 8),
-              spreadRadius: 1,
-            ),
         ],
       ),
       child: Padding(

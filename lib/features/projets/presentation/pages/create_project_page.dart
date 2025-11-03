@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../../controllers/project_controller.dart';
 import '../../models/project_model.dart';
 
 class CreateProjectPage extends StatefulWidget {
@@ -28,12 +30,14 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
   DateTime? _deadlineDate;
   ImplementationType _implementationType = ImplementationType.withoutProvider;
   List<String> _attachments = [];
+  late ProjectController _projectController;
 
   bool get _isEditing => widget.project != null;
 
   @override
   void initState() {
     super.initState();
+    _projectController = Provider.of<ProjectController>(context, listen: false);
     if (_isEditing) {
       _populateFields();
     }
@@ -104,13 +108,14 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
   }
 
   void _addAttachment() {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => _AttachmentDialog(
-        onAttachmentAdded: (fileName) {
-          setState(() {
-            _attachments.add(fileName);
-          });
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => _ImagePickerBottomSheet(
+        onImageSelected: () {
+          setState(() {});
         },
       ),
     );
@@ -122,18 +127,52 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
     });
   }
 
-  void _submitProject() {
+  void _submitProject() async {
     if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_isEditing ? 'Projet modifié avec succès !' : 'Projet soumis à la communauté !'),
-          backgroundColor: const Color(0xFF10B981),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          margin: const EdgeInsets.all(16),
-        ),
+      if (_deadlineDate == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('La date butoir est obligatoire'),
+            backgroundColor: Color(0xFFEF4444),
+          ),
+        );
+        return;
+      }
+
+      final success = await _projectController.createProject(
+        title: _titleController.text,
+        briefDescription: _shortDescriptionController.text,
+        detailedDescription: _longDescriptionController.text,
+        estimatedBudget: _estimatedAmountController.text,
+        startDate: _startDate?.toIso8601String() ?? '',
+        estimatedCompletionDate: _endDate?.toIso8601String() ?? '',
+        dateLapses: _deadlineDate!.toIso8601String(),
+        withCallForTenders: _implementationType == ImplementationType.withTender,
+        withServiceProvider: _implementationType == ImplementationType.knownProvider,
       );
-      Navigator.of(context).pop();
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_isEditing ? 'Projet modifié avec succès !' : 'Projet soumis à la communauté !'),
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+        Navigator.of(context).pop();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_projectController.errorMessage ?? 'Erreur lors de la soumission'),
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
     }
   }
 
@@ -254,9 +293,9 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                         [
                           _buildTextField(
                             controller: _estimatedAmountController,
-                            label: 'Montant estimatif (€)',
+                            label: 'Montant estimatif (FCFA)',
                             hint: 'Ex: 50000',
-                            icon: Icons.euro,
+                            icon: Icons.monetization_on,
                             keyboardType: TextInputType.number,
                             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                             validator: (value) => value?.isEmpty ?? true ? 'Le montant estimatif est requis' : null,
@@ -266,18 +305,10 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                           if (_implementationType == ImplementationType.knownProvider) ...[
                             const SizedBox(height: 16),
                             _buildTextField(
-                              controller: _providerNameController,
-                              label: 'Nom du prestataire',
-                              hint: 'Ex: Entreprise Martin',
-                              icon: Icons.business,
-                              validator: (value) => value?.isEmpty ?? true ? 'Le nom du prestataire est requis' : null,
-                            ),
-                            const SizedBox(height: 16),
-                            _buildTextField(
                               controller: _providerAmountController,
-                              label: 'Montant de prestation (€)',
+                              label: 'Montant de prestation (FCFA)',
                               hint: 'Ex: 45000',
-                              icon: Icons.euro,
+                              icon: Icons.monetization_on,
                               keyboardType: TextInputType.number,
                               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                               validator: (value) => value?.isEmpty ?? true ? 'Le montant de prestation est requis' : null,
@@ -294,12 +325,26 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                           _buildAttachmentsSection(),
                         ],
                       ),
+                      const SizedBox(height: 24),
+                      
+                      Consumer<ProjectController>(
+                        builder: (context, controller, child) {
+                          if (controller.hasImages) {
+                            return _buildSection(
+                              'Images sélectionnées (${controller.selectedImages.length})',
+                              Icons.image,
+                              [_buildSelectedImagesSection()],
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
                       const SizedBox(height: 32),
                       
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: _submitProject,
+                          onPressed: _projectController.isLoading ? null : _submitProject,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF3B82F6),
                             foregroundColor: Colors.white,
@@ -312,7 +357,21 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.send, size: 20),
+                              Consumer<ProjectController>(
+                                builder: (context, controller, child) {
+                                  if (controller.isLoading) {
+                                    return const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      ),
+                                    );
+                                  }
+                                  return const Icon(Icons.send, size: 20);
+                                },
+                              ),
                               const SizedBox(width: 8),
                               Text(
                                 _isEditing ? 'Mettre à jour le projet' : 'Soumettre à la communauté',
@@ -685,6 +744,180 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
           ),
         ],
       ],
+    );
+  }
+
+  Widget _buildSelectedImagesSection() {
+    return Consumer<ProjectController>(
+      builder: (context, controller, child) {
+        if (controller.selectedImages.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            childAspectRatio: 1,
+          ),
+          itemCount: controller.selectedImages.length,
+          itemBuilder: (context, index) {
+            final image = controller.selectedImages[index];
+            return Stack(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.file(
+                      image,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: GestureDetector(
+                    onTap: () => controller.removeImage(index),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEF4444),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _ImagePickerBottomSheet extends StatelessWidget {
+  final VoidCallback onImageSelected;
+
+  const _ImagePickerBottomSheet({required this.onImageSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Ajouter des images',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1F2937),
+              fontFamily: 'Poppins',
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _buildOptionTile(
+                  context,
+                  icon: Icons.photo_library,
+                  title: 'Galerie',
+                  onTap: () async {
+                    Navigator.pop(context);
+                    await Provider.of<ProjectController>(context, listen: false).pickImages();
+                    onImageSelected();
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildOptionTile(
+                  context,
+                  icon: Icons.camera_alt,
+                  title: 'Caméra',
+                  onTap: () async {
+                    Navigator.pop(context);
+                    await Provider.of<ProjectController>(context, listen: false).pickImageFromCamera();
+                    onImageSelected();
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOptionTile(BuildContext context, {
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF9FAFB),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: const Color(0xFF3B82F6),
+                size: 24,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF374151),
+                fontFamily: 'Nunito',
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

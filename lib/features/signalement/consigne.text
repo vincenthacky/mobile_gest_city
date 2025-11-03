@@ -1,0 +1,87 @@
+
+lien: api get reports/
+reponse api {
+  "success": true,
+  "status_code": 200,
+  "message": "Reports retrieved successfully.",
+  "data": [
+    {
+      "id": 7,
+      "title": "Des enfants entrain de se droguer sur le terrain",
+      "description": "J'ai vu ...",
+      "report_type": "drugs",
+      "status": "pending",
+      "place": "Sur le terrain de sport",
+      "priority": "high",
+      "anonymous": false,
+      "reported_by": 9,
+      "created_at": "2025-11-03 10:02:54",
+      "updated_at": "2025-11-03 10:02:54",
+      "new": true,
+      "images": [],
+      "user": {
+        "id": 9,
+        "full_name": "John Doe",
+        "email": "john@example.com",
+        "phone": "+33123456789",
+        "image_url": null
+      }
+    },
+    {
+      "id": 5,
+      "title": "volle chez moi",
+      "description": "ygidu iouhiof oiujpro ioujpo iuu oiu oioui iu ui;op iuhoi khhli uihioj uklihij khoij. uyuylioiu",
+      "report_type": "security",
+      "status": "pending",
+      "place": "parking central",
+      "priority": "medium",
+      "anonymous": true,
+      "reported_by": null,
+      "created_at": "2025-11-03 09:27:47",
+      "updated_at": "2025-11-03 09:27:47",
+      "new": true,
+      "images": [
+        {
+          "id": 6,
+          "url": "http://community-handler-ebd193422452.herokuapp.com/storage/reports/BB9GpmqhGZdtMYgDbFeB8FHiyB6YfK4l9fbuPyJc.jpg"
+        }
+      ],
+      "user": null
+    }
+  ],
+  "pagination": {
+    "total": 2,
+    "per_page": 15,
+    "current_page": 1,
+    "last_page": 1,
+    "from": 1,
+    "to": 2
+  }
+}
+
+
+
+ public function getReports(Request $request)
+    {
+        try {
+            $query = Report::query();
+
+            if ($request->has('status')) {
+                $query->where('status', $request->query('status'));
+            }
+            if ($request->has('priority')) {
+                $query->where('priority', $request->query('priority'));
+            }
+            if ($request->has('report_type')) {
+                $query->where('report_type', $request->query('report_type'));
+            }
+
+            $query->where('report_scope', 'incident');
+
+            $perPage = (int)$request->query('per_page', 15);
+            $reports = $query->with(['images', 'user'])->orderBy('created_at', 'desc')->paginate($perPage);
+
+            return $this->responseSuccessPaginate(ReportResource::collection($reports), 'Reports retrieved successfully.');
+        } catch (Throwable $e) {
+            return $this->responseError($e->getMessage(), 500);
+        

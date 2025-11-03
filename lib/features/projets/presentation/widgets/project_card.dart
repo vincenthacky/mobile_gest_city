@@ -151,11 +151,18 @@ class ProjectCard extends StatelessWidget {
                     color: Colors.orange,
                   ),
                 const Spacer(),
-                if (project.hasAttachments)
+                if (project.hasImages)
+                  _pillWithIcon(
+                    icon: Icons.photo_library,
+                    label: '${project.imageCount}',
+                    color: const Color(0xFF8B5CF6),
+                  ),
+                if (project.hasImages && project.hasAttachments) const SizedBox(width: 8),
+                if (project.hasAttachments && !project.hasImages)
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF6B7280).withOpacity(0.08),
+                      color: const Color(0xFF6B7280).withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(

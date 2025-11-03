@@ -84,6 +84,17 @@ class ProjectModel {
   bool get hasUserVoted => userVote != null;
   bool get canVote => status == ProjectStatus.voteOpen && !hasUserVoted;
   bool get hasAttachments => attachments.isNotEmpty;
+  
+  List<String> get imageAttachments {
+    final imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
+    return attachments.where((attachment) {
+      final lowercaseAttachment = attachment.toLowerCase();
+      return imageExtensions.any((ext) => lowercaseAttachment.endsWith(ext));
+    }).toList();
+  }
+  
+  bool get hasImages => imageAttachments.isNotEmpty;
+  int get imageCount => imageAttachments.length;
 
   String get statusText {
     switch (status) {
@@ -181,42 +192,109 @@ class ProjectModel {
   }
 
   factory ProjectModel.fromJson(Map<String, dynamic> json) {
+    final votes = json['votes'] as Map<String, dynamic>? ?? {};
+    final user = json['user'] as Map<String, dynamic>? ?? {};
+    final images = json['images'] as List<dynamic>? ?? [];
+    
+    // Mapping des statuts de l'API vers les statuts du modèle
+    ProjectStatus mapStatus(String apiStatus) {
+      switch (apiStatus) {
+        case 'vote_open':
+          return ProjectStatus.voteOpen;
+        case 'vote_not_open':
+          return ProjectStatus.voteNotOpen;
+        case 'vote_closed':
+          return ProjectStatus.voteClosed;
+        case 'project_accepted':
+          return ProjectStatus.accepted;
+        case 'project_rejected':
+          return ProjectStatus.rejected;
+        default:
+          return ProjectStatus.voteNotOpen;
+      }
+    }
+
+    // Déterminer le type d'implémentation selon l'API
+    ImplementationType getImplementationType() {
+      final withTender = json['with_call_for_tenders'] as bool? ?? false;
+      final withProvider = json['with_service_provider'] as bool? ?? false;
+      
+      if (withTender) {
+        return ImplementationType.withTender;
+      } else if (withProvider) {
+        return ImplementationType.knownProvider;
+      } else {
+        return ImplementationType.withoutProvider;
+      }
+    }
+
+    // Mapper le vote utilisateur depuis l'API
+    VoteChoice? mapUserVote(dynamic userVoteData) {
+      if (userVoteData == null) return null;
+      
+      // L'API retourne directement une string pour user_vote
+      if (userVoteData is String) {
+        switch (userVoteData) {
+          case 'yes':
+          case 'positive':
+            return VoteChoice.yes;
+          case 'no':
+          case 'negative':
+            return VoteChoice.no;
+          case 'neutral':
+            return VoteChoice.blank;
+          case 'yes_to_subject':
+          case 'yes-subject-to':
+            return VoteChoice.yesWithReserve;
+          default:
+            return null;
+        }
+      }
+      
+      // Fallback si c'est un objet vote avec le type
+      if (userVoteData is Map<String, dynamic>) {
+        final voteType = userVoteData['vote_type'] as String?;
+        switch (voteType) {
+          case 'positive':
+            return VoteChoice.yes;
+          case 'negative':
+            return VoteChoice.no;
+          case 'neutral':
+            return VoteChoice.blank;
+          case 'yes_to_subject':
+            return VoteChoice.yesWithReserve;
+          default:
+            return null;
+        }
+      }
+      return null;
+    }
+    
     return ProjectModel(
-      id: json['id'] ?? '',
+      id: json['id']?.toString() ?? '',
       title: json['title'] ?? '',
-      shortDescription: json['short_description'] ?? '',
-      longDescription: json['long_description'] ?? '',
+      shortDescription: json['brief_description'] ?? '',
+      longDescription: json['detailed_description'] ?? '',
       startDate: json['start_date'] != null ? DateTime.parse(json['start_date']) : null,
-      endDate: json['end_date'] != null ? DateTime.parse(json['end_date']) : null,
-      deadlineDate: json['deadline_date'] != null ? DateTime.parse(json['deadline_date']) : null,
-      estimatedAmount: (json['estimated_amount'] ?? 0).toDouble(),
-      implementationType: ImplementationType.values.firstWhere(
-        (e) => e.toString().split('.').last == json['implementation_type'],
-        orElse: () => ImplementationType.withoutProvider,
-      ),
-      providerName: json['provider_name'],
-      providerAmount: json['provider_amount']?.toDouble(),
-      attachments: List<String>.from(json['attachments'] ?? []),
-      status: ProjectStatus.values.firstWhere(
-        (e) => e.toString().split('.').last == json['status'],
-        orElse: () => ProjectStatus.voteNotOpen,
-      ),
-      voteCloseDate: json['vote_close_date'] != null ? DateTime.parse(json['vote_close_date']) : null,
-      votesYes: json['votes_yes'] ?? 0,
-      votesNo: json['votes_no'] ?? 0,
-      votesYesWithReserve: json['votes_yes_with_reserve'] ?? 0,
-      votesBlank: json['votes_blank'] ?? 0,
-      userVote: json['user_vote'] != null
-          ? VoteChoice.values.firstWhere(
-              (e) => e.toString().split('.').last == json['user_vote'],
-              orElse: () => VoteChoice.blank,
-            )
-          : null,
-      userVoteJustification: json['user_vote_justification'],
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
-      authorId: json['author_id'] ?? '',
-      authorName: json['author_name'] ?? '',
+      endDate: json['estimated_completion_date'] != null ? DateTime.parse(json['estimated_completion_date']) : null,
+      deadlineDate: json['date_lapses'] != null ? DateTime.parse(json['date_lapses']) : null,
+      estimatedAmount: (json['estimated_budget'] ?? 0).toDouble(),
+      implementationType: getImplementationType(),
+      providerName: json['service_provider_name'],
+      providerAmount: json['service_provider_budget']?.toDouble(),
+      attachments: images.map((img) => img['url'] as String? ?? '').where((url) => url.isNotEmpty).toList(),
+      status: mapStatus(json['status'] ?? 'vote_not_open'),
+      voteCloseDate: json['date_lapses'] != null ? DateTime.parse(json['date_lapses']) : null,
+      votesYes: votes['positive_votes'] ?? 0,
+      votesNo: votes['negative_votes'] ?? 0,
+      votesYesWithReserve: votes['yes_to_subject_votes'] ?? 0,
+      votesBlank: votes['neutral_votes'] ?? 0,
+      userVote: mapUserVote(votes['user_vote']),
+      userVoteJustification: votes['user_vote_justification'],
+      createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
+      updatedAt: DateTime.parse(json['updated_at'] ?? DateTime.now().toIso8601String()),
+      authorId: json['created_by']?.toString() ?? '',
+      authorName: user['full_name'] ?? '',
     );
   }
 

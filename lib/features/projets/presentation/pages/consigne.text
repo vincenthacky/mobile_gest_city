@@ -1,0 +1,28 @@
+lien api /projects en. methode get j ai fournie tous les informations la fonction d e l api, le retour de l api  public function getProjects(Request $request) { try { $status = $request->query('status'); // ongoing, upcoming, ended, or null $alreadyVoted = $request->query('already_voted'); // true, false, or null $search = $request->query('search'); $createdBy = $request->query('created_by'); $perPage = (int)$request->query('per_page', 10); $query = Project::query(); if ($status) { if ($status === 'open') { $query->where('status', "vote_open"); } elseif ($status === 'not_open') { $query->where('status', "vote_not_open"); } elseif ($status === 'closed') { $query->where('status', "vote_closed"); } elseif ($status === 'project_accepted') { $query->where('status', "project_accepted"); } elseif ($status === 'project_rejected') { $query->where('status', "project_rejected"); } } if ($alreadyVoted !== null) { $userId = auth()->id(); $query->whereHas('votes', function ($q) use ($userId, $alreadyVoted) { if ($alreadyVoted) { $q->where('user_id', $userId); } else { $q->where('user_id', '!=', $userId); } }); } if ($search) { $query->whereRaw('LOWER(title) LIKE ?', ['%' . strtolower($search) . '%']); } if ($createdBy) { $query->where('created_by', $createdBy); } $projects = $query->paginate($perPage); $projects->load(['images', 'user']); return $this->responseSuccessPaginate(ProjectResource::collection($projects), 'Projects retrieved successfully'); } catch (Throwable $e) { return $this->responseError($e->getMessage(), 500); } } { "success": true, "status_code": 200, "message": "Projects retrieved successfully", "data": [ { "id": 19, "title": "Réhabilitation du réseau d’eau potable", "brief_description": "Modernisation du système d’adduction d’eau dans le quartier Ahoué.", "detailed_description": "Remplacement des conduites vétustes et installation de nouveaux compteurs pour améliorer la distribution d’eau dans la zone. Travaux sur 5 km de réseau.", "estimated_budget": 25000000, "start_date": "2025-12-15", "estimated_completion_date": "2026-06-30", "date_lapses": "2026-03-31", "with_call_for_tenders": false, "with_service_provider": true, "service_provider_budget": 23000000, "created_by": 9, "updated_by": null, "status": "vote_not_open", "images": [ { "id": 2, "url": "/storage/projects/iyteRHYrjlP547rz5X0nn7W7k2NBpVTjD4SAbQf9.jpg" } ], "votes": { "positive_votes": 0, "negative_votes": 0, "neutral_votes": 0, "yes_to_subject_votes": 0, "voters_count": 0, "vote_rate": 0, "user_vote": null }, "user": { "id": 9, "full_name": "John Doe", "email": "john@example.com", "phone": "+33123456789", "image_url": null } }, } ], "pagination": { "total": 3, "per_page": 10, "current_page": 1, "last_page": 1, "from": 1, "to": 3 } }
+
+pour vote oui sous reserve api: /projects/id du projet/votes/yes-subject-to il a un corps a envoyer:{
+  "conditions": ""
+}
+vote oui /projects/id du projet/votes/yes
+vote neutre /projects/id du projet/votes/neutral
+vote non /projects/id du projet/votes/no
+
+
+$search = $request->query('search'); verifier si les recherches passent, quand on ecrire a paartie de 2 caracter il doit faire la requette actualiser celon la rehcerche
+
+pour les different filtre de la page utiliser l api directamnt en envoyer ce genre de requette en fonction du filtre 
+if ($status) {
+                if ($status === 'open') {
+                    $query->where('status', "vote_open");
+                } elseif ($status === 'not_open') {
+                    $query->where('status', "vote_not_open");
+                } elseif ($status === 'closed') {
+                    $query->where('status', "vote_closed");
+                } elseif ($status === 'project_accepted') {
+                    $query->where('status', "project_accepted");
+                } elseif ($status === 'project_rejected') {
+                    $query->where('status', "project_rejected");
+                }
+
+tenir compte que les donnees sont pagines donc quand on arrive a la fin de la page au scroll il doit charge automatiquement les donnee de la page suivante et ajoute a ceux present ainsi de suite
+ $perPage = (int)$request->query('per_page', 10);
