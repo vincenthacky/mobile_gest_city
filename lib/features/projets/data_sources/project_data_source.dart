@@ -263,4 +263,36 @@ class ProjectDataSource {
       throw Exception('Erreur inattendue: $e');
     }
   }
+
+  Future<Map<String, dynamic>> getProjectDetails(String projectId) async {
+    try {
+      final response = await _dio.get('/projects/$projectId');
+
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      } else {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          response: response,
+          message: 'Erreur lors de la récupération des détails du projet',
+        );
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final errorMessage = e.response?.data['message'] ?? 'Erreur lors de la récupération des détails du projet';
+        throw DioException(
+          requestOptions: e.requestOptions,
+          response: e.response,
+          message: errorMessage,
+        );
+      } else {
+        throw DioException(
+          requestOptions: e.requestOptions,
+          message: 'Erreur de réseau. Vérifiez votre connexion internet.',
+        );
+      }
+    } catch (e) {
+      throw Exception('Erreur inattendue: $e');
+    }
+  }
 }

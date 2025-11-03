@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../models/project_model.dart';
+import '../../models/voter_model.dart';
+import '../../controllers/project_controller.dart';
 import 'facebook_style_vote_popup.dart';
 
 class ProjectDetailModal extends StatefulWidget {
@@ -18,6 +21,15 @@ class ProjectDetailModal extends StatefulWidget {
 
 class _ProjectDetailModalState extends State<ProjectDetailModal> {
   final GlobalKey _voteButtonKey = GlobalKey();
+  late ProjectController _projectController;
+
+  @override
+  void initState() {
+    super.initState();
+    _projectController = Provider.of<ProjectController>(context, listen: false);
+    // Charger les détails du projet avec les voteurs
+    _projectController.fetchProjectDetails(widget.project.id);
+  }
 
   void _showVotePopup() {
     FacebookStyleVoteManager.showVotePopup(
@@ -72,10 +84,19 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
                     _buildVoteResultsSection(),
                     const SizedBox(height: 20),
                   ],
-                  if (widget.project.totalVotes > 0) ...[
-                    _buildVotersSection(),
-                    const SizedBox(height: 20),
-                  ],
+                  Consumer<ProjectController>(
+                    builder: (context, controller, child) {
+                      if (controller.voters.isNotEmpty) {
+                        return Column(
+                          children: [
+                            _buildVotersSection(controller.voters),
+                            const SizedBox(height: 20),
+                          ],
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
                   if (widget.project.canVote) ...[
                     _buildVoteSection(),
                   ] else if (widget.project.hasUserVoted) ...[
@@ -530,8 +551,7 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
     );
   }
 
-  Widget _buildVotersSection() {
-    final voters = _getProjectVoters(widget.project.id);
+  Widget _buildVotersSection(List<VoterModel> voters) {
     if (voters.isEmpty) return const SizedBox.shrink();
     
     return Container(
@@ -877,43 +897,95 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
     );
   }
 
-  Widget _buildVoterItem(Map<String, dynamic> voter) {
+  Widget _buildVoterItem(VoterModel voter) {
+    // Couleur et icône basées sur le type de vote
+    Color voteColor;
+    IconData voteIcon;
+    
+    switch (voter.voteType) {
+      case VoteChoice.yes:
+        voteColor = const Color(0xFF10B981);
+        voteIcon = Icons.thumb_up;
+        break;
+      case VoteChoice.no:
+        voteColor = const Color(0xFFEF4444);
+        voteIcon = Icons.thumb_down;
+        break;
+      case VoteChoice.yesWithReserve:
+        voteColor = const Color(0xFFF97316);
+        voteIcon = Icons.edit_note;
+        break;
+      case VoteChoice.blank:
+        voteColor = const Color(0xFF6B7280);
+        voteIcon = Icons.radio_button_unchecked;
+        break;
+    }
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
           Container(
-            width: 24,
-            height: 24,
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
-              color: voter['color'],
+              color: voteColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
+              border: Border.all(
+                color: voteColor.withValues(alpha: 0.3),
+                width: 1,
+              ),
             ),
             child: Icon(
-              voter['icon'],
-              color: Colors.white,
-              size: 14,
+              voteIcon,
+              color: voteColor,
+              size: 16,
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              voter['name'],
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF1F2937),
-                fontFamily: 'Nunito',
-                fontWeight: FontWeight.w500,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  voter.fullName,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1F2937),
+                    fontFamily: 'Poppins',
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'A voté ${voter.formattedVoteDate}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    fontFamily: 'Nunito',
+                  ),
+                ),
+              ],
             ),
           ),
-          Text(
-            voter['vote'],
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: voter['color'],
-              fontFamily: 'Nunito',
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: voteColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: voteColor.withValues(alpha: 0.3),
+                width: 1,
+              ),
+            ),
+            child: Text(
+              voter.voteText,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: voteColor,
+                fontFamily: 'Poppins',
+              ),
             ),
           ),
         ],
@@ -921,30 +993,4 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
     );
   }
 
-  List<Map<String, dynamic>> _getProjectVoters(String projectId) {
-    switch (projectId) {
-      case '1':
-        return [
-          {'name': 'Luc Dubois', 'vote': 'Oui', 'color': const Color(0xFF10B981), 'icon': Icons.thumb_up},
-          {'name': 'Emma Rousseau', 'vote': 'Oui', 'color': const Color(0xFF10B981), 'icon': Icons.thumb_up},
-          {'name': 'Paul Vincent', 'vote': 'Non', 'color': const Color(0xFFEF4444), 'icon': Icons.thumb_down},
-          {'name': 'Julie Garnier', 'vote': 'Oui sous réserve', 'color': const Color(0xFFF97316), 'icon': Icons.edit_note},
-          {'name': 'Marc Petit', 'vote': 'Oui', 'color': const Color(0xFF10B981), 'icon': Icons.thumb_up},
-          {'name': 'Lea Morel', 'vote': 'Neutre', 'color': const Color(0xFF6B7280), 'icon': Icons.radio_button_unchecked},
-          {'name': 'Alex David', 'vote': 'Oui', 'color': const Color(0xFF10B981), 'icon': Icons.thumb_up},
-          {'name': 'Nina Lambert', 'vote': 'Non', 'color': const Color(0xFFEF4444), 'icon': Icons.thumb_down},
-        ];
-      case '2':
-        return [
-          {'name': 'Marie Dupont', 'vote': 'Oui', 'color': const Color(0xFF10B981), 'icon': Icons.thumb_up},
-          {'name': 'Jean Martin', 'vote': 'Oui', 'color': const Color(0xFF10B981), 'icon': Icons.thumb_up},
-          {'name': 'Sophie Bernard', 'vote': 'Non', 'color': const Color(0xFFEF4444), 'icon': Icons.thumb_down},
-          {'name': 'Pierre Lefebvre', 'vote': 'Oui sous réserve', 'color': const Color(0xFFF97316), 'icon': Icons.edit_note},
-          {'name': 'Anne Durand', 'vote': 'Oui', 'color': const Color(0xFF10B981), 'icon': Icons.thumb_up},
-          {'name': 'Thomas Moreau', 'vote': 'Neutre', 'color': const Color(0xFF6B7280), 'icon': Icons.radio_button_unchecked},
-        ];
-      default:
-        return [];
-    }
-  }
 }

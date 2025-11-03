@@ -10,7 +10,7 @@ import 'features/authentication/controller/register_controller.dart';
 import 'features/projets/controllers/project_controller.dart';
 import 'features/signalement/controllers/signalement_controller.dart';
 import 'features/signalement/controllers/report_controller.dart';
-import 'features/cotisation/controller/contribution_controller.dart';
+import 'features/finance/controllers/finance_controller.dart';
 // import 'features/cotisations/controller/cotisations_controller.dart';
 // import 'features/cotisations/controller/payment_proof_controller.dart';
 
@@ -71,7 +71,7 @@ class _GestCityAppState extends State<GestCityApp> {
           create: (_) => ReportController(),
         ),
         ChangeNotifierProvider(
-          create: (_) => ContributionController(),
+          create: (_) => FinanceController(),
         ),
         // ChangeNotifierProvider(
         //   create: (_) => CotisationsController(),

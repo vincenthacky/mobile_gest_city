@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../data_sources/project_data_source.dart';
 import '../models/project_model.dart';
+import '../models/voter_model.dart';
 
 enum ProjectSubmissionStatus { initial, loading, success, error }
 enum ProjectLoadingStatus { initial, loading, success, error }
 enum VoteStatus { initial, loading, success, error }
+enum ProjectDetailStatus { initial, loading, success, error }
 
 class ProjectController extends ChangeNotifier {
   final ProjectDataSource _projectDataSource = ProjectDataSource();
@@ -26,6 +28,12 @@ class ProjectController extends ChangeNotifier {
   VoteStatus _voteStatus = VoteStatus.initial;
   String? _voteErrorMessage;
 
+  // Pour les détails du projet
+  ProjectDetailStatus _detailStatus = ProjectDetailStatus.initial;
+  ProjectModel? _selectedProject;
+  List<VoterModel> _voters = [];
+  String? _detailErrorMessage;
+
   // Getters pour la soumission de projet
   ProjectSubmissionStatus get status => _status;
   String? get errorMessage => _errorMessage;
@@ -44,6 +52,13 @@ class ProjectController extends ChangeNotifier {
   VoteStatus get voteStatus => _voteStatus;
   String? get voteErrorMessage => _voteErrorMessage;
   bool get isVoting => _voteStatus == VoteStatus.loading;
+
+  // Getters pour les détails du projet
+  ProjectDetailStatus get detailStatus => _detailStatus;
+  ProjectModel? get selectedProject => _selectedProject;
+  List<VoterModel> get voters => List.unmodifiable(_voters);
+  String? get detailErrorMessage => _detailErrorMessage;
+  bool get isLoadingDetail => _detailStatus == ProjectDetailStatus.loading;
 
   Future<void> pickImages() async {
     try {
@@ -320,5 +335,62 @@ class ProjectController extends ChangeNotifier {
   // Méthode pour rafraîchir les projets
   Future<void> refreshProjects() async {
     await fetchProjects();
+  }
+
+  // Méthodes pour récupérer les détails du projet
+  Future<void> fetchProjectDetails(String projectId) async {
+    _setDetailStatus(ProjectDetailStatus.loading);
+    _clearDetailError();
+
+    try {
+      final response = await _projectDataSource.getProjectDetails(projectId);
+
+      if (response['success'] == true) {
+        final projectData = response['data'] as Map<String, dynamic>;
+        
+        // Créer le projet avec les données détaillées
+        _selectedProject = ProjectModel.fromJson(projectData);
+        
+        // Extraire les voteurs
+        final votersData = projectData['voters'] as List<dynamic>? ?? [];
+        _voters = votersData.map((voterJson) => VoterModel.fromJson(voterJson as Map<String, dynamic>)).toList();
+        
+        _setDetailStatus(ProjectDetailStatus.success);
+      } else {
+        _setDetailError(response['message'] ?? 'Erreur lors de la récupération des détails du projet');
+        _setDetailStatus(ProjectDetailStatus.error);
+      }
+    } catch (e) {
+      _setDetailError(e.toString());
+      _setDetailStatus(ProjectDetailStatus.error);
+    }
+  }
+
+  // Méthodes utilitaires pour les détails du projet
+  void _setDetailStatus(ProjectDetailStatus status) {
+    _detailStatus = status;
+    notifyListeners();
+  }
+
+  void _setDetailError(String error) {
+    _detailErrorMessage = error;
+    notifyListeners();
+  }
+
+  void _clearDetailError() {
+    _detailErrorMessage = null;
+    notifyListeners();
+  }
+
+  void clearDetailError() {
+    _clearDetailError();
+  }
+
+  void resetDetailStatus() {
+    _detailStatus = ProjectDetailStatus.initial;
+    _selectedProject = null;
+    _voters = [];
+    _clearDetailError();
+    notifyListeners();
   }
 }

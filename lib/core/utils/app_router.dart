@@ -10,7 +10,7 @@ import '../../features/authentication/presentation/pages/onboarding_page.dart';
 import '../../features/authentication/presentation/pages/onboarding_choice_page.dart';
 import '../../features/authentication/presentation/pages/qr_scan_page.dart';
 import '../pages/home_page.dart';
-import '../../features/cotisation/presentation/pages/cotisations_page.dart';
+import '../../features/finance/presentation/pages/finance_page.dart';
 import '../../features/projets/presentation/pages/projets_page.dart';
 import '../../features/projets/presentation/pages/create_project_page.dart';
 import '../../features/signalement/presentation/pages/signalements_page.dart';
@@ -102,9 +102,9 @@ class AppRouter {
               builder: (context, state) => const HomePage(),
             ),
             GoRoute(
-              path: '/cotisations',
-              name: 'cotisations',
-              builder: (context, state) => const CotisationsPage(),
+              path: '/finance',
+              name: 'finance',
+              builder: (context, state) => const FinancePage(),
             ),
             GoRoute(
               path: '/projets',

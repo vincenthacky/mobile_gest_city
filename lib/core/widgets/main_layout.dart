@@ -48,11 +48,10 @@ class MainLayout extends StatelessWidget {
                 ),
                 _buildNavItem(
                   context,
-                  
-                  '/cotisations',
-                  Icons.receipt_long,
-                  'Cotisations',
-                  currentPath == '/cotisations',
+                  '/finance',
+                  Icons.account_balance_wallet,
+                  'Finance',
+                  currentPath == '/finance',
                 ),
                 _buildNavItem(
                   context,
