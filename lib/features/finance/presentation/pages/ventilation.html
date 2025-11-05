@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Tableau de Ventilation — Aperçu</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+<style>
+ :root{
+   --bg:#0f0f10;
+   --card:#1d1d1f;
+   --muted:#9a9aa0;
+   --accent:#ff4f7a;
+   --cell:#2a2a2c;
+   --cell-locked:#222226;
+   --success:#2ec27e;
+   --danger:#ff6b6b;
+   --glass: rgba(255,255,255,0.03);
+   font-family: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+ }
+ html,body{height:100%;margin:0;background:linear-gradient(180deg,#09090a 0%, #0f0f10 100%);color:#eee}
+ .container{max-width:1000px;margin:28px auto;padding:22px;border-radius:14px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));box-shadow: 0 6px 30px rgba(0,0,0,0.6)}
+ header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+ h1{font-size:18px;margin:0;color:#fff}
+ .segments{display:flex;gap:10px}
+ .seg{padding:8px 14px;border-radius:10px;background:transparent;color:var(--muted);cursor:pointer;border:1px solid transparent}
+ .seg.active{background:linear-gradient(90deg, rgba(255,79,122,0.12), rgba(255,79,122,0.06));color:var(--accent);box-shadow:0 4px 18px rgba(255,79,122,0.06);border-color:rgba(255,79,122,0.12)}
+ .table-wrap{overflow:auto;border-radius:12px;padding:14px;background:linear-gradient(180deg,var(--card), #141416)}
+ table{width:100%;border-collapse:collapse;min-width:820px}
+ thead th{position:sticky;top:0;background:transparent;padding:12px 10px;text-align:left;color:var(--muted);font-weight:600}
+ tbody td{padding:12px 10px;border-top:1px solid rgba(255,255,255,0.02);vertical-align:middle}
+ .member{width:240px;font-weight:600}
+ .months{display:flex;gap:8px}
+ .month-col{text-align:center;min-width:72px;position:relative;cursor:pointer}
+ .month-col.current{background:linear-gradient(180deg, rgba(255,79,122,0.08), rgba(255,79,122,0.04));border-radius:8px}
+ .month-col.selected{background:linear-gradient(180deg, rgba(255,79,122,0.15), rgba(255,79,122,0.08));border-radius:8px;box-shadow:0 2px 12px rgba(255,79,122,0.1)}
+ .column-selected{background:linear-gradient(180deg, rgba(255,79,122,0.12), rgba(255,79,122,0.06)) !important;border-radius:8px}
+ .cell{display:inline-flex;align-items:center;justify-content:center;width:62px;height:52px;border-radius:10px;background:var(--cell);color:#fff;font-size:18px}
+ .cell.locked{background:linear-gradient(180deg,var(--cell-locked), #111);color:var(--muted);opacity:0.95}
+ .cell.paid{background:linear-gradient(180deg, rgba(46,194,126,0.14), rgba(46,194,126,0.06));color:var(--success);font-weight:700}
+ .cell.unpaid{background:linear-gradient(180deg, rgba(255,107,107,0.06), rgba(255,107,107,0.03));color:var(--danger);font-weight:700}
+ .legend{display:flex;gap:12px;align-items:center;color:var(--muted);margin:12px 0}
+ .legend .item{display:flex;gap:8px;align-items:center}
+ .legend .dot{width:18px;height:18px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:12px}
+ .dot.success{background:rgba(46,194,126,0.12);color:var(--success)}
+ .dot.danger{background:rgba(255,107,107,0.06);color:var(--danger)}
+ .dot.lock{background:rgba(255,255,255,0.02);color:var(--muted)}
+ .footer-actions{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
+ .btn{padding:8px 14px;border-radius:10px;background:var(--accent);color:#fff;border:0;cursor:pointer;font-weight:600}
+ .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
+ .summary{display:flex;gap:18px;align-items:center;color:var(--muted)}
+ .summary .block{padding:10px 12px;background:var(--glass);border-radius:10px}
+ /* responsive */
+ @media (max-width:880px){
+   .container{padding:14px}
+   .member{width:180px}
+   .cell{width:56px;height:46px}
+   thead th{font-size:13px}
+ }
+</style>
+</head>
+<body>
+<div class="container" role="main" aria-label="Tableau de ventilation">
+ <header>
+   <div>
+     <h1 id="mainTitle">Tableau de Ventilation des Cotisations</h1>
+     <div style="color:var(--muted);font-size:13px;margin-top:6px">Semestre : <span id="semesterLabel"></span> — Voir statut de paiement par mois</div>
+   </div>
+   <div class="segments" role="tablist" aria-label="Segments semestre">
+     <button class="seg" id="seg1">1-6</button>
+     <button class="seg" id="seg2">7-12</button>
+   </div>
+ </header>
+
+
+ <div class="table-wrap">
+   <table aria-describedby="legend">
+     <thead>
+       <tr>
+         <th>Membre</th>
+         <th class="month-col" id="m1"></th>
+         <th class="month-col" id="m2"></th>
+         <th class="month-col" id="m3"></th>
+         <th class="month-col" id="m4"></th>
+         <th class="month-col" id="m5"></th>
+         <th class="month-col" id="m6"></th>
+       </tr>
+     </thead>
+     <tbody id="tableBody">
+       <!-- lignes insérées par JS -->
+     </tbody>
+     <tfoot>
+       <tr>
+         <td style="padding-top:14px">
+           <div style="font-weight:700" id="bilanTitle">Bilan (mois sélectionné)</div>
+           <div style="color:var(--muted);font-size:13px;margin-top:6px">Montant ventilé vs Montant reçu</div>
+         </td>
+         <td colspan="6">
+           <div style="display:flex;gap:12px;align-items:center;justify-content:flex-end">
+             <div class="summary">
+               <div class="block"><div style="font-size:12px;color:var(--muted)">Montant ventilé</div><div id="sumVentile">0</div></div>
+               <div class="block"><div style="font-size:12px;color:var(--muted)">Montant reçu</div><div id="sumRecu">0</div></div>
+             </div>
+           </div>
+         </td>
+       </tr>
+     </tfoot>
+   </table>
+ </div>
+
+
+ <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px">
+   <div class="legend" id="legend">
+     <div class="item"><span class="dot success">✓</span>payé</div>
+     <div class="item"><span class="dot danger">✕</span>non payé</div>
+     <div class="item"><span class="dot lock">🔒</span>mois futur</div>
+   </div>
+
+
+   <div class="footer-actions">
+     <!-- <button class="btn ghost" id="expandBtn">Voir plus…</button> -->
+     <button class="btn" id="exportBtn">Exporter (PDF)</button>
+   </div>
+ </div>
+</div>
+
+
+<script>
+/*
+ Données de démonstration :
+ - members: liste des membres
+ - pour chaque membre : payments -> tableau de 12 objets {month:1..12, status: 'paid'|'unpaid'}
+ - montantVentileRef : montant attribué par mois (pour démonstration)
+ - montantRecuParMois : montant total reçu dans le mois (indépendant du mois ventilé)
+*/
+const members = [
+ {name:'Marie DUPONT', payments: [ 'paid','paid','unpaid','paid','paid','future','paid','paid','paid','paid','paid','future' ]},
+ {name:'Paul MARTIN',  payments: [ 'paid','paid','paid','paid','unpaid','future','paid','paid','paid','paid','unpaid','future' ]},
+ {name:'Jean KOUASSI', payments: [ 'unpaid','paid','paid','paid','paid','future','paid','paid','paid','paid','paid','future' ]},
+ {name:'Sophie BROU',  payments: [ 'paid','unpaid','paid','unpaid','paid','future','paid','unpaid','paid','unpaid','paid','future' ]},
+ {name:'Thomas YAO',   payments: [ 'paid','paid','paid','paid','paid','future','paid','paid','paid','paid','paid','future' ]},
+ // entries supplémentaires pour l'export complet
+ {name:'Aline N\'Dri', payments: Array(12).fill('unpaid')},
+ {name:'Koffi DAYO', payments: ['paid','paid','unpaid','unpaid','paid','future','paid','paid','paid','unpaid','paid','future']},
+ {name:'Linda K.', payments: ['paid','paid','paid','paid','paid','future','paid','paid','unpaid','paid','unpaid','future']}
+];
+
+
+// Montants de démonstration : pour chaque mois (1..12)
+const montantVentileRef = [100, 120, 100, 150, 130, 0, 110, 140, 100, 150, 130, 0]; // montant attribué (ventilé) par mois
+const montantRecuParMois = [90, 200, 70, 120, 160, 0, 220, 40, 120, 260, 60, 0]; // argent entré en caisse le mois en question
+
+
+// Constantes pour les calculs
+const MONTANT_COTISATION_INDIVIDUELLE = 25; // F CFA par personne par mois
+
+
+// Utilitaires affichage
+const monthNames = ['Jan','Fév','Mar','Avr','Mai','Jui','Jui','Aoû','Sep','Oct','Nov','Déc']; // note: Jui twice for demo; indices 0..11
+// real French months array cleaner:
+const monthNamesFR = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc'];
+
+
+const seg1Btn = document.getElementById('seg1');
+const seg2Btn = document.getElementById('seg2');
+const tableBody = document.getElementById('tableBody');
+const exportBtn = document.getElementById('exportBtn');
+// expandBtn is commented out in HTML
+const sumVentileEl = document.getElementById('sumVentile');
+const sumRecuEl = document.getElementById('sumRecu');
+const semesterLabel = document.getElementById('semesterLabel');
+const mainTitle = document.getElementById('mainTitle');
+
+
+let currentSegment = null; // '1-6' or '7-12'
+let selectedMonth = null; // mois sélectionné pour le bilan (1-12)
+let currentYear = new Date().getFullYear();
+
+
+// détermine le segment par défaut selon le mois courant
+(function setDefaultSegment(){
+ const now = new Date();
+ const monthIndex = now.getMonth(); // 0..11
+ currentSegment = (monthIndex < 6) ? '1-6' : '7-12';
+ 
+ // Mettre à jour le titre principal avec l'année
+ mainTitle.textContent = `Tableau de Ventilation des Cotisations ${currentYear}`;
+ 
+ updateSegmentUI();
+})();
+
+
+seg1Btn.addEventListener('click', () => { currentSegment = '1-6'; updateSegmentUI(); });
+seg2Btn.addEventListener('click', () => { currentSegment = '7-12'; updateSegmentUI(); });
+
+
+function updateSegmentUI(){
+ seg1Btn.classList.toggle('active', currentSegment === '1-6');
+ seg2Btn.classList.toggle('active', currentSegment === '7-12');
+
+
+ // Calculer les mois à afficher
+ const startMonth = (currentSegment === '1-6') ? 1 : 7; // 1-indexed months
+ const months = [];
+ for(let m=startMonth; m<startMonth+6; m++) months.push(m);
+
+
+ // Label avec année courante
+ semesterLabel.textContent = (startMonth===1) ? `Janvier → Juin (1-6) ${currentYear}` : `Juillet → Décembre (7-12) ${currentYear}`;
+
+
+ // remplir en-têtes avec sélection
+ const now = new Date();
+ const currentMonthIndex = now.getMonth() + 1; // 1-12
+  for(let i=0;i<6;i++){
+   const header = document.getElementById('m'+(i+1));
+   const mIndex = months[i]-1;
+   const monthNumber = months[i];
+  
+   header.textContent = monthNamesFR[mIndex];
+   header.dataset.month = monthNumber;
+  
+   // Supprimer les classes précédentes
+   header.classList.remove('current', 'selected');
+  
+   // Marquer le mois actuel
+   if(monthNumber === currentMonthIndex) {
+     header.classList.add('current');
+     if(!selectedMonth) selectedMonth = monthNumber; // sélectionner automatiquement le mois actuel
+   }
+  
+   // Marquer le mois sélectionné
+   if(monthNumber === selectedMonth) {
+     header.classList.add('selected');
+   }
+  
+   // Ajouter événement de clic
+   header.onclick = () => selectMonth(monthNumber);
+ }
+
+
+ // remplir lignes (affiche les 5 premières personnes)
+ tableBody.innerHTML = '';
+ const visibleMembers = members.slice(0,5);
+ visibleMembers.forEach(member => {
+   const tr = document.createElement('tr');
+   const tdName = document.createElement('td');
+   tdName.className = 'member';
+   tdName.textContent = member.name;
+   tr.appendChild(tdName);
+
+
+   months.forEach(m => {
+     const td = document.createElement('td');
+     td.className = 'month-col';
+     const cell = document.createElement('div');
+     // statut réel contenu dans member.payments[m-1] (paid|unpaid|future or other)
+     let status = member.payments[m-1] || 'unpaid';
+
+
+     // override "future" si le mois est après le mois courant
+     const now = new Date();
+     const currentMonthIndex = now.getMonth(); // 0..11
+     if ((m-1) > currentMonthIndex) status = 'future';
+
+
+     if(status === 'paid'){
+       cell.className = 'cell paid';
+       cell.innerHTML = '✓';
+     } else if(status === 'unpaid'){
+       cell.className = 'cell unpaid';
+       cell.innerHTML = '✕';
+     } else { // future
+       cell.className = 'cell locked';
+       cell.innerHTML = '🔒';
+     }
+     td.appendChild(cell);
+     tr.appendChild(td);
+   });
+
+
+   tableBody.appendChild(tr);
+ });
+
+
+ // calculer bilan pour les 6 mois affichés ou le mois sélectionné
+ calculateSummary(months);
+  // Appliquer la surbrillance de colonne après le rendu
+ setTimeout(() => highlightSelectedColumn(), 10);
+}
+
+
+function calculateSummary(months){
+ // Si un mois est sélectionné, afficher seulement ce mois
+ if(selectedMonth) {
+   const idx = selectedMonth - 1;
+   const v = Number(montantVentileRef[idx] || 0);
+   const r = Number(montantRecuParMois[idx] || 0);
+  
+   sumVentileEl.textContent = v.toLocaleString('fr-FR', {style:'currency', currency:'XOF', maximumFractionDigits:0});
+   sumRecuEl.textContent = r.toLocaleString('fr-FR', {style:'currency', currency:'XOF', maximumFractionDigits:0});
+  
+   // Mettre à jour le titre du bilan
+   const monthName = monthNamesFR[idx];
+   document.getElementById('bilanTitle').textContent = `Bilan (${monthName} ${currentYear})`;
+ } else {
+   // Mode original : somme des 6 mois
+   let sumVentile = 0;
+   let sumRecu = 0;
+   months.forEach(m => {
+     const idx = m-1;
+     const v = Number(montantVentileRef[idx] || 0);
+     const r = Number(montantRecuParMois[idx] || 0);
+     sumVentile = sumVentile + v;
+     sumRecu = sumRecu + r;
+   });
+   sumVentileEl.textContent = sumVentile.toLocaleString('fr-FR', {style:'currency', currency:'XOF', maximumFractionDigits:0});
+   sumRecuEl.textContent = sumRecu.toLocaleString('fr-FR', {style:'currency', currency:'XOF', maximumFractionDigits:0});
+  
+   document.getElementById('bilanTitle').textContent = 'Bilan (six mois affichés)';
+ }
+}
+
+
+// Export PDF professionnel
+function exportPDF(){
+ const { jsPDF } = window.jspdf;
+ const doc = new jsPDF('landscape', 'mm', 'a4');
+  // Configuration des couleurs et styles
+ const primaryColor = [255, 79, 122]; // Rose/rouge accent
+ const darkGray = [45, 45, 47];
+ const lightGray = [154, 154, 160];
+  // En-tête du document
+ doc.setFillColor(...primaryColor);
+ doc.rect(0, 0, 297, 25, 'F');
+  doc.setTextColor(255, 255, 255);
+ doc.setFontSize(18);
+ doc.setFont('helvetica', 'bold');
+ doc.text(`Tableau de Ventilation des Cotisations ${currentYear}`, 15, 16);
+  doc.setFontSize(10);
+ doc.setFont('helvetica', 'normal');
+ const dateStr = new Date().toLocaleDateString('fr-FR');
+ doc.text(`Généré le ${dateStr}`, 15, 21);
+  // Préparer les données du tableau
+ const tableData = [];
+ const headers = ['Membre', ...monthNamesFR];
+  members.forEach(mem => {
+   const row = [mem.name];
+   for(let i=0;i<12;i++){
+     let status = mem.payments[i] || 'unpaid';
+     const now = new Date();
+     if (i > now.getMonth()) status = 'future';
+    
+     if(status==='paid') row.push('OUI');
+     else if(status==='future') row.push('---');
+     else row.push('NON');
+   }
+   tableData.push(row);
+ });
+  // Générer le tableau avec autoTable
+ doc.autoTable({
+   head: [headers],
+   body: tableData,
+   startY: 35,
+   theme: 'grid',
+   headStyles: {
+     fillColor: primaryColor,
+     textColor: [255, 255, 255],
+     fontStyle: 'bold',
+     fontSize: 9
+   },
+   bodyStyles: {
+     fontSize: 8,
+     textColor: darkGray
+   },
+   alternateRowStyles: {
+     fillColor: [248, 248, 248]
+   },
+   columnStyles: {
+     0: { cellWidth: 40, fontStyle: 'bold' }, // Colonne membre plus large
+   },
+   didParseCell: function(data) {
+     // Vérifier si c'est la colonne du mois sélectionné
+     const isSelectedColumn = selectedMonth && (data.column.index === selectedMonth);
+    
+     // En-tête : mettre en surbrillance la colonne du mois sélectionné
+     if (data.section === 'head' && isSelectedColumn) {
+       data.cell.styles.fillColor = [255, 79, 122]; // Rose accent plus intense
+       data.cell.styles.textColor = [255, 255, 255];
+       data.cell.styles.fontStyle = 'bold';
+       data.cell.styles.lineColor = [255, 79, 122]; // Bordure rose
+       data.cell.styles.lineWidth = 2; // Bordure épaisse
+     }
+    
+     // Corps : colorier les cellules selon le statut et mettre en surbrillance si colonne sélectionnée
+     if (data.section === 'body' && data.column.index > 0) {
+       const cellValue = data.cell.text[0];
+      
+       if (isSelectedColumn) {
+         // Colonne sélectionnée : fond rose avec bordures colorées
+         data.cell.styles.fillColor = [255, 240, 245]; // Fond rose très clair
+         data.cell.styles.lineColor = [255, 79, 122]; // Bordure rose
+         data.cell.styles.lineWidth = 2; // Bordure épaisse
+        
+         if (cellValue === 'OUI') {
+           data.cell.styles.textColor = [46, 194, 126]; // Vert
+           data.cell.styles.fontStyle = 'bold';
+         } else if (cellValue === 'NON') {
+           data.cell.styles.textColor = [255, 107, 107]; // Rouge
+           data.cell.styles.fontStyle = 'bold';
+         } else if (cellValue === '---') {
+           data.cell.styles.textColor = lightGray;
+         }
+       } else {
+         // Colonnes non sélectionnées : style normal
+         if (cellValue === 'OUI') {
+           data.cell.styles.textColor = [46, 194, 126]; // Vert
+           data.cell.styles.fontStyle = 'bold';
+           data.cell.styles.fillColor = [240, 253, 244]; // Fond vert très clair
+         } else if (cellValue === 'NON') {
+           data.cell.styles.textColor = [255, 107, 107]; // Rouge
+           data.cell.styles.fontStyle = 'bold';
+           data.cell.styles.fillColor = [254, 242, 242]; // Fond rouge très clair
+         } else if (cellValue === '---') {
+           data.cell.styles.textColor = lightGray;
+           data.cell.styles.fillColor = [249, 249, 249]; // Fond gris très clair
+         }
+       }
+     }
+   }
+ });
+  // Ajouter le bilan en bas
+ addBilanToPDF(doc);
+  // Sauvegarder le PDF
+ const fileName = `ventilation_${new Date().toISOString().slice(0,10)}.pdf`;
+ doc.save(fileName);
+}
+
+
+function addBilanToPDF(doc) {
+ const finalY = doc.lastAutoTable.finalY + 15;
+  // Titre du bilan
+ doc.setFillColor(255, 79, 122);
+ doc.rect(15, finalY, 267, 8, 'F');
+  doc.setTextColor(255, 255, 255);
+ doc.setFontSize(12);
+ doc.setFont('helvetica', 'bold');
+  if(selectedMonth) {
+   const monthName = monthNamesFR[selectedMonth - 1];
+   doc.text(`Bilan détaillé - ${monthName} ${currentYear}`, 20, finalY + 5.5);
+ } else {
+   doc.text('Bilan détaillé - Semestre complet', 20, finalY + 5.5);
+ }
+  // Contenu du bilan
+ const bilanY = finalY + 18;
+ doc.setTextColor(45, 45, 47);
+ doc.setFontSize(10);
+ doc.setFont('helvetica', 'normal');
+  let currentY = bilanY;
+  if(selectedMonth) {
+   // Calculs pour le mois sélectionné
+   const monthIndex = selectedMonth - 1;
+   const montantVentile = montantVentileRef[monthIndex] || 0;
+   const montantRecu = montantRecuParMois[monthIndex] || 0;
+  
+   // Compter le nombre de personnes qui ont payé ce mois
+   const personnesPayees = members.filter(member => {
+     const status = member.payments[monthIndex] || 'unpaid';
+     return status === 'paid';
+   }).length;
+  
+   // Affichage des résultats
+   doc.setFont('helvetica', 'bold');
+   doc.text('Résultats financiers :', 20, currentY);
+   currentY += 8;
+  
+   doc.setFont('helvetica', 'normal');
+   doc.text(`• Montant ventilé : ${montantVentile.toLocaleString()} F CFA`, 25, currentY);
+   currentY += 6;
+   doc.text(`• Montant reçu : ${montantRecu.toLocaleString()} F CFA`, 25, currentY);
+   currentY += 10;
+  
+   // Calculs détaillés
+   doc.setFont('helvetica', 'bold');
+   doc.text('Calculs détaillés :', 20, currentY);
+   currentY += 8;
+  
+   doc.setFont('helvetica', 'normal');
+   doc.text(`• Nombre de personnes ayant payé : ${personnesPayees}`, 25, currentY);
+   currentY += 6;
+   doc.text(`• Cotisation individuelle : ${MONTANT_COTISATION_INDIVIDUELLE.toLocaleString()} F CFA`, 25, currentY);
+   currentY += 6;
+  
+   // Formule de calcul
+   const montantTheorique = personnesPayees * MONTANT_COTISATION_INDIVIDUELLE;
+   doc.setFont('helvetica', 'italic');
+   doc.text(`Montant théorique = ${MONTANT_COTISATION_INDIVIDUELLE} F CFA × ${personnesPayees} personnes = ${montantTheorique.toLocaleString()} F CFA`, 25, currentY);
+   currentY += 8;
+  
+   // Analyse de l'écart
+   const ecart = montantRecu - montantTheorique;
+   doc.setFont('helvetica', 'bold');
+   if(ecart > 0) {
+     doc.setTextColor(46, 194, 126); // Vert
+     doc.text(`Excédent : +${ecart.toLocaleString()} F CFA`, 25, currentY);
+   } else if(ecart < 0) {
+     doc.setTextColor(255, 107, 107); // Rouge
+     doc.text(`Déficit : ${ecart.toLocaleString()} F CFA`, 25, currentY);
+   } else {
+     doc.setTextColor(45, 45, 47);
+     doc.text('Montant exact conforme aux cotisations', 25, currentY);
+   }
+ } else {
+   doc.text('Veuillez sélectionner un mois spécifique pour voir les calculs détaillés.', 20, currentY);
+ }
+}
+
+
+// Note: expandBtn is commented out in HTML, so no event listener needed
+
+
+exportBtn.addEventListener('click', exportPDF);
+
+
+// Fonction pour sélectionner un mois
+function selectMonth(monthNumber) {
+ selectedMonth = monthNumber;
+ updateSegmentUI(); // Re-render pour mettre à jour l'affichage
+  // Appliquer la classe de sélection à toute la colonne
+ highlightSelectedColumn();
+}
+
+
+function highlightSelectedColumn() {
+ // Supprimer toutes les sélections précédentes
+ const allCells = document.querySelectorAll('.column-selected');
+ allCells.forEach(cell => cell.classList.remove('column-selected'));
+  if(!selectedMonth) return;
+  // Trouver l'index de la colonne du mois sélectionné
+ const startMonth = (currentSegment === '1-6') ? 1 : 7;
+ const months = [];
+ for(let m=startMonth; m<startMonth+6; m++) months.push(m);
+  const columnIndex = months.indexOf(selectedMonth);
+ if(columnIndex === -1) return; // Mois pas dans le segment actuel
+  // Sélectionner toutes les cellules de cette colonne (header + body)
+ const table = document.querySelector('table');
+ const rows = table.querySelectorAll('tr');
+  rows.forEach(row => {
+   const cells = row.querySelectorAll('th, td');
+   if(cells[columnIndex + 1]) { // +1 car la première colonne est "Membre"
+     cells[columnIndex + 1].classList.add('column-selected');
+   }
+ });
+}
+
+
+// initial render
+updateSegmentUI();
+
+
+</script>
+</body>
+</html>
+
+
+
