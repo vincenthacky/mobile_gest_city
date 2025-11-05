@@ -334,7 +334,9 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
       );
       
       // Fermer l'indicateur de chargement
-      if (mounted) Navigator.of(context).pop();
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+      }
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -346,7 +348,9 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
       }
     } catch (e) {
       // Fermer l'indicateur de chargement en cas d'erreur
-      if (mounted) Navigator.of(context).pop();
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+      }
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -79,7 +79,7 @@ class PDFExportService {
               ),
               pw.SizedBox(height: 20),
               
-              // Grille simple 3x4 pour les 12 mois
+              // Grille simple 3x4 pour les 12 mois avec vraies données
               pw.Expanded(
                 child: pw.Container(
                   padding: const pw.EdgeInsets.all(20),
@@ -88,11 +88,26 @@ class PDFExportService {
                       // Première ligne (Janvier à Mars)
                       pw.Row(
                         children: [
-                          _buildMonthCard('Janvier', 80000, 10000, 90000, 0, successColor),
+                          _buildMonthCard(monthNamesFull[0], 
+                            montantReelParMois.isNotEmpty ? montantReelParMois[0] : 0,
+                            montantRemboursementParMois.isNotEmpty ? montantRemboursementParMois[0] : 0,
+                            montantRecuParMois.isNotEmpty ? montantRecuParMois[0] : 0,
+                            montantAvanceParMois.isNotEmpty ? montantAvanceParMois[0] : 0,
+                            successColor),
                           pw.SizedBox(width: 15),
-                          _buildMonthCard('Février', 120000, 50000, 200000, 30000, successColor),
+                          _buildMonthCard(monthNamesFull[1], 
+                            montantReelParMois.length > 1 ? montantReelParMois[1] : 0,
+                            montantRemboursementParMois.length > 1 ? montantRemboursementParMois[1] : 0,
+                            montantRecuParMois.length > 1 ? montantRecuParMois[1] : 0,
+                            montantAvanceParMois.length > 1 ? montantAvanceParMois[1] : 0,
+                            successColor),
                           pw.SizedBox(width: 15),
-                          _buildMonthCard('Mars', 70000, 0, 70000, 0, successColor),
+                          _buildMonthCard(monthNamesFull[2], 
+                            montantReelParMois.length > 2 ? montantReelParMois[2] : 0,
+                            montantRemboursementParMois.length > 2 ? montantRemboursementParMois[2] : 0,
+                            montantRecuParMois.length > 2 ? montantRecuParMois[2] : 0,
+                            montantAvanceParMois.length > 2 ? montantAvanceParMois[2] : 0,
+                            successColor),
                         ],
                       ),
                       pw.SizedBox(height: 15),
@@ -100,11 +115,26 @@ class PDFExportService {
                       // Deuxième ligne (Avril à Juin)
                       pw.Row(
                         children: [
-                          _buildMonthCard('Avril', 100000, 20000, 120000, 0, successColor),
+                          _buildMonthCard(monthNamesFull[3], 
+                            montantReelParMois.length > 3 ? montantReelParMois[3] : 0,
+                            montantRemboursementParMois.length > 3 ? montantRemboursementParMois[3] : 0,
+                            montantRecuParMois.length > 3 ? montantRecuParMois[3] : 0,
+                            montantAvanceParMois.length > 3 ? montantAvanceParMois[3] : 0,
+                            successColor),
                           pw.SizedBox(width: 15),
-                          _buildMonthCard('Mai', 130000, 30000, 160000, 0, successColor),
+                          _buildMonthCard(monthNamesFull[4], 
+                            montantReelParMois.length > 4 ? montantReelParMois[4] : 0,
+                            montantRemboursementParMois.length > 4 ? montantRemboursementParMois[4] : 0,
+                            montantRecuParMois.length > 4 ? montantRecuParMois[4] : 0,
+                            montantAvanceParMois.length > 4 ? montantAvanceParMois[4] : 0,
+                            successColor),
                           pw.SizedBox(width: 15),
-                          _buildMonthCard('Juin', 0, 0, 0, 0, successColor),
+                          _buildMonthCard(monthNamesFull[5], 
+                            montantReelParMois.length > 5 ? montantReelParMois[5] : 0,
+                            montantRemboursementParMois.length > 5 ? montantRemboursementParMois[5] : 0,
+                            montantRecuParMois.length > 5 ? montantRecuParMois[5] : 0,
+                            montantAvanceParMois.length > 5 ? montantAvanceParMois[5] : 0,
+                            successColor),
                         ],
                       ),
                       pw.SizedBox(height: 15),
@@ -112,11 +142,26 @@ class PDFExportService {
                       // Troisième ligne (Juillet à Septembre)
                       pw.Row(
                         children: [
-                          _buildMonthCard('Juillet', 110000, 60000, 220000, 50000, successColor),
+                          _buildMonthCard(monthNamesFull[6], 
+                            montantReelParMois.length > 6 ? montantReelParMois[6] : 0,
+                            montantRemboursementParMois.length > 6 ? montantRemboursementParMois[6] : 0,
+                            montantRecuParMois.length > 6 ? montantRecuParMois[6] : 0,
+                            montantAvanceParMois.length > 6 ? montantAvanceParMois[6] : 0,
+                            successColor),
                           pw.SizedBox(width: 15),
-                          _buildMonthCard('Août', 40000, 0, 40000, 0, successColor),
+                          _buildMonthCard(monthNamesFull[7], 
+                            montantReelParMois.length > 7 ? montantReelParMois[7] : 0,
+                            montantRemboursementParMois.length > 7 ? montantRemboursementParMois[7] : 0,
+                            montantRecuParMois.length > 7 ? montantRecuParMois[7] : 0,
+                            montantAvanceParMois.length > 7 ? montantAvanceParMois[7] : 0,
+                            successColor),
                           pw.SizedBox(width: 15),
-                          _buildMonthCard('Septembre', 100000, 20000, 120000, 0, successColor),
+                          _buildMonthCard(monthNamesFull[8], 
+                            montantReelParMois.length > 8 ? montantReelParMois[8] : 0,
+                            montantRemboursementParMois.length > 8 ? montantRemboursementParMois[8] : 0,
+                            montantRecuParMois.length > 8 ? montantRecuParMois[8] : 0,
+                            montantAvanceParMois.length > 8 ? montantAvanceParMois[8] : 0,
+                            successColor),
                         ],
                       ),
                       pw.SizedBox(height: 15),
@@ -124,11 +169,26 @@ class PDFExportService {
                       // Quatrième ligne (Octobre à Décembre)
                       pw.Row(
                         children: [
-                          _buildMonthCard('Octobre', 150000, 60000, 260000, 50000, successColor),
+                          _buildMonthCard(monthNamesFull[9], 
+                            montantReelParMois.length > 9 ? montantReelParMois[9] : 0,
+                            montantRemboursementParMois.length > 9 ? montantRemboursementParMois[9] : 0,
+                            montantRecuParMois.length > 9 ? montantRecuParMois[9] : 0,
+                            montantAvanceParMois.length > 9 ? montantAvanceParMois[9] : 0,
+                            successColor),
                           pw.SizedBox(width: 15),
-                          _buildMonthCard('Novembre', 60000, 0, 60000, 0, successColor),
+                          _buildMonthCard(monthNamesFull[10], 
+                            montantReelParMois.length > 10 ? montantReelParMois[10] : 0,
+                            montantRemboursementParMois.length > 10 ? montantRemboursementParMois[10] : 0,
+                            montantRecuParMois.length > 10 ? montantRecuParMois[10] : 0,
+                            montantAvanceParMois.length > 10 ? montantAvanceParMois[10] : 0,
+                            successColor),
                           pw.SizedBox(width: 15),
-                          _buildMonthCard('Décembre', 0, 0, 0, 0, successColor),
+                          _buildMonthCard(monthNamesFull[11], 
+                            montantReelParMois.length > 11 ? montantReelParMois[11] : 0,
+                            montantRemboursementParMois.length > 11 ? montantRemboursementParMois[11] : 0,
+                            montantRecuParMois.length > 11 ? montantRecuParMois[11] : 0,
+                            montantAvanceParMois.length > 11 ? montantAvanceParMois[11] : 0,
+                            successColor),
                         ],
                       ),
                     ],
@@ -488,14 +548,6 @@ class PDFExportService {
     debugPrint('- Montant remboursement: $montantRemboursementParMois');
     debugPrint('- Montant reçu: $montantRecuParMois');
     debugPrint('- Montant avance: $montantAvanceParMois');
-    
-    // FORCER DES DONNÉES DE TEST pour diagnostiquer le problème
-    final testMontantReel = [80000, 120000, 70000, 100000, 130000, 0, 110000, 40000, 100000, 150000, 60000, 0];
-    final testMontantRemboursement = [10000, 50000, 0, 20000, 30000, 0, 60000, 0, 20000, 60000, 0, 0];
-    final testMontantRecu = [90000, 200000, 70000, 120000, 160000, 0, 220000, 40000, 120000, 260000, 60000, 0];
-    final testMontantAvance = [0, 30000, 0, 0, 0, 0, 50000, 0, 0, 50000, 0, 0];
-    
-    debugPrint('DEBUG: Utilisation des données de test forcées');
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -523,11 +575,11 @@ class PDFExportService {
             runSpacing: 15,
             children: List.generate(12, (index) {
               final monthName = monthNamesFull[index];
-              // Utiliser les données de test forcées pour diagnostiquer
-              final montantReel = testMontantReel[index];
-              final montantRemboursement = testMontantRemboursement[index];
-              final montantRecu = testMontantRecu[index];
-              final montantAvance = testMontantAvance[index];
+              // Utiliser les vraies données
+              final montantReel = index < montantReelParMois.length ? montantReelParMois[index] : 0;
+              final montantRemboursement = index < montantRemboursementParMois.length ? montantRemboursementParMois[index] : 0;
+              final montantRecu = index < montantRecuParMois.length ? montantRecuParMois[index] : 0;
+              final montantAvance = index < montantAvanceParMois.length ? montantAvanceParMois[index] : 0;
               
               debugPrint('DEBUG: Mois $monthName - Réel: $montantReel, Remb: $montantRemboursement, Reçu: $montantRecu, Avance: $montantAvance');
               
