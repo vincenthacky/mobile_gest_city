@@ -49,13 +49,18 @@ class _OnboardingChoicePageState extends State<OnboardingChoicePage>
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.height < 700;
+    final imageHeight = isSmallScreen ? screenSize.height * 0.3 : screenSize.height * 0.35;
+    final horizontalPadding = screenSize.width * 0.06;
+    
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnimation,
           child: Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: EdgeInsets.all(horizontalPadding),
             child: Column(
               children: [
                 // Back button
@@ -72,7 +77,7 @@ class _OnboardingChoicePageState extends State<OnboardingChoicePage>
                       child: Text(
                         'Retour aux slides',
                         style: GoogleFonts.nunito(
-                          fontSize: 14,
+                          fontSize: isSmallScreen ? 12 : 14,
                           color: const Color(0xFF3B82F6),
                           fontWeight: FontWeight.w500,
                         ),
@@ -81,11 +86,11 @@ class _OnboardingChoicePageState extends State<OnboardingChoicePage>
                   ],
                 ),
                 
-                const SizedBox(height: 20),
+                SizedBox(height: screenSize.height * 0.025),
                 
                 // Image
                 SizedBox(
-                  height: 320,
+                  height: imageHeight,
                   width: double.infinity,
                   child: Image.asset(
                     'assets/images/Fingerprint-cuate.png',
@@ -95,7 +100,7 @@ class _OnboardingChoicePageState extends State<OnboardingChoicePage>
                         color: const Color(0xFFF9FAFB),
                         child: Icon(
                           Icons.fingerprint,
-                          size: 120,
+                          size: isSmallScreen ? 100 : 120,
                           color: Colors.grey[400],
                         ),
                       );
@@ -103,28 +108,28 @@ class _OnboardingChoicePageState extends State<OnboardingChoicePage>
                   ),
                 ),
                 
-                const SizedBox(height: 48),
+                SizedBox(height: screenSize.height * 0.06),
                 
                 // Title
                 Text(
                   'Rejoins ta communauté !',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.poppins(
-                    fontSize: 28,
+                    fontSize: isSmallScreen ? 24 : 28,
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFF1F2937),
                     height: 1.2,
                   ),
                 ),
                 
-                const SizedBox(height: 16),
+                SizedBox(height: screenSize.height * 0.02),
                 
                 // Subtitle
                 Text(
                   'Choisis comment tu veux accéder à ton espace communautaire',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.nunito(
-                    fontSize: 16,
+                    fontSize: isSmallScreen ? 14 : 16,
                     color: Colors.grey[600],
                     height: 1.5,
                     fontWeight: FontWeight.w400,
@@ -146,7 +151,9 @@ class _OnboardingChoicePageState extends State<OnboardingChoicePage>
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF10B981),
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 18),
+                            padding: EdgeInsets.symmetric(
+                              vertical: isSmallScreen ? 16 : 18,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(24),
                             ),
@@ -156,15 +163,15 @@ class _OnboardingChoicePageState extends State<OnboardingChoicePage>
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.login,
-                                size: 20,
+                                size: isSmallScreen ? 18 : 20,
                               ),
                               const SizedBox(width: 8),
                               Text(
                                 'J\'ai déjà un compte',
                                 style: GoogleFonts.poppins(
-                                  fontSize: 16,
+                                  fontSize: isSmallScreen ? 14 : 16,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
                                 ),
@@ -187,7 +194,9 @@ class _OnboardingChoicePageState extends State<OnboardingChoicePage>
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF3B82F6),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      padding: EdgeInsets.symmetric(
+                        vertical: isSmallScreen ? 16 : 18,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24),
                       ),
@@ -197,15 +206,15 @@ class _OnboardingChoicePageState extends State<OnboardingChoicePage>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.person_add,
-                          size: 20,
+                          size: isSmallScreen ? 18 : 20,
                         ),
                         const SizedBox(width: 8),
                         Text(
                           'Je découvre la cité',
                           style: GoogleFonts.poppins(
-                            fontSize: 16,
+                            fontSize: isSmallScreen ? 14 : 16,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
                           ),
@@ -215,21 +224,21 @@ class _OnboardingChoicePageState extends State<OnboardingChoicePage>
                   ),
                 ),
                 
-                const SizedBox(height: 32),
+                SizedBox(height: screenSize.height * 0.04),
                 
                 // Terms and conditions
                 Text(
                   'En continuant, tu acceptes nos conditions d\'utilisation et notre politique de confidentialité',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.nunito(
-                    fontSize: 12,
+                    fontSize: isSmallScreen ? 10 : 12,
                     color: Colors.grey[500],
                     height: 1.4,
                     fontWeight: FontWeight.w400,
                   ),
                 ),
                 
-                const SizedBox(height: 24),
+                SizedBox(height: screenSize.height * 0.03),
               ],
             ),
           ),

@@ -32,6 +32,11 @@ class _SplashPageState extends State<SplashPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.height < 700;
+    final containerSize = isSmallScreen ? screenSize.width * 0.25 : screenSize.width * 0.3;
+    final iconSize = containerSize * 0.53;
+    
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
@@ -39,36 +44,37 @@ class _SplashPageState extends State<SplashPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              height: 120,
-              width: 120,
+              height: containerSize,
+              width: containerSize,
               decoration: BoxDecoration(
                 color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.account_balance,
-                size: 64,
-                color: Color(0xFF4F46E5),
+                size: iconSize,
+                color: const Color(0xFF4F46E5),
               ),
             ),
-            const SizedBox(height: 32),
-            const Text(
+            SizedBox(height: screenSize.height * 0.04),
+            Text(
               'Gest City',
               style: TextStyle(
-                fontSize: 32,
+                fontSize: isSmallScreen ? 28 : 32,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF1F2937),
+                color: const Color(0xFF1F2937),
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
+            SizedBox(height: screenSize.height * 0.01),
+            Text(
               'Gestion communautaire simplifiée',
               style: TextStyle(
-                fontSize: 16,
-                color: Color(0xFF6B7280),
+                fontSize: isSmallScreen ? 14 : 16,
+                color: const Color(0xFF6B7280),
               ),
+              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 48),
+            SizedBox(height: screenSize.height * 0.06),
             const CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF4F46E5)),
             ),

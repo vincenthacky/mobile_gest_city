@@ -101,7 +101,7 @@ class _OnboardingPageState extends State<OnboardingPage>
           children: [
             // Skip button
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.04),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -110,7 +110,7 @@ class _OnboardingPageState extends State<OnboardingPage>
                     child: Text(
                       'Passer',
                       style: GoogleFonts.nunito(
-                        fontSize: 16,
+                        fontSize: MediaQuery.of(context).size.height < 700 ? 14 : 16,
                         color: Colors.grey[600],
                         fontWeight: FontWeight.w500,
                       ),
@@ -168,7 +168,7 @@ class _OnboardingPageState extends State<OnboardingPage>
             
             // Next button
             Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.06),
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -176,7 +176,9 @@ class _OnboardingPageState extends State<OnboardingPage>
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF3B82F6),
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: EdgeInsets.symmetric(
+                      vertical: MediaQuery.of(context).size.height < 700 ? 14 : 16,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
                     ),
@@ -186,7 +188,7 @@ class _OnboardingPageState extends State<OnboardingPage>
                   child: Text(
                     _currentPage == _slides.length - 1 ? 'Commencer' : 'Suivant',
                     style: GoogleFonts.poppins(
-                      fontSize: 16,
+                      fontSize: MediaQuery.of(context).size.height < 700 ? 14 : 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
                     ),
@@ -223,14 +225,19 @@ class OnboardingSlideWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.height < 700;
+    final imageHeight = isSmallScreen ? screenSize.height * 0.35 : screenSize.height * 0.4;
+    final horizontalPadding = screenSize.width * 0.06;
+    
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 16.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // Image
           SizedBox(
-            height: 350,
+            height: imageHeight,
             width: double.infinity,
             child: Image.asset(
               slide.image,
@@ -240,7 +247,7 @@ class OnboardingSlideWidget extends StatelessWidget {
                   color: const Color(0xFFF9FAFB),
                   child: Icon(
                     Icons.image_not_supported,
-                    size: 80,
+                    size: isSmallScreen ? 60 : 80,
                     color: Colors.grey[400],
                   ),
                 );
@@ -248,28 +255,28 @@ class OnboardingSlideWidget extends StatelessWidget {
             ),
           ),
           
-          const SizedBox(height: 48),
+          SizedBox(height: isSmallScreen ? 32 : 48),
           
           // Title
           Text(
             slide.title,
             textAlign: TextAlign.center,
             style: GoogleFonts.poppins(
-              fontSize: 24,
+              fontSize: isSmallScreen ? 20 : 24,
               fontWeight: FontWeight.w600,
               color: const Color(0xFF1F2937),
               height: 1.2,
             ),
           ),
           
-          const SizedBox(height: 16),
+          SizedBox(height: isSmallScreen ? 12 : 16),
           
           // Subtitle
           Text(
             slide.subtitle,
             textAlign: TextAlign.center,
             style: GoogleFonts.nunito(
-              fontSize: 16,
+              fontSize: isSmallScreen ? 14 : 16,
               color: Colors.grey[600],
               height: 1.5,
               fontWeight: FontWeight.w400,
