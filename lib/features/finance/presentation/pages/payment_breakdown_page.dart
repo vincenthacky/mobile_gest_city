@@ -311,6 +311,14 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
         }
       }
       
+      // IMPORTANT: Attendre explicitement que toutes les statistiques annuelles soient chargées
+      debugPrint('DEBUG: Statistiques avant attente: ${controller.annualStatisticsCount}/12');
+      if (controller.annualStatisticsCount < 12) {
+        debugPrint('DEBUG: Attente du chargement des 12 mois de statistiques...');
+        await controller.ensureAnnualStatisticsLoaded();
+        debugPrint('DEBUG: Statistiques après attente: ${controller.annualStatisticsCount}/12');
+      }
+      
       debugPrint('DEBUG: Export PDF avec ${controller.membersForTable.length} membres');
       debugPrint('DEBUG: Statistiques annuelles: ${controller.annualStatisticsCount} mois chargés');
       

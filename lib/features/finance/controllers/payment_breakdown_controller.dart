@@ -58,12 +58,16 @@ class PaymentBreakdownController extends ChangeNotifier {
 
   List<int> get montantRecuParMois {
     if (_annualStatistics.isEmpty) {
+      debugPrint('DEBUG: Utilisation des données de fallback pour montantRecuParMois');
       return _getFallbackMontantRecu();
     }
-    return List.generate(12, (index) {
+    final result = List.generate(12, (index) {
       final month = index + 1;
-      return _annualStatistics[month]?.montantRecuInt ?? 0;
+      final amount = _annualStatistics[month]?.montantRecuInt ?? 0;
+      return amount;
     });
+    debugPrint('DEBUG: montantRecuParMois depuis API: $result');
+    return result;
   }
 
   List<int> get montantReelParMois {
@@ -208,6 +212,7 @@ class PaymentBreakdownController extends ChangeNotifier {
   
   Future<void> _loadAnnualStatistics(int year) async {
     try {
+      debugPrint('DEBUG: Chargement des statistiques annuelles pour $year');
       // Charger les statistiques pour tous les mois de l'année
       for (int month = 1; month <= 12; month++) {
         final statsResponse = await _dataSource.getPaymentStatistics(
@@ -215,13 +220,39 @@ class PaymentBreakdownController extends ChangeNotifier {
           month: month,
         );
         
+        debugPrint('DEBUG: Mois $month - Success: ${statsResponse.success}, Data: ${statsResponse.data}');
+        
         if (statsResponse.success) {
           _annualStatistics[month] = statsResponse.data;
+          debugPrint('DEBUG: Statistiques mois $month chargées - Montant réel: ${statsResponse.data.montantReel}');
+        } else {
+          debugPrint('DEBUG: Échec du chargement pour le mois $month');
         }
       }
+      debugPrint('DEBUG: Statistiques annuelles chargées: ${_annualStatistics.length} mois');
       notifyListeners();
     } catch (e) {
       debugPrint('Erreur lors du chargement des statistiques annuelles: $e');
+    }
+  }
+  
+  // Méthode publique pour s'assurer que toutes les statistiques annuelles sont chargées
+  Future<void> ensureAnnualStatisticsLoaded() async {
+    final currentYear = DateTime.now().year;
+    
+    // Si moins de 12 mois chargés, recharger toutes les statistiques
+    if (_annualStatistics.length < 12) {
+      debugPrint('DEBUG: Rechargement des statistiques annuelles (${_annualStatistics.length}/12 actuellement)');
+      await _loadAnnualStatistics(currentYear);
+      
+      // Attendre maximum 30 secondes
+      int attempts = 0;
+      while (_annualStatistics.length < 12 && attempts < 300) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        attempts++;
+      }
+      
+      debugPrint('DEBUG: Statistiques finales chargées: ${_annualStatistics.length}/12');
     }
   }
 
