@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/app_header.dart';
 import '../../features/finance/presentation/pages/finance_page.dart';
 import '../../features/projets/presentation/pages/projets_page.dart';
 import '../../features/signalement/presentation/pages/signalements_page.dart';
@@ -13,77 +14,29 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            // Header avec titre et profil
-            SliverToBoxAdapter(
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF4F46E5),
-                      Color(0xFF7C3AED),
-                    ],
+        child: Column(
+          children: [
+            // Header avec AppHeader
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                border: Border(
+                  bottom: BorderSide(
+                    color: Colors.grey.shade200,
+                    width: 1,
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Bonjour 👋',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.9),
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'Gest City',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.notifications_outlined,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Gérez votre ville intelligemment',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
-                ),
+              ),
+              child: const AppHeader(
+                title: 'Gest City',
+               
               ),
             ),
+            
+            Expanded(
+              child: CustomScrollView(
+                slivers: [
             
             // Grid des fonctionnalités
             SliverPadding(
@@ -218,6 +171,9 @@ class HomePage extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+            ),
+                ],
               ),
             ),
           ],
