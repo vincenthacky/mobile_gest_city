@@ -288,24 +288,32 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
   Future<void> _exportToPDF() async {
     HapticFeedback.lightImpact();
     
-    // Afficher l'indicateur de chargement
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return const AlertDialog(
-          content: Row(
-            children: [
-              CircularProgressIndicator(color: Color(0xFF4F46E5)),
-              SizedBox(width: 20),
-              Text('Génération du PDF en cours...'),
-            ],
-          ),
-        );
-      },
-    );
+    bool isDialogShown = false;
     
     try {
+      // Afficher l'indicateur de chargement
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const AlertDialog(
+            content: Row(
+              children: [
+                CircularProgressIndicator(color: Color(0xFF4F46E5)),
+                SizedBox(width: 20),
+                Expanded(
+                  child: Text(
+                    'Génération du PDF en cours...',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+      isDialogShown = true;
+      
       final controller = context.read<PaymentBreakdownController>();
       
       // Attendre que les données soient complètement chargées
@@ -340,30 +348,54 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
         montantAvanceParMois: controller.montantAvanceParMois,
       );
       
-      // Fermer l'indicateur de chargement
-      if (mounted && Navigator.canPop(context)) {
-        Navigator.of(context).pop();
+      debugPrint('DEBUG: PDF export terminé avec succès');
+      
+      // Fermer l'indicateur de chargement avec gestion d'erreur
+      if (mounted && isDialogShown) {
+        try {
+          Navigator.of(context, rootNavigator: true).pop();
+          isDialogShown = false;
+          debugPrint('DEBUG: Dialog fermé avec succès');
+        } catch (e) {
+          debugPrint('DEBUG: Erreur lors de la fermeture du dialog: $e');
+        }
       }
+      
+      // Petite pause pour s'assurer que le dialog est fermé
+      await Future.delayed(const Duration(milliseconds: 100));
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('PDF généré et partagé avec succès'),
             backgroundColor: Color(0xFF10B981),
+            duration: Duration(seconds: 3),
           ),
         );
+        debugPrint('DEBUG: SnackBar de succès affiché');
       }
     } catch (e) {
+      debugPrint('DEBUG: Erreur lors de l\'export PDF: $e');
+      
       // Fermer l'indicateur de chargement en cas d'erreur
-      if (mounted && Navigator.canPop(context)) {
-        Navigator.of(context).pop();
+      if (mounted && isDialogShown) {
+        try {
+          Navigator.of(context, rootNavigator: true).pop();
+          isDialogShown = false;
+        } catch (popError) {
+          debugPrint('DEBUG: Erreur lors de la fermeture du dialog (erreur): $popError');
+        }
       }
+      
+      // Petite pause pour s'assurer que le dialog est fermé
+      await Future.delayed(const Duration(milliseconds: 100));
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erreur lors de la génération du PDF: $e'),
             backgroundColor: const Color(0xFFEF4444),
+            duration: const Duration(seconds: 4),
           ),
         );
       }
