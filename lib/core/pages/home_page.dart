@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../widgets/app_header.dart';
-import '../../features/finance/presentation/pages/finance_page.dart';
-import '../../features/projets/presentation/pages/projets_page.dart';
-import '../../features/signalement/presentation/pages/signalements_page.dart';
-import '../../features/cadre_de_vie/presentation/pages/cadre_de_vie_page.dart';
-import '../../features/compte/presentation/pages/compte_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -57,10 +53,7 @@ class HomePage extends StatelessWidget {
                     gradient: const LinearGradient(
                       colors: [Color(0xFF10B981), Color(0xFF059669)],
                     ),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const FinancePage()),
-                    ),
+                    onTap: () => context.go('/finance'),
                   ),
                   _buildFeatureCard(
                     context,
@@ -70,10 +63,7 @@ class HomePage extends StatelessWidget {
                     gradient: const LinearGradient(
                       colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
                     ),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const ProjetsPage()),
-                    ),
+                    onTap: () => context.go('/projets'),
                   ),
                   _buildFeatureCard(
                     context,
@@ -83,10 +73,7 @@ class HomePage extends StatelessWidget {
                     gradient: const LinearGradient(
                       colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
                     ),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const SignalementsPage()),
-                    ),
+                    onTap: () => context.go('/signalements'),
                   ),
                   _buildFeatureCard(
                     context,
@@ -96,10 +83,7 @@ class HomePage extends StatelessWidget {
                     gradient: const LinearGradient(
                       colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
                     ),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const CadreDeViePage()),
-                    ),
+                    onTap: () => context.go('/cadre-de-vie'),
                   ),
                 ]),
               ),
@@ -151,10 +135,7 @@ class HomePage extends StatelessWidget {
                             title: 'Profil',
                             icon: Icons.person,
                             color: const Color(0xFF6366F1),
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const ComptePage()),
-                            ),
+                            onTap: () => context.go('/compte'),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -314,7 +295,7 @@ class HomePage extends StatelessWidget {
               ),
               Expanded(
                 child: _buildStatItem(
-                  label: 'Cotisations',
+                  label: 'Cotisations du mois',
                   value: '2.4M',
                   icon: Icons.monetization_on,
                   color: const Color(0xFF8B5CF6),
