@@ -27,19 +27,27 @@ class ProjectCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFFFAFBFC), // Fond légèrement off-white pour meilleur contraste
           borderRadius: BorderRadius.circular(20),
           border: project.hasUserVoted
               ? Border.all(
                   color: project.voteChoiceColor.withOpacity(0.18),
                   width: 1.5,
                 )
-              : null,
+              : Border.all(
+                  color: const Color(0xFFE2E8F0), // Bordure subtile pour définir la carte
+                  width: 0.5,
+                ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 10,
+              color: Colors.black.withOpacity(0.08), // Ombre légèrement plus forte
+              blurRadius: 12,
               offset: const Offset(0, 4),
+            ),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03), // Ombre douce supplémentaire
+              blurRadius: 4,
+              offset: const Offset(0, 1),
             ),
           ],
         ),
@@ -79,14 +87,14 @@ class ProjectCard extends StatelessWidget {
                       const SizedBox(height: 6),
                       Row(
                         children: [
-                          const Icon(Icons.person, size: 14, color: Color(0xFF6B7280)),
+                          const Icon(Icons.person, size: 14, color: Color(0xFF475569)), // Couleur plus foncée
                           const SizedBox(width: 6),
                           Flexible(
                             child: Text(
                               project.authorName ?? '',
                               style: const TextStyle(
                                 fontSize: 12,
-                                color: Color(0xFF6B7280),
+                                color: Color(0xFF475569), // Couleur plus foncée pour meilleure lisibilité
                                 fontFamily: 'Nunito',
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -125,7 +133,7 @@ class ProjectCard extends StatelessWidget {
               project.shortDescription,
               style: const TextStyle(
                 fontSize: 14,
-                color: Color(0xFF6B7280),
+                color: Color(0xFF374151), // Couleur plus foncée pour meilleure lisibilité
                 height: 1.5,
                 fontFamily: 'Nunito',
               ),
@@ -162,13 +170,13 @@ class ProjectCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF6B7280).withValues(alpha: 0.08),
+                      color: const Color(0xFF475569).withValues(alpha: 0.12), // Fond plus contrasté
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Icon(
                       Icons.attach_file,
                       size: 16,
-                      color: Color(0xFF6B7280),
+                      color: Color(0xFF475569), // Couleur plus foncée
                     ),
                   ),
               ],
@@ -288,7 +296,7 @@ class ProjectCard extends StatelessWidget {
     return Expanded(
       child: Column(
         children: [
-          Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280), fontFamily: 'Nunito')),
+          Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF475569), fontFamily: 'Nunito')), // Couleur plus foncée
           const SizedBox(height: 6),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -386,17 +394,17 @@ class ProjectCard extends StatelessWidget {
           color: Colors.orange.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.schedule, size: 18, color: Colors.orange),
-            SizedBox(width: 8),
+            Icon(Icons.schedule, size: 18, color: Colors.orange.shade600), // Couleur plus foncée
+            const SizedBox(width: 8),
             Text(
               'Vote pas encore ouvert',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
-                color: Colors.orange,
+                color: Colors.orange.shade600, // Couleur plus foncée pour meilleure lisibilité
                 fontFamily: 'Poppins',
               ),
             ),
@@ -410,20 +418,20 @@ class ProjectCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF6B7280).withValues(alpha: 0.08),
+        color: const Color(0xFF475569).withValues(alpha: 0.12), // Fond plus contrasté
         borderRadius: BorderRadius.circular(12),
       ),
-      child: const Row(
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.how_to_vote_outlined, size: 18, color: Color(0xFF6B7280)),
-          SizedBox(width: 8),
+          const Icon(Icons.how_to_vote_outlined, size: 18, color: Color(0xFF475569)), // Couleur plus foncée
+          const SizedBox(width: 8),
           Text(
             'Vote terminé',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF6B7280),
+              color: Color(0xFF475569), // Couleur plus foncée pour meilleure lisibilité
               fontFamily: 'Poppins',
             ),
           ),
