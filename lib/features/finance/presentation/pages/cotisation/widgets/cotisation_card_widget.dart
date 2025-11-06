@@ -22,141 +22,196 @@ class CotisationCardWidget extends StatelessWidget {
           return _buildEmptyCard();
         }
 
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final screenHeight = MediaQuery.of(context).size.height;
-            final isVerySmall = constraints.maxWidth < 300;
-            final isSmall = constraints.maxWidth < 350;
-            final isShortScreen = screenHeight < 700;
-            
-            return Container(
-              constraints: BoxConstraints(
-                minHeight: isShortScreen ? 160.0 : (isVerySmall ? 170.0 : 180.0),
-                maxHeight: isShortScreen ? 180.0 : (isVerySmall ? 190.0 : 200.0),
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
-              padding: EdgeInsets.all(isVerySmall ? 12 : 16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF4F46E5),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF4F46E5).withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // En-tête avec icône et titre
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.account_balance_wallet,
+                      color: Color(0xFF10B981),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Cotisations Mensuelles',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1F2937),
+                            fontFamily: 'Poppins',
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          data.currentPeriod,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade600,
+                            fontFamily: 'Nunito',
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-              child: IntrinsicHeight(
+              
+              const SizedBox(height: 20),
+              
+              // Informations principales en grille 2x2
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildModernInfoItem(
+                      'Montant/personne',
+                      data.formattedAmountByPerson,
+                      const Color(0xFF3B82F6),
+                      Icons.person,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildModernInfoItem(
+                      'Date limite',
+                      data.deadlineDayFormatted,
+                      const Color(0xFFEF4444),
+                      Icons.schedule,
+                    ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 12),
+              
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildModernInfoItem(
+                      'Collecté',
+                      data.formattedCollectedThisMonth,
+                      const Color(0xFF10B981),
+                      Icons.check_circle,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildModernInfoItem(
+                      'Objectif',
+                      data.formattedExpectedThisMonth,
+                      const Color(0xFF8B5CF6),
+                      Icons.flag,
+                    ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 20),
+              
+              // Section progression
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4F46E5).withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
+                    width: 1,
+                  ),
+                ),
                 child: Column(
                   children: [
-                    // Première ligne
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Expanded(
-                          child: _buildInfoItem(
-                            'Montant par personne',
-                            data.formattedAmountByPerson,
-                            fontSize: isVerySmall ? 8 : (isSmall ? 9 : 10),
-                            valueFontSize: isVerySmall ? 9 : (isSmall ? 10 : 11),
+                        const Text(
+                          'Progression mensuelle',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF374151),
+                            fontFamily: 'Nunito',
                           ),
                         ),
-                        Expanded(
-                          child: _buildInfoItem(
-                            'Jour limite',
-                            data.deadlineDayFormatted,
-                            fontSize: isVerySmall ? 8 : (isSmall ? 9 : 10),
-                            valueFontSize: isVerySmall ? 9 : (isSmall ? 10 : 11),
+                        Text(
+                          '${(data.progressPercentage * 100).toInt()}%',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF4F46E5),
+                            fontFamily: 'Poppins',
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: isVerySmall ? 4 : 6),
+                    const SizedBox(height: 12),
                     
-                    // Deuxième ligne
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildInfoItem(
-                            'Période actuelle',
-                            data.currentPeriod,
-                            fontSize: isVerySmall ? 7 : (isSmall ? 8 : 9),
-                            valueFontSize: isVerySmall ? 8 : (isSmall ? 9 : 10),
-                          ),
-                        ),
-                        Expanded(
-                          child: _buildInfoItem(
-                            'Collecté ce mois',
-                            data.formattedCollectedThisMonth,
-                            fontSize: isVerySmall ? 7 : (isSmall ? 8 : 9),
-                            valueFontSize: isVerySmall ? 8 : (isSmall ? 9 : 10),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: isVerySmall ? 4 : 6),
-                    
-                    // Troisième ligne
-                    _buildInfoItem(
-                      'Attendu ce mois-ci',
-                      data.formattedExpectedThisMonth,
-                      fontSize: isVerySmall ? 8 : (isSmall ? 9 : 10),
-                      valueFontSize: isVerySmall ? 10 : (isSmall ? 11 : 12),
-                      centerAlign: true,
-                    ),
-                    
-                    const Spacer(),
-                
-                    // Montant et progression
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Flexible(
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.baseline,
-                              textBaseline: TextBaseline.alphabetic,
-                              children: [
-                                Text(
-                                  data.totalAmountPaymentCollectedCurrentMonth.toStringAsFixed(0),
-                                  style: TextStyle(
-                                    fontSize: isVerySmall ? 14 : (isSmall ? 15 : 16),
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                Text(
-                                  ' / ${data.totalExpectedAmountThisMonth.toStringAsFixed(0)}',
-                                  style: TextStyle(
-                                    fontSize: isVerySmall ? 8 : (isSmall ? 9 : 10),
-                                    color: Colors.white70,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: isVerySmall ? 6 : 8),
-                        
-                        // Barre de progression
-                        Container(
-                          width: double.infinity,
-                          height: isVerySmall ? 4 : 6,
+                    // Barre de progression
+                    Container(
+                      width: double.infinity,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: data.progressPercentage,
+                        child: Container(
+                          height: 8,
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(isVerySmall ? 2 : 3),
+                            color: const Color(0xFF4F46E5),
+                            borderRadius: BorderRadius.circular(4),
                           ),
-                          child: FractionallySizedBox(
-                            alignment: Alignment.centerLeft,
-                            widthFactor: data.progressPercentage,
-                            child: Container(
-                              height: isVerySmall ? 4 : 6,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(isVerySmall ? 2 : 3),
-                              ),
-                            ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    
+                    // Montant collecté / total
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${data.totalAmountPaymentCollectedCurrentMonth.toStringAsFixed(0)} F',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF10B981),
+                            fontFamily: 'Poppins',
+                          ),
+                        ),
+                        Text(
+                          '/ ${data.totalExpectedAmountThisMonth.toStringAsFixed(0)} F',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade600,
+                            fontFamily: 'Nunito',
                           ),
                         ),
                       ],
@@ -164,8 +219,8 @@ class CotisationCardWidget extends StatelessWidget {
                   ],
                 ),
               ),
-            );
-          },
+            ],
+          ),
         );
       },
     );
@@ -173,23 +228,36 @@ class CotisationCardWidget extends StatelessWidget {
 
   Widget _buildLoadingCard() {
     return Container(
-      height: 180,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF4F46E5),
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF4F46E5).withValues(alpha: 0.3),
-            blurRadius: 8,
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: const Center(
-        child: CircularProgressIndicator(
-          color: Colors.white,
-          strokeWidth: 2,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(
+              color: Color(0xFF4F46E5),
+              strokeWidth: 2,
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Chargement des cotisations...',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF6B7280),
+                fontFamily: 'Nunito',
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -197,15 +265,18 @@ class CotisationCardWidget extends StatelessWidget {
 
   Widget _buildErrorCard(String errorMessage) {
     return Container(
-      height: 180,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFEF4444),
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFFEF4444).withValues(alpha: 0.2),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFEF4444).withValues(alpha: 0.3),
-            blurRadius: 8,
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
@@ -213,29 +284,38 @@ class CotisationCardWidget extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.error_outline,
-            color: Colors.white,
-            size: 32,
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEF4444).withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.error_outline,
+              color: Color(0xFFEF4444),
+              size: 24,
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
           const Text(
             'Erreur de chargement',
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Colors.white,
+              color: Color(0xFF1F2937),
+              fontFamily: 'Poppins',
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Text(
             errorMessage,
             style: TextStyle(
-              fontSize: 10,
-              color: Colors.white.withValues(alpha: 0.8),
+              fontSize: 14,
+              color: Colors.grey.shade600,
+              fontFamily: 'Nunito',
             ),
             textAlign: TextAlign.center,
-            maxLines: 2,
+            maxLines: 3,
             overflow: TextOverflow.ellipsis,
           ),
         ],
@@ -245,73 +325,112 @@ class CotisationCardWidget extends StatelessWidget {
 
   Widget _buildEmptyCard() {
     return Container(
-      height: 180,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF6B7280),
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.grey.shade200,
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF6B7280).withValues(alpha: 0.3),
-            blurRadius: 8,
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: const Center(
-        child: Text(
-          'Aucune donnée disponible',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.white,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.account_balance_wallet_outlined,
+              color: Colors.grey.shade500,
+              size: 24,
+            ),
           ),
-        ),
+          const SizedBox(height: 16),
+          Text(
+            'Aucune donnée disponible',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade700,
+              fontFamily: 'Poppins',
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Les informations de cotisations ne sont pas encore disponibles',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade600,
+              fontFamily: 'Nunito',
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildInfoItem(
+  Widget _buildModernInfoItem(
     String label,
-    String value, {
-    double fontSize = 10,
-    double valueFontSize = 12,
-    bool centerAlign = false,
-  }) {
-    return Flexible(
+    String value,
+    Color color,
+    IconData icon,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withValues(alpha: 0.1),
+          width: 1,
+        ),
+      ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: centerAlign ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Flexible(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: fontSize,
-                color: Colors.white.withValues(alpha: 0.7),
-                height: 1.2,
+          Row(
+            children: [
+              Icon(
+                icon,
+                color: color,
+                size: 16,
               ),
-              textAlign: centerAlign ? TextAlign.center : TextAlign.start,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(height: 1),
-          Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                value,
-                style: TextStyle(
-                  fontSize: valueFontSize,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white,
-                  height: 1.1,
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    fontFamily: 'Nunito',
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                textAlign: centerAlign ? TextAlign.center : TextAlign.start,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: color,
+              fontFamily: 'Poppins',
             ),
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
