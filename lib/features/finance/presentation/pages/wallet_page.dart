@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/widgets/app_header.dart';
 import 'caisse/transaction_detail_page.dart';
 import '../../controllers/cash_movements_controller.dart';
 import '../../models/cash_movement_model.dart';
@@ -148,23 +147,6 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
       body: SafeArea(
         child: Column(
           children: [
-            // Header fixe
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                border: Border(
-                  bottom: BorderSide(
-                    color: Colors.grey.shade200,
-                    width: 1,
-                  ),
-                ),
-              ),
-              child: const AppHeader(
-                title: 'Caisse Commune',
-              ),
-            ),
-            
             Expanded(
               child: RefreshIndicator(
                 color: const Color(0xFF4F46E5),

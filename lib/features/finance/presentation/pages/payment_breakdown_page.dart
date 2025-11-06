@@ -157,6 +157,28 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
               ),
             ),
             
+            // Bilan pliable
+            Consumer<PaymentBreakdownController>(
+              builder: (context, controller, child) {
+                if (!controller.isLoading && controller.errorMessage == null) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    child: SummaryCard(
+                      selectedSegment: controller.selectedSegment,
+                      selectedMonth: controller.selectedMonth,
+                      monthNames: controller.monthNames,
+                      montantVentileRef: controller.montantVentileRef,
+                      montantRecuParMois: controller.montantRecuParMois,
+                      montantReelParMois: controller.montantReelParMois,
+                      montantRemboursementParMois: controller.montantRemboursementParMois,
+                      montantAvanceParMois: controller.montantAvanceParMois,
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+            
             Expanded(
               child: RefreshIndicator(
                 color: const Color(0xFF4F46E5),
@@ -229,21 +251,6 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
                           ),
                           const SizedBox(height: 20),
                           const LegendWidget(),
-                          const SizedBox(height: 20),
-                          Consumer<PaymentBreakdownController>(
-                            builder: (context, controller, child) {
-                              return SummaryCard(
-                                selectedSegment: controller.selectedSegment,
-                                selectedMonth: controller.selectedMonth,
-                                monthNames: controller.monthNames,
-                                montantVentileRef: controller.montantVentileRef,
-                                montantRecuParMois: controller.montantRecuParMois,
-                                montantReelParMois: controller.montantReelParMois,
-                                montantRemboursementParMois: controller.montantRemboursementParMois,
-                                montantAvanceParMois: controller.montantAvanceParMois,
-                              );
-                            },
-                          ),
                           const SizedBox(height: 80),
                         ],
                       ),
