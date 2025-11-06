@@ -214,7 +214,7 @@ class _PaymentSubmissionModalState extends State<PaymentSubmissionModal> {
     return Container(
       height: MediaQuery.of(context).size.height * 0.9,
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: Color(0xFFF9FAFB),
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
@@ -222,7 +222,11 @@ class _PaymentSubmissionModalState extends State<PaymentSubmissionModal> {
           _buildHeader(),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF4F46E5),
+                    ),
+                  )
                 : _errorMessage != null
                     ? _buildErrorState()
                     : _buildContent(),
@@ -234,34 +238,34 @@ class _PaymentSubmissionModalState extends State<PaymentSubmissionModal> {
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
       decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFB),
         border: Border(
-          bottom: BorderSide(color: Colors.grey.shade200),
+          bottom: BorderSide(
+            color: Colors.grey.shade200,
+            width: 1,
+          ),
         ),
       ),
       child: Row(
         children: [
-          const Icon(
-            Icons.payment,
-            color: Color(0xFF4F46E5),
-            size: 24,
-          ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Text(
-              'Prouver un paiement',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1F2937),
-              ),
-            ),
-          ),
           IconButton(
             onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.close),
-            color: Colors.grey.shade600,
+            icon: const Icon(
+              Icons.arrow_back_ios,
+              color: Color(0xFF1F2937),
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Text(
+            '💳 Prouver un paiement',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1F2937),
+              fontFamily: 'Poppins',
+            ),
           ),
         ],
       ),
@@ -308,13 +312,21 @@ class _PaymentSubmissionModalState extends State<PaymentSubmissionModal> {
 
   Widget _buildContent() {
     if (_periodsData == null || !_periodsData!.hasAnyPeriods) {
-      return const Center(
-        child: Text(
-          'Aucune période de paiement disponible',
-          style: TextStyle(
-            fontSize: 16,
-            color: Color(0xFF6B7280),
-          ),
+      return Center(
+        child: _buildSection(
+          'Aucune période disponible',
+          Icons.info_outline,
+          [
+            const Text(
+              'Il n\'y a actuellement aucune période de paiement disponible pour soumettre une preuve.',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF6B7280),
+                fontFamily: 'Nunito',
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       );
     }
@@ -335,53 +347,82 @@ class _PaymentSubmissionModalState extends State<PaymentSubmissionModal> {
   }
 
   Widget _buildPeriodsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Sélectionnez les périodes à payer',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1F2937),
-          ),
-        ),
-        const SizedBox(height: 8),
+    return _buildSection(
+      'Sélection des périodes',
+      Icons.calendar_month,
+      [
         Text(
           'Montant par période: ${widget.contributionData.formattedAmountByPerson} F',
           style: const TextStyle(
             fontSize: 14,
             color: Color(0xFF6B7280),
+            fontFamily: 'Nunito',
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         
         // Mois impayés
         if (_periodsData!.hasUnpaidMonths) ...[
-          const Text(
-            'Périodes en retard',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFFEF4444),
-            ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(
+                  Icons.warning,
+                  color: Color(0xFFEF4444),
+                  size: 16,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Périodes en retard',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFFEF4444),
+                  fontFamily: 'Poppins',
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           ..._periodsData!.unpaidMonths.map((period) => _buildPeriodTile(period, true)),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
         ],
         
         // Mois à venir
         if (_periodsData!.hasUpcomingMonths) ...[
-          const Text(
-            'Périodes à venir',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF4F46E5),
-            ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(
+                  Icons.schedule,
+                  color: Color(0xFF4F46E5),
+                  size: 16,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Périodes à venir',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF4F46E5),
+                  fontFamily: 'Poppins',
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           ..._periodsData!.upcomingMonths.map((period) => _buildPeriodTile(period, false)),
         ],
       ],
@@ -443,26 +484,19 @@ class _PaymentSubmissionModalState extends State<PaymentSubmissionModal> {
   }
 
   Widget _buildImagesSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+    return _buildSection(
+      'Preuves de paiement',
+      Icons.camera_alt,
+      [
         const Text(
-          'Preuves de paiement',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF1F2937),
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Ajoutez des photos de vos reçus de paiement',
+          'Ajoutez des photos de vos reçus de paiement pour valider votre cotisation',
           style: TextStyle(
             fontSize: 14,
             color: Color(0xFF6B7280),
+            fontFamily: 'Nunito',
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
         
         // Boutons d'action pour ajouter des images
         Row(
@@ -475,6 +509,10 @@ class _PaymentSubmissionModalState extends State<PaymentSubmissionModal> {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFF4F46E5),
                   side: const BorderSide(color: Color(0xFF4F46E5)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),
@@ -487,6 +525,10 @@ class _PaymentSubmissionModalState extends State<PaymentSubmissionModal> {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFF4F46E5),
                   side: const BorderSide(color: Color(0xFF4F46E5)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),
@@ -495,56 +537,93 @@ class _PaymentSubmissionModalState extends State<PaymentSubmissionModal> {
         
         // Affichage des images sélectionnées
         if (_selectedImages.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF10B981).withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF10B981).withValues(alpha: 0.1),
+              ),
             ),
-            itemCount: _selectedImages.length,
-            itemBuilder: (context, index) {
-              return Stack(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF10B981),
+                      size: 16,
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.file(
-                        _selectedImages[index],
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        height: double.infinity,
+                    const SizedBox(width: 8),
+                    Text(
+                      '${_selectedImages.length} image(s) sélectionnée(s)',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF10B981),
+                        fontFamily: 'Poppins',
                       ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
                   ),
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: GestureDetector(
-                      onTap: () => _removeImage(index),
-                      child: Container(
-                        padding: const EdgeInsets.all(2),
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
+                  itemCount: _selectedImages.length,
+                  itemBuilder: (context, index) {
+                    return Stack(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.file(
+                              _selectedImages[index],
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: double.infinity,
+                            ),
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.close,
-                          color: Colors.white,
-                          size: 16,
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: GestureDetector(
+                            onTap: () => _removeImage(index),
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFEF4444),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 14,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  ),
-                ],
-              );
-            },
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ],
       ],
@@ -562,7 +641,10 @@ class _PaymentSubmissionModalState extends State<PaymentSubmissionModal> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF4F46E5).withValues(alpha: 0.2),
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -573,6 +655,7 @@ class _PaymentSubmissionModalState extends State<PaymentSubmissionModal> {
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: Color(0xFF4F46E5),
+                    fontFamily: 'Nunito',
                   ),
                 ),
                 Text(
@@ -581,6 +664,7 @@ class _PaymentSubmissionModalState extends State<PaymentSubmissionModal> {
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF4F46E5),
+                    fontFamily: 'Poppins',
                   ),
                 ),
               ],
@@ -598,30 +682,90 @@ class _PaymentSubmissionModalState extends State<PaymentSubmissionModal> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF4F46E5),
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: 18),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(16),
               ),
+              elevation: 0,
             ),
-            child: _isSubmitting
-                ? const SizedBox(
-                    height: 20,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (_isSubmitting)
+                  const SizedBox(
                     width: 20,
+                    height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       color: Colors.white,
                     ),
                   )
-                : const Text(
-                    'Enregistrer le paiement',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                else
+                  const Icon(Icons.send, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  _isSubmitting ? 'Envoi en cours...' : 'Soumettre le paiement',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'Poppins',
                   ),
+                ),
+              ],
+            ),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSection(String title, IconData icon, List<Widget> children) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  icon,
+                  color: const Color(0xFF4F46E5),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1F2937),
+                  fontFamily: 'Poppins',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...children,
+        ],
+      ),
     );
   }
 }

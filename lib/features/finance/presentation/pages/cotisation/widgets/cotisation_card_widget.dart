@@ -2,8 +2,48 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../controllers/contribution_controller.dart';
 
-class CotisationCardWidget extends StatelessWidget {
+class CotisationCardWidget extends StatefulWidget {
   const CotisationCardWidget({super.key});
+
+  @override
+  State<CotisationCardWidget> createState() => _CotisationCardWidgetState();
+}
+
+class _CotisationCardWidgetState extends State<CotisationCardWidget>
+    with SingleTickerProviderStateMixin {
+  bool _isExpanded = false;
+  late AnimationController _animationController;
+  late Animation<double> _expandAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _expandAnimation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _toggleExpanded() {
+    setState(() {
+      _isExpanded = !_isExpanded;
+      if (_isExpanded) {
+        _animationController.forward();
+      } else {
+        _animationController.reverse();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,204 +62,268 @@ class CotisationCardWidget extends StatelessWidget {
           return _buildEmptyCard();
         }
 
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // En-tête avec icône et titre
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.account_balance_wallet,
-                      color: Color(0xFF10B981),
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Cotisations Mensuelles',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF1F2937),
-                            fontFamily: 'Poppins',
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          data.currentPeriod,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey.shade600,
-                            fontFamily: 'Nunito',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 20),
-              
-              // Informations principales en grille 2x2
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildModernInfoItem(
-                      'Montant/personne',
-                      data.formattedAmountByPerson,
-                      const Color(0xFF3B82F6),
-                      Icons.person,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildModernInfoItem(
-                      'Date limite',
-                      data.deadlineDayFormatted,
-                      const Color(0xFFEF4444),
-                      Icons.schedule,
-                    ),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 12),
-              
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildModernInfoItem(
-                      'Collecté',
-                      data.formattedCollectedThisMonth,
-                      const Color(0xFF10B981),
-                      Icons.check_circle,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildModernInfoItem(
-                      'Objectif',
-                      data.formattedExpectedThisMonth,
-                      const Color(0xFF8B5CF6),
-                      Icons.flag,
-                    ),
-                  ),
-                ],
-              ),
-              
-              const SizedBox(height: 20),
-              
-              // Section progression
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4F46E5).withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
-                    width: 1,
-                  ),
+        return GestureDetector(
+          onTap: _toggleExpanded,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.06),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
-                child: Column(
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // En-tête avec icône et titre + bouton expand
+                Row(
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Progression mensuelle',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF374151),
-                            fontFamily: 'Nunito',
-                          ),
-                        ),
-                        Text(
-                          '${(data.progressPercentage * 100).toInt()}%',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF4F46E5),
-                            fontFamily: 'Poppins',
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    
-                    // Barre de progression
                     Container(
-                      width: double.infinity,
-                      height: 8,
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(4),
+                        color: const Color(0xFF10B981).withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      child: FractionallySizedBox(
-                        alignment: Alignment.centerLeft,
-                        widthFactor: data.progressPercentage,
-                        child: Container(
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF4F46E5),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
+                      child: const Icon(
+                        Icons.account_balance_wallet,
+                        color: Color(0xFF10B981),
+                        size: 20,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    
-                    // Montant collecté / total
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '${data.totalAmountPaymentCollectedCurrentMonth.toStringAsFixed(0)} F',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF10B981),
-                            fontFamily: 'Poppins',
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Cotisations Mensuelles',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1F2937),
+                              fontFamily: 'Poppins',
+                            ),
                           ),
-                        ),
-                        Text(
-                          '/ ${data.totalExpectedAmountThisMonth.toStringAsFixed(0)} F',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey.shade600,
-                            fontFamily: 'Nunito',
+                          const SizedBox(height: 4),
+                          Text(
+                            data.currentPeriod,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade600,
+                              fontFamily: 'Nunito',
+                            ),
                           ),
+                        ],
+                      ),
+                    ),
+                    // Bouton d'expansion
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: AnimatedRotation(
+                        duration: const Duration(milliseconds: 300),
+                        turns: _isExpanded ? 0.5 : 0,
+                        child: Icon(
+                          Icons.keyboard_arrow_down,
+                          color: Colors.grey.shade600,
+                          size: 20,
                         ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ],
+                
+                const SizedBox(height: 20),
+                
+                // Informations essentielles (toujours visibles)
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildModernInfoItem(
+                        'Montant/personne',
+                        data.formattedAmountByPerson,
+                        const Color(0xFF3B82F6),
+                        Icons.person,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildModernInfoItem(
+                        'Date limite',
+                        data.deadlineDayFormatted,
+                        const Color(0xFFEF4444),
+                        Icons.schedule,
+                      ),
+                    ),
+                  ],
+                ),
+                
+                // Détails expandables
+                SizeTransition(
+                  sizeFactor: _expandAnimation,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 12),
+                      
+                      // Informations supplémentaires
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildModernInfoItem(
+                              'Collecté',
+                              data.formattedCollectedThisMonth,
+                              const Color(0xFF10B981),
+                              Icons.check_circle,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildModernInfoItem(
+                              'Objectif',
+                              data.formattedExpectedThisMonth,
+                              const Color(0xFF8B5CF6),
+                              Icons.flag,
+                            ),
+                          ),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 20),
+                      
+                      // Section progression
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4F46E5).withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Progression mensuelle',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: Color(0xFF374151),
+                                    fontFamily: 'Nunito',
+                                  ),
+                                ),
+                                Text(
+                                  '${(data.progressPercentage * 100).toInt()}%',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF4F46E5),
+                                    fontFamily: 'Poppins',
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            
+                            // Barre de progression
+                            Container(
+                              width: double.infinity,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: FractionallySizedBox(
+                                alignment: Alignment.centerLeft,
+                                widthFactor: data.progressPercentage,
+                                child: Container(
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF4F46E5),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            
+                            // Montant collecté / total
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '${data.totalAmountPaymentCollectedCurrentMonth.toStringAsFixed(0)} F',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF10B981),
+                                    fontFamily: 'Poppins',
+                                  ),
+                                ),
+                                Text(
+                                  '/ ${data.totalExpectedAmountThisMonth.toStringAsFixed(0)} F',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey.shade600,
+                                    fontFamily: 'Nunito',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Indicateur visuel pour montrer qu'on peut cliquer
+                if (!_isExpanded) ...[
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.touch_app,
+                            size: 14,
+                            color: Colors.grey.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Toucher pour voir plus de détails',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                              fontFamily: 'Nunito',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         );
       },
