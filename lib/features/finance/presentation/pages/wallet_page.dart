@@ -40,7 +40,7 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _initializeAnimations();
-    _loadCashMovements();
+    _loadInitialData();
   }
 
   void _initializeAnimations() {
@@ -100,6 +100,26 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
     });
   }
 
+  Future<void> _loadInitialData() async {
+    final controller = context.read<CashMovementsController>();
+    
+    debugPrint('=== DÉMARRAGE CHARGEMENT ===');
+    debugPrint('Chargement des totaux...');
+    
+    // Charger les totaux une seule fois au démarrage
+    await controller.loadCashTotals();
+    
+    debugPrint('Chargement des mouvements...');
+    // Charger les mouvements selon le filtre
+    await _loadCashMovements();
+    
+    debugPrint('Chargement terminé');
+    
+    if (mounted) {
+      _startAnimations();
+    }
+  }
+
   Future<void> _loadCashMovements() async {
     String? apiFilter;
     if (_selectedFilter == 'Recettes') {
@@ -109,10 +129,6 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
     }
 
     await context.read<CashMovementsController>().loadCashMovements(filter: apiFilter);
-    
-    if (mounted) {
-      _startAnimations();
-    }
   }
 
   Future<void> _onRefresh() async {
@@ -121,7 +137,7 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
     _slideController.reset();
     _scaleController.reset();
     
-    await _loadCashMovements();
+    await _loadInitialData();
   }
 
   void _onFilterChanged(String filter) {
@@ -292,6 +308,14 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
   }
 
   Widget _buildSummaryCard(CashMovementsController controller) {
+    // Debug: Vérifions les valeurs des totaux
+    debugPrint('=== TOTAUX DEBUG ===');
+    debugPrint('Solde actuel: ${controller.soldeActuel}');
+    debugPrint('Total recettes: ${controller.totalRecettes}');
+    debugPrint('Total dépenses: ${controller.totalDepenses}');
+    debugPrint('CashTotals objet: ${controller.cashTotals}');
+    debugPrint('==================');
+    
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -583,20 +607,24 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
   Widget _buildTransactionItem(CashMovement transaction, bool isLast) {
     final isRecette = transaction.isCredit;
     final montant = transaction.amount;
-    final type = transaction.typeDisplay;
     
     // Fonction pour obtenir l'icône selon le type de transaction
-    IconData getTransactionIcon(String type) {
-      if (type.contains('Cotisation')) {
-        return Icons.account_balance_wallet;
-      } else if (type.contains('Financement') || type.contains('Projet')) {
-        return Icons.business;
-      } else if (type.contains('Achat') || type.contains('Matériel')) {
-        return Icons.shopping_cart;
-      } else if (type.contains('Don')) {
-        return Icons.favorite;
-      } else {
-        return Icons.payments;
+    IconData getTransactionIcon(CashMovement transaction) {
+      switch (transaction.kind) {
+        case 'contribution_payment':
+          return Icons.account_balance_wallet;
+        case 'withdrawal':
+          if (transaction.project != null) {
+            return Icons.business;
+          } else if (transaction.user != null) {
+            return Icons.person;
+          } else {
+            return Icons.money_off;
+          }
+        case 'deposit':
+          return Icons.add_circle;
+        default:
+          return Icons.payments;
       }
     }
     
@@ -648,7 +676,7 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                           ),
                         ),
                         child: Icon(
-                          getTransactionIcon(type),
+                          getTransactionIcon(transaction),
                           color: isRecette ? const Color(0xFF10B981) : const Color(0xFFEF4444),
                           size: 24,
                         ),
@@ -661,7 +689,7 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              transaction.typeDisplay,
+                              transaction.description,
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,

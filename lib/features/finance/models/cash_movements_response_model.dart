@@ -25,11 +25,9 @@ class CashMovementsResponse {
 
 class CashMovementsData {
   final List<CashMovement> cashMovements;
-  final Totals totals;
 
   const CashMovementsData({
     required this.cashMovements,
-    required this.totals,
   });
 
   factory CashMovementsData.fromJson(Map<String, dynamic> json) {
@@ -37,7 +35,6 @@ class CashMovementsData {
       cashMovements: (json['cash_movements'] as List<dynamic>)
           .map((item) => CashMovement.fromJson(item as Map<String, dynamic>))
           .toList(),
-      totals: Totals.fromJson(json['totals'] as Map<String, dynamic>),
     );
   }
 }

@@ -16,12 +16,18 @@ class CashMovementsDataSource {
         'per_page': perPage,
       };
       
-      if (filter != null && filter.isNotEmpty) {
-        queryParameters['filter'] = filter;
+      // Déterminer l'endpoint selon le filtre
+      String endpoint;
+      if (filter == 'recette') {
+        endpoint = '/transactions/deposit';
+      } else if (filter == 'depense') {
+        endpoint = '/transactions/withdrawal';
+      } else {
+        endpoint = '/transactions/cash-movements';
       }
 
       final response = await _dio.get(
-        '/transactions/cash-movements',
+        endpoint,
         queryParameters: queryParameters,
       );
 

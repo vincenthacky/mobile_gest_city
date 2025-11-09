@@ -1,22 +1,25 @@
 import 'package:flutter/material.dart';
 import '../data_source/cash_movements_data_source.dart';
+import '../data_source/cash_totals_data_source.dart';
 import '../models/cash_movement_model.dart';
 import '../models/cash_movements_response_model.dart';
+import '../models/cash_totals_model.dart';
 
 enum CashMovementsStatus { initial, loading, loaded, error }
 
 class CashMovementsController extends ChangeNotifier {
   final CashMovementsDataSource _dataSource = CashMovementsDataSource();
+  final CashTotalsDataSource _totalsDataSource = CashTotalsDataSource();
   
   CashMovementsStatus _status = CashMovementsStatus.initial;
   List<CashMovement> _cashMovements = [];
-  Totals? _totals;
+  CashTotals? _cashTotals;
   Pagination? _pagination;
   String? _errorMessage;
 
   CashMovementsStatus get status => _status;
   List<CashMovement> get cashMovements => _cashMovements;
-  Totals? get totals => _totals;
+  CashTotals? get cashTotals => _cashTotals;
   Pagination? get pagination => _pagination;
   String? get errorMessage => _errorMessage;
   bool get isLoading => _status == CashMovementsStatus.loading;
@@ -39,7 +42,6 @@ class CashMovementsController extends ChangeNotifier {
       
       if (response.success) {
         _cashMovements = response.data.cashMovements;
-        _totals = response.data.totals;
         _pagination = response.pagination;
         _setStatus(CashMovementsStatus.loaded);
       } else {
@@ -96,17 +98,48 @@ class CashMovementsController extends ChangeNotifier {
 
   void clearData() {
     _cashMovements = [];
-    _totals = null;
+    _cashTotals = null;
     _pagination = null;
     _errorMessage = null;
     _status = CashMovementsStatus.initial;
     notifyListeners();
   }
 
+  Future<void> loadCashTotals() async {
+    try {
+      final response = await _totalsDataSource.getCashTotals();
+      if (response.success) {
+        _cashTotals = response.data.totals;
+        debugPrint('Totaux chargés avec succès: Recettes=${_cashTotals!.totalReceipts}, Dépenses=${_cashTotals!.totalExpenses}, Solde=${_cashTotals!.balance}');
+        notifyListeners();
+      } else {
+        debugPrint('Erreur lors du chargement des totaux: ${response.message}');
+        _setError('Erreur lors du chargement des totaux: ${response.message}');
+      }
+    } catch (e) {
+      debugPrint('Erreur lors du chargement des totaux: $e');
+      _setError('Erreur lors du chargement des totaux: $e');
+    }
+  }
+
   // Getters pour les totaux
-  double get totalRecettes => _totals?.totalReceipts.toDouble() ?? 0.0;
-  double get totalDepenses => _totals?.totalExpenses.toDouble() ?? 0.0;
-  double get soldeActuel => _totals?.balance.toDouble() ?? 0.0;
+  double get totalRecettes {
+    final value = _cashTotals?.totalReceipts.toDouble() ?? 0.0;
+    debugPrint('Getter totalRecettes: $_cashTotals -> $value');
+    return value;
+  }
+  
+  double get totalDepenses {
+    final value = _cashTotals?.totalExpenses.toDouble() ?? 0.0;
+    debugPrint('Getter totalDepenses: $_cashTotals -> $value');
+    return value;
+  }
+  
+  double get soldeActuel {
+    final value = _cashTotals?.balance.toDouble() ?? 0.0;
+    debugPrint('Getter soldeActuel: $_cashTotals -> $value');
+    return value;
+  }
 
   // Filtres
   List<CashMovement> getFilteredMovements({

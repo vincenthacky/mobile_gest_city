@@ -10,3 +10,4 @@ export 'payment_statistics_model.dart' hide PaymentPeriod;
 export 'monthly_contributions_model.dart';
 export 'wallet_model.dart';
 export 'payment_breakdown_model.dart';
+export 'cash_totals_model.dart';
