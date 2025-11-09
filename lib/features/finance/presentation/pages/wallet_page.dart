@@ -13,8 +13,7 @@ class WalletPage extends StatefulWidget {
 }
 
 class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
-  String _selectedFilter = 'Tous';
-  DateTimeRange? _selectedDateRange;
+  String _selectedView = 'Liste'; // 'Liste' ou 'Compte en T'
   
   // Animation controllers
   late AnimationController _slideController;
@@ -26,14 +25,19 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
 
-  final List<String> _filters = ['Tous', 'Recettes', 'Dépenses'];
+  final List<String> _viewTypes = ['Liste', 'Compte en T'];
 
-  List<CashMovement> get _filteredTransactions {
+  List<CashMovement> get _transactions {
     final controller = context.read<CashMovementsController>();
-    return controller.getFilteredMovements(
-      typeFilter: _selectedFilter,
-      dateRange: _selectedDateRange,
-    );
+    return controller.cashMovements;
+  }
+
+  List<CashMovement> get _debits {
+    return _transactions.where((t) => t.isDebit).toList();
+  }
+
+  List<CashMovement> get _credits {
+    return _transactions.where((t) => t.isCredit).toList();
   }
 
   @override
@@ -121,14 +125,8 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
   }
 
   Future<void> _loadCashMovements() async {
-    String? apiFilter;
-    if (_selectedFilter == 'Recettes') {
-      apiFilter = 'recette';
-    } else if (_selectedFilter == 'Dépenses') {
-      apiFilter = 'depense';
-    }
-
-    await context.read<CashMovementsController>().loadCashMovements(filter: apiFilter);
+    // Charger tous les mouvements sans filtre
+    await context.read<CashMovementsController>().loadCashMovements();
   }
 
   Future<void> _onRefresh() async {
@@ -140,12 +138,11 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
     await _loadInitialData();
   }
 
-  void _onFilterChanged(String filter) {
+  void _onViewChanged(String view) {
     HapticFeedback.lightImpact();
     setState(() {
-      _selectedFilter = filter;
+      _selectedView = view;
     });
-    _loadCashMovements();
   }
 
   @override
@@ -262,7 +259,7 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                                       parent: _slideController,
                                       curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
                                     )),
-                                    child: _buildFiltersSection(),
+                                    child: _buildViewSelector(),
                                   ),
                                 ),
                                 const SizedBox(height: 16),
@@ -270,27 +267,10 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                             ),
                           ),
                           
-                          // Liste des transactions sans padding avec animation
-                          Column(
-                            children: _filteredTransactions.asMap().entries.map((entry) {
-                              final index = entry.key;
-                              final transaction = entry.value;
-                              final isLast = index == _filteredTransactions.length - 1;
-                              return TweenAnimationBuilder<double>(
-                                duration: Duration(milliseconds: 600 + (index * 100)),
-                                tween: Tween(begin: 0.0, end: 1.0),
-                                builder: (context, value, child) {
-                                  return Transform.translate(
-                                    offset: Offset(0, 50 * (1 - value)),
-                                    child: Opacity(
-                                      opacity: value,
-                                      child: _buildTransactionItem(transaction, isLast),
-                                    ),
-                                  );
-                                },
-                              );
-                            }).toList(),
-                          ),
+                          // Contenu selon la vue sélectionnée
+                          _selectedView == 'Liste' 
+                              ? _buildTransactionsList()
+                              : _buildCompteEnT(),
                           
                           // Padding bottom pour le scroll
                           const SizedBox(height: 96),
@@ -308,14 +288,6 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
   }
 
   Widget _buildSummaryCard(CashMovementsController controller) {
-    // Debug: Vérifions les valeurs des totaux
-    debugPrint('=== TOTAUX DEBUG ===');
-    debugPrint('Solde actuel: ${controller.soldeActuel}');
-    debugPrint('Total recettes: ${controller.totalRecettes}');
-    debugPrint('Total dépenses: ${controller.totalDepenses}');
-    debugPrint('CashTotals objet: ${controller.cashTotals}');
-    debugPrint('==================');
-    
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -448,158 +420,64 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildFiltersSection() {
+  Widget _buildViewSelector() {
     return Column(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Transactions',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1F2937),
-              ),
-            ),
-            InkWell(
-              onTap: _showDatePicker,
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: _selectedDateRange != null 
-                      ? const Color(0xFF4F46E5).withValues(alpha: 0.1)
-                      : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: _selectedDateRange != null 
-                        ? const Color(0xFF4F46E5)
-                        : Colors.grey.shade300,
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.date_range,
-                      size: 16,
-                      color: _selectedDateRange != null 
-                          ? const Color(0xFF4F46E5)
-                          : Colors.grey.shade600,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      _selectedDateRange != null 
-                          ? 'Filtré'
-                          : 'Période',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: _selectedDateRange != null 
-                            ? const Color(0xFF4F46E5)
-                            : Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        
-        // Filtres par type
+        // Boutons de vue
         SizedBox(
           height: 40,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _filters.length,
-            itemBuilder: (context, index) {
-              final filter = _filters[index];
-              final isSelected = _selectedFilter == filter;
+          child: Row(
+            children: _viewTypes.asMap().entries.map((entry) {
+              final index = entry.key;
+              final viewType = entry.value;
+              final isSelected = _selectedView == viewType;
               
-              return Container(
-                margin: EdgeInsets.only(right: index < _filters.length - 1 ? 12 : 0),
-                child: InkWell(
-                  onTap: () => _onFilterChanged(filter),
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: isSelected 
-                          ? const Color(0xFF4F46E5) 
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
+              return Expanded(
+                child: Container(
+                  margin: EdgeInsets.only(right: index < _viewTypes.length - 1 ? 8 : 0),
+                  child: InkWell(
+                    onTap: () => _onViewChanged(viewType),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      decoration: BoxDecoration(
                         color: isSelected 
                             ? const Color(0xFF4F46E5) 
-                            : Colors.grey.shade300,
-                        width: 1.5,
-                      ),
-                      boxShadow: isSelected ? [
-                        BoxShadow(
-                          color: const Color(0xFF4F46E5).withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isSelected 
+                              ? const Color(0xFF4F46E5) 
+                              : Colors.grey.shade300,
+                          width: 1.5,
                         ),
-                      ] : [],
-                    ),
-                    child: Text(
-                      filter,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: isSelected 
-                            ? Colors.white 
-                            : Colors.grey.shade700,
+                        boxShadow: isSelected ? [
+                          BoxShadow(
+                            color: const Color(0xFF4F46E5).withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ] : [],
+                      ),
+                      child: Center(
+                        child: Text(
+                          viewType,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: isSelected 
+                                ? Colors.white 
+                                : Colors.grey.shade700,
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
               );
-            },
+            }).toList(),
           ),
         ),
-        
-        // Bouton clear filters si filters actifs
-        if (_selectedDateRange != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: InkWell(
-              onTap: () {
-                setState(() {
-                  _selectedDateRange = null;
-                });
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.clear,
-                      size: 16,
-                      color: Colors.grey.shade600,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Effacer filtres',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
       ],
     );
   }
@@ -758,10 +636,157 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
     );
   }
 
-  void _showDatePicker() async {
-    // Date picker implementation - simplified for this demo
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Sélecteur de date - à implémenter')),
+  Widget _buildTransactionsList() {
+    return Column(
+      children: _transactions.asMap().entries.map((entry) {
+        final index = entry.key;
+        final transaction = entry.value;
+        final isLast = index == _transactions.length - 1;
+        return TweenAnimationBuilder<double>(
+          duration: Duration(milliseconds: 600 + (index * 100)),
+          tween: Tween(begin: 0.0, end: 1.0),
+          builder: (context, value, child) {
+            return Transform.translate(
+              offset: Offset(0, 50 * (1 - value)),
+              child: Opacity(
+                opacity: value,
+                child: _buildTransactionItem(transaction, isLast),
+              ),
+            );
+          },
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildCompteEnT() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: [
+          // En-tête du compte en T
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      'DÉBIT',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFFEF4444),
+                      ),
+                    ),
+                  ),
+                ),
+                Container(
+                  width: 2,
+                  height: 20,
+                  color: Colors.grey.shade300,
+                ),
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      'CRÉDIT',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF10B981),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Ligne de séparation
+          Container(
+            height: 2,
+            color: Colors.grey.shade300,
+          ),
+          
+          // Contenu du compte en T
+          Container(
+            constraints: BoxConstraints(
+              minHeight: 200,
+            ),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Colonne Débits (gauche)
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: _debits.map((transaction) => _buildCompteEnTItem(transaction, true)).toList(),
+                      ),
+                    ),
+                  ),
+                  
+                  // Séparateur vertical
+                  Container(
+                    width: 2,
+                    color: Colors.grey.shade300,
+                  ),
+                  
+                  // Colonne Crédits (droite)
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: _credits.map((transaction) => _buildCompteEnTItem(transaction, false)).toList(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompteEnTItem(CashMovement transaction, bool isDebit) {
+    final date = '${transaction.date.day.toString().padLeft(2, '0')}/${transaction.date.month.toString().padLeft(2, '0')}';
+    final amount = transaction.amount.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), 
+      (Match m) => '${m[1]} '
+    );
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: RichText(
+        text: TextSpan(
+          style: const TextStyle(
+            fontSize: 12,
+            color: Color(0xFF374151),
+            height: 1.3,
+          ),
+          children: [
+            TextSpan(
+              text: '$date  ',
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            TextSpan(
+              text: '${transaction.description} - $amount FCFA',
+              style: const TextStyle(
+                fontWeight: FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
