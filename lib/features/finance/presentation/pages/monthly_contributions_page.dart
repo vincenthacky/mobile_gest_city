@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../controllers/contribution_controller.dart';
 import '../../../authentication/controller/auth_controller.dart';
-import '../../../../core/widgets/app_header.dart';
 import 'cotisation/widgets/widgets.dart';
 import 'cotisation/widgets/unified_payment_items_widget.dart';
 
@@ -112,7 +111,6 @@ class _MonthlyContributionsPageState extends State<MonthlyContributionsPage> wit
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
             Expanded(
               child: RefreshIndicator(
                 color: const Color(0xFF4F46E5),
@@ -126,7 +124,7 @@ class _MonthlyContributionsPageState extends State<MonthlyContributionsPage> wit
                     children: [
                       _buildAnimatedContent(),
                       _buildAnimatedPaymentItems(),
-                      const SizedBox(height: 96),
+                      const SizedBox(height: 32),
                     ],
                   ),
                 ),
@@ -138,23 +136,6 @@ class _MonthlyContributionsPageState extends State<MonthlyContributionsPage> wit
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        border: Border(
-          bottom: BorderSide(
-            color: Colors.grey.shade200,
-            width: 1,
-          ),
-        ),
-      ),
-      child: const AppHeader(
-        title: 'Cotisations Mensuelles',
-      ),
-    );
-  }
 
   Widget _buildAnimatedContent() {
     return Padding(
@@ -173,7 +154,7 @@ class _MonthlyContributionsPageState extends State<MonthlyContributionsPage> wit
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           
           // Bouton payer cotisation avec animation
           FadeTransition(
@@ -185,7 +166,7 @@ class _MonthlyContributionsPageState extends State<MonthlyContributionsPage> wit
               ),
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 20),
         ],
       ),
     );

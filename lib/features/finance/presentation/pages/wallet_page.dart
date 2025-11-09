@@ -249,7 +249,7 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: 32),
+                                const SizedBox(height: 20),
                                 
                                 // Section filtres avec animation
                                 FadeTransition(
@@ -265,7 +265,7 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                                     child: _buildFiltersSection(),
                                   ),
                                 ),
-                                const SizedBox(height: 24),
+                                const SizedBox(height: 16),
                               ],
                             ),
                           ),
@@ -318,7 +318,7 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
     
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
@@ -330,7 +330,7 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
           ],
           stops: [0.0, 0.5, 1.0],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF4F46E5).withValues(alpha: 0.3),
@@ -345,20 +345,20 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
           Text(
             'Solde Actuel',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 14,
               color: Colors.white.withValues(alpha: 0.8),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
             '${controller.soldeActuel.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')} FCFA',
             style: const TextStyle(
-              fontSize: 32,
+              fontSize: 24,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
@@ -368,22 +368,22 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(6),
+                          padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
                             color: const Color(0xFF10B981).withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Icon(
                             Icons.arrow_upward,
                             color: Color(0xFF10B981),
-                            size: 16,
+                            size: 14,
                           ),
                         ),
                         const SizedBox(width: 8),
                         Text(
                           'Recettes',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 12,
                             color: Colors.white.withValues(alpha: 0.7),
                           ),
                         ),
@@ -393,7 +393,7 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                     Text(
                       '${controller.totalRecettes.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')} F',
                       style: const TextStyle(
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF10B981),
                       ),
@@ -408,22 +408,22 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(6),
+                          padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
                             color: const Color(0xFFEF4444).withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Icon(
                             Icons.arrow_downward,
                             color: Color(0xFFEF4444),
-                            size: 16,
+                            size: 14,
                           ),
                         ),
                         const SizedBox(width: 8),
                         Text(
                           'Dépenses',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 12,
                             color: Colors.white.withValues(alpha: 0.7),
                           ),
                         ),
@@ -433,7 +433,7 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                     Text(
                       '${controller.totalDepenses.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')} F',
                       style: const TextStyle(
-                        fontSize: 18,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFFEF4444),
                       ),

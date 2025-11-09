@@ -1,0 +1,49 @@
+Compte en T Portefeuille (version corrigée)
+Crée une interface mobile (ou web) représentant un compte en T pour le portefeuille, en utilisant les données de l’API /transactions/cash-movements.
+🎯 Objectif :
+Afficher visuellement un compte en T classique, comme en comptabilité papier :
+Le haut du T contient le titre : « Compte Portefeuille »
+Le côté gauche représente les débits (sorties d’argent)
+Le côté droit représente les crédits (entrées d’argent)
+📦 Données d’entrée :
+L’API renvoie un tableau cash_movements, chaque élément ayant les champs :
+{
+  "id": 1,
+  "kind": "deposit" | "withdrawal" | "contribution_payment",
+  "amount": 50000,
+  "date": "2025-11-08",
+  "status": "1",
+  "method": "mobile_money" | "bank" | null,
+  "user": { "full_name": "Nom utilisateur" },
+  "project": { "title": "Nom projet" } | null
+}
+⚙️ Logique d’affectation :
+Chaque élément doit être affiché dans une seule colonne du compte en T, selon son kind :
+Type (kind)	Position dans le compte T	Interprétation	Exemple de description
+deposit	Côté Crédit (droite)	Entrée d’argent (rechargement, versement, financement reçu)	“Dépôt de [Nom utilisateur]”
+contribution_payment	Côté Crédit (droite)	Entrée d’argent (paiement de cotisation)	“Paiement cotisation de [Nom utilisateur]”
+withdrawal	Côté Débit (gauche)	Sortie d’argent (retrait, remboursement, financement projet)	“Retrait pour projet [Titre du projet]”
+🧱 Structure visuelle demandée :
+En haut : ligne horizontale avec le titre « Compte Portefeuille »
+En dessous : une grande ligne horizontale représentant le haut du « T »
+Ensuite : deux colonnes côte à côte :
+Colonne gauche (DÉBIT) : tous les retraits
+Colonne droite (CRÉDIT) : tous les dépôts et paiements de cotisation
+Chaque colonne doit afficher les éléments suivants :
+Date        Description                           Montant
+Exemple :
+DÉBIT                                CRÉDIT
+09/11  Retrait projet école     |   08/11  Paiement cotisation - 10 000 FCFA
+09/11  Retrait divers - 5 000   |   08/11  Dépôt compte principal - 20 000 FCFA
+💅 Détails d’affichage :
+Police lisible (ex : Poppins ou Roboto)
+Format de date : JJ/MM/AAAA
+Format monétaire : “10 000 FCFA” (sans centimes)
+Débits en rouge, crédits en vert
+Chaque colonne bien alignée, séparée par une ligne verticale
+Aucun total ou solde final ne doit apparaître : le but est de reproduire le compte en T traditionnel, sans calcul automatique en bas.
+📱 Résultat attendu :
+Une vue esthétique et symétrique, identique à un compte en T sur papier, où :
+les sorties (withdrawals) sont à gauche,
+les entrées (deposits + contribution_payment) sont à droite,
+et la ligne du haut porte le titre du compte : « Compte Portefeuille ».
