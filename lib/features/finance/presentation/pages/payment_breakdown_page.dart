@@ -102,25 +102,22 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
             // Header fixe
             Container(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                border: Border(
-                  bottom: BorderSide(
-                    color: Colors.grey.shade200,
-                    width: 1,
-                  ),
-                ),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF8FAFC),
               ),
               child: Column(
                 children: [
                   Row(
                     children: [
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(
-                          Icons.arrow_back,
-                          color: Color(0xFF1F2937),
-                          size: 24,
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          child: const Icon(
+                            Icons.arrow_back,
+                            color: Color(0xFF1F2937),
+                            size: 22,
+                          ),
                         ),
                       ),
                       Expanded(
@@ -134,17 +131,20 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
                           ),
                         ),
                       ),
-                      IconButton(
-                        onPressed: _exportToPDF,
-                        icon: const Icon(
-                          Icons.file_download,
-                          color: Color(0xFF4F46E5),
-                          size: 24,
+                      GestureDetector(
+                        onTap: _exportToPDF,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          child: const Icon(
+                            Icons.file_download,
+                            color: Color(0xFF4F46E5),
+                            size: 22,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   Consumer<PaymentBreakdownController>(
                     builder: (context, controller, child) {
                       return SegmentSelector(
@@ -162,7 +162,7 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
               builder: (context, controller, child) {
                 if (!controller.isLoading && controller.errorMessage == null) {
                   return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     child: SummaryCard(
                       selectedSegment: controller.selectedSegment,
                       selectedMonth: controller.selectedMonth,

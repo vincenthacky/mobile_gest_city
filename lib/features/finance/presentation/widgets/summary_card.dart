@@ -92,10 +92,10 @@ class _SummaryCardState extends State<SummaryCard>
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.06),
@@ -111,155 +111,82 @@ class _SummaryCardState extends State<SummaryCard>
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: const Color(0xFF3B82F6).withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
                     Icons.analytics,
                     color: Color(0xFF3B82F6),
-                    size: 20,
+                    size: 18,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Bilan Financier',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1F2937),
-                          fontFamily: 'Poppins',
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        widget.selectedMonth != null
-                            ? widget.monthNames[widget.selectedMonth! - 1]
-                            : '${widget.selectedSegment == '1-6' ? 'Janvier-Juin' : 'Juillet-Décembre'} ${DateTime.now().year}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade600,
-                          fontFamily: 'Nunito',
+                      RichText(
+                        text: TextSpan(
+                          text: 'Bilan Financier ',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1F2937),
+                            fontFamily: 'Poppins',
+                          ),
+                          children: [
+                            TextSpan(
+                              text: widget.selectedMonth != null
+                                  ? widget.monthNames[widget.selectedMonth! - 1]
+                                  : '${widget.selectedSegment == '1-6' ? 'Janv-Juin' : 'Juil-Déc'} ${DateTime.now().year}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey.shade600,
+                                fontFamily: 'Nunito',
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-                // Bouton d'expansion
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: AnimatedRotation(
-                    duration: const Duration(milliseconds: 300),
-                    turns: _isExpanded ? 0.5 : 0,
-                    child: Icon(
-                      Icons.keyboard_arrow_down,
-                      color: Colors.grey.shade600,
-                      size: 20,
-                    ),
-                  ),
-                ),
               ],
             ),
             
-            const SizedBox(height: 20),
+            const SizedBox(height: 8),
             
-            // Informations essentielles (toujours visibles) - Montant réel et remboursement
-            Row(
-              children: [
-                Expanded(
-                  child: _buildModernInfoItem(
-                    'Montant réel',
-                    _formatCurrency(montantReel),
-                    const Color(0xFF10B981),
-                    Icons.check_circle,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildModernInfoItem(
-                    'Remboursement',
-                    _formatCurrency(montantRemboursement),
-                    const Color(0xFF3B82F6),
-                    Icons.replay,
-                  ),
-                ),
-              ],
-            ),
-            
-            // Détails expandables
-            SizeTransition(
-              sizeFactor: _expandAnimation,
+            // Informations compactes sur une seule ligne
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(6),
+              ),
               child: Column(
                 children: [
-                  const SizedBox(height: 12),
-                  
-                  // Informations supplémentaires
                   Row(
                     children: [
-                      Expanded(
-                        child: _buildModernInfoItem(
-                          'Montant avance',
-                          _formatCurrency(montantAvance),
-                          const Color(0xFF8B5CF6),
-                          Icons.trending_up,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildModernInfoItem(
-                          'Montant ventilé',
-                          _formatCurrency(montantVentile),
-                          const Color(0xFFF59E0B),
-                          Icons.account_balance,
-                        ),
-                      ),
+                      _buildCompactInfoItem('M.réel', _formatCurrency(montantReel), const Color(0xFF10B981)),
+                      const SizedBox(width: 8),
+                      _buildCompactInfoItem('Rembours.', _formatCurrency(montantRemboursement), const Color(0xFF3B82F6)),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      _buildCompactInfoItem('M.avance', _formatCurrency(montantAvance), const Color(0xFF8B5CF6)),
+                      const SizedBox(width: 8),
+                      _buildCompactInfoItem('M.ventilé', _formatCurrency(montantVentile), const Color(0xFFF59E0B)),
                     ],
                   ),
                 ],
               ),
             ),
             
-            // Indicateur visuel pour montrer qu'on peut cliquer
-            if (!_isExpanded) ...[
-              const SizedBox(height: 12),
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.touch_app,
-                        size: 14,
-                        color: Colors.grey.shade600,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Toucher pour voir plus de détails',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                          fontFamily: 'Nunito',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
           ],
         ),
       ),
@@ -323,6 +250,43 @@ class _SummaryCardState extends State<SummaryCard>
   }
 
   String _formatCurrency(int amount) {
-    return '${amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]} ')} F';
+    if (amount >= 1000000) {
+      final millions = amount / 1000000;
+      return '${millions.toStringAsFixed(millions == millions.roundToDouble() ? 0 : 1)}M F';
+    } else if (amount >= 1000) {
+      final thousands = amount / 1000;
+      return '${thousands.toStringAsFixed(thousands == thousands.roundToDouble() ? 0 : 1)}k F';
+    } else {
+      return '$amount F';
+    }
+  }
+
+  Widget _buildCompactInfoItem(String label, String value, Color color) {
+    return Expanded(
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              '$label: $value',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF374151),
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

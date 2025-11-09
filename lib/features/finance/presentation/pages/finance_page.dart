@@ -105,7 +105,7 @@ class _FinancePageState extends State<FinancePage> with TickerProviderStateMixin
           ],
         ),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(40),
+          preferredSize: const Size.fromHeight(36),
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 20),
             decoration: BoxDecoration(
@@ -121,6 +121,7 @@ class _FinancePageState extends State<FinancePage> with TickerProviderStateMixin
             ),
             child: TabBar(
               controller: _tabController,
+              labelPadding: EdgeInsets.zero,
               indicator: BoxDecoration(
                 borderRadius: BorderRadius.circular(10),
                 gradient: const LinearGradient(
@@ -133,7 +134,7 @@ class _FinancePageState extends State<FinancePage> with TickerProviderStateMixin
                 ),
               ),
               indicatorSize: TabBarIndicatorSize.tab,
-              indicatorPadding: const EdgeInsets.all(4),
+              indicatorPadding: const EdgeInsets.all(2),
               labelColor: Colors.white,
               unselectedLabelColor: const Color(0xFF6B7280),
               labelStyle: const TextStyle(
@@ -148,6 +149,7 @@ class _FinancePageState extends State<FinancePage> with TickerProviderStateMixin
               ),
               tabs: [
                 Tab(
+                  height: 32,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     mainAxisSize: MainAxisSize.min,
@@ -159,6 +161,7 @@ class _FinancePageState extends State<FinancePage> with TickerProviderStateMixin
                   ),
                 ),
                 Tab(
+                  height: 32,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     mainAxisSize: MainAxisSize.min,
@@ -170,6 +173,7 @@ class _FinancePageState extends State<FinancePage> with TickerProviderStateMixin
                   ),
                 ),
                 Tab(
+                  height: 32,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     mainAxisSize: MainAxisSize.min,
