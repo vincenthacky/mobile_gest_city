@@ -13,7 +13,7 @@ class WalletPage extends StatefulWidget {
 }
 
 class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
-  String _selectedView = 'Liste'; // 'Liste' ou 'Compte en T'
+  String _selectedView = 'Compte en T'; // 'Liste' ou 'Compte en T'
   
   // Animation controllers
   late AnimationController _slideController;
@@ -25,7 +25,7 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
 
-  final List<String> _viewTypes = ['Liste', 'Compte en T'];
+  final List<String> _viewTypes = ['Compte en T', 'Liste'];
 
   List<CashMovement> get _transactions {
     final controller = context.read<CashMovementsController>();
@@ -268,9 +268,9 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                           ),
                           
                           // Contenu selon la vue sélectionnée
-                          _selectedView == 'Liste' 
-                              ? _buildTransactionsList()
-                              : _buildCompteEnT(),
+                          _selectedView == 'Compte en T' 
+                              ? _buildCompteEnT()
+                              : _buildTransactionsList(),
                           
                           // Padding bottom pour le scroll
                           const SizedBox(height: 96),

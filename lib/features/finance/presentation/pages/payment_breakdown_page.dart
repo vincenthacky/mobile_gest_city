@@ -101,7 +101,7 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
           children: [
             // Header fixe
             Container(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               decoration: BoxDecoration(
                 color: const Color(0xFFF8FAFC),
                 border: Border(
@@ -128,7 +128,7 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
                           'Tableau de Ventilation ${DateTime.now().year}',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                            fontSize: 18,
+                            fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF1F2937),
                           ),
@@ -144,7 +144,7 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
                   Consumer<PaymentBreakdownController>(
                     builder: (context, controller, child) {
                       return SegmentSelector(

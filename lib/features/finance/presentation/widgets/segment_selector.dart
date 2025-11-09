@@ -39,7 +39,7 @@ class SegmentSelector extends StatelessWidget {
         onSegmentChanged(segment);
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF4F46E5) : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
@@ -48,7 +48,7 @@ class SegmentSelector extends StatelessWidget {
           label,
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
             color: isSelected ? Colors.white : Colors.grey.shade600,
           ),

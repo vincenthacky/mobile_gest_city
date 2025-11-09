@@ -105,12 +105,12 @@ class _FinancePageState extends State<FinancePage> with TickerProviderStateMixin
           ],
         ),
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
+          preferredSize: const Size.fromHeight(40),
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 20),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.08),
@@ -122,7 +122,7 @@ class _FinancePageState extends State<FinancePage> with TickerProviderStateMixin
             child: TabBar(
               controller: _tabController,
               indicator: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -133,31 +133,52 @@ class _FinancePageState extends State<FinancePage> with TickerProviderStateMixin
                 ),
               ),
               indicatorSize: TabBarIndicatorSize.tab,
-              indicatorPadding: const EdgeInsets.all(6),
+              indicatorPadding: const EdgeInsets.all(4),
               labelColor: Colors.white,
               unselectedLabelColor: const Color(0xFF6B7280),
               labelStyle: const TextStyle(
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: FontWeight.w600,
                 fontFamily: 'Poppins',
               ),
               unselectedLabelStyle: const TextStyle(
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: FontWeight.w500,
                 fontFamily: 'Poppins',
               ),
-              tabs: const [
+              tabs: [
                 Tab(
-                  icon: Icon(Icons.account_balance_wallet, size: 18),
-                  text: 'Portefeuille',
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.account_balance_wallet, size: 16),
+                      const SizedBox(width: 4),
+                      Text('Portefeuille', style: TextStyle(fontSize: 11)),
+                    ],
+                  ),
                 ),
                 Tab(
-                  icon: Icon(Icons.pie_chart, size: 18),
-                  text: 'Ventilation',
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.pie_chart, size: 16),
+                      const SizedBox(width: 4),
+                      Text('Ventilation', style: TextStyle(fontSize: 11)),
+                    ],
+                  ),
                 ),
                 Tab(
-                  icon: Icon(Icons.calendar_month, size: 18),
-                  text: 'Cotisations',
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.calendar_month, size: 16),
+                      const SizedBox(width: 4),
+                      Text('Cotisations', style: TextStyle(fontSize: 11)),
+                    ],
+                  ),
                 ),
               ],
             ),
