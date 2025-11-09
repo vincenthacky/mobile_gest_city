@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../widgets/segment_selector.dart';
 import '../widgets/payment_table.dart';
-import '../widgets/legend_widget.dart';
 import '../widgets/summary_card.dart';
 import '../../services/pdf_export_service.dart';
 import '../../controllers/payment_breakdown_controller.dart';
@@ -180,83 +179,72 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
             ),
             
             Expanded(
-              child: RefreshIndicator(
-                color: const Color(0xFF4F46E5),
-                onRefresh: _onRefresh,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  child: FadeTransition(
+              child: Consumer<PaymentBreakdownController>(
+                builder: (context, controller, child) {
+                  if (controller.isLoading) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(40),
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF4F46E5),
+                        ),
+                      ),
+                    );
+                  }
+                  
+                  if (controller.errorMessage != null) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(40),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              size: 48,
+                              color: Colors.red.shade400,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Erreur de chargement',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.red.shade700,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              controller.errorMessage!,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFF6B7280),
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                  
+                  return FadeTransition(
                     opacity: _fadeAnimation,
                     child: ScaleTransition(
                       scale: _scaleAnimation,
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 16),
-                          Consumer<PaymentBreakdownController>(
-                            builder: (context, controller, child) {
-                              if (controller.isLoading) {
-                                return const Center(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(40),
-                                    child: CircularProgressIndicator(
-                                      color: Color(0xFF4F46E5),
-                                    ),
-                                  ),
-                                );
-                              }
-                              
-                              if (controller.errorMessage != null) {
-                                return Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(40),
-                                    child: Column(
-                                      children: [
-                                        Icon(
-                                          Icons.error_outline,
-                                          size: 48,
-                                          color: Colors.red.shade400,
-                                        ),
-                                        const SizedBox(height: 16),
-                                        Text(
-                                          'Erreur de chargement',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.red.shade700,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          controller.errorMessage!,
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            color: Color(0xFF6B7280),
-                                          ),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }
-                              
-                              return PaymentTable(
-                                selectedSegment: controller.selectedSegment,
-                                selectedMonth: controller.selectedMonth,
-                                members: controller.membersForTable,
-                                monthNames: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'],
-                                onMonthSelected: _onMonthSelected,
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 20),
-                          const LegendWidget(),
-                          const SizedBox(height: 80),
-                        ],
+                      child: RefreshIndicator(
+                        color: const Color(0xFF4F46E5),
+                        onRefresh: _onRefresh,
+                        child: PaymentTable(
+                          selectedSegment: controller.selectedSegment,
+                          selectedMonth: controller.selectedMonth,
+                          members: controller.membersForTable,
+                          monthNames: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'],
+                          onMonthSelected: _onMonthSelected,
+                        ),
                       ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
             ),
           ],
