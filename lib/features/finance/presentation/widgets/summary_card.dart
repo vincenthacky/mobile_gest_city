@@ -87,12 +87,8 @@ class _SummaryCardState extends State<SummaryCard>
         : _segmentMonths.fold(0, (sum, month) => sum + widget.montantAvanceParMois[month - 1]);
 
     
-    return GestureDetector(
-      onTap: _toggleExpanded,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.all(12),
+    return Container(
+      padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -189,8 +185,7 @@ class _SummaryCardState extends State<SummaryCard>
             
           ],
         ),
-      ),
-    );
+      );
   }
 
   Widget _buildModernInfoItem(
