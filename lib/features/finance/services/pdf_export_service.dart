@@ -3,6 +3,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:intl/intl.dart';
 
@@ -18,6 +19,7 @@ class PDFExportService {
     required List<int> montantReelParMois,
     required List<int> montantRemboursementParMois,
     required List<int> montantAvanceParMois,
+    Rect? sharePositionOrigin,
   }) async {
     // Couleurs app adaptées
     const primaryColor = PdfColor.fromInt(0xFF4F46E5);
@@ -207,7 +209,11 @@ class PDFExportService {
     final file = File('${output.path}/$fileName');
     await file.writeAsBytes(await pdf.save());
     
-    await Share.shareXFiles([XFile(file.path)], text: 'Tableau de Ventilation des Cotisations');
+    await Share.shareXFiles(
+      [XFile(file.path)], 
+      text: 'Tableau de Ventilation des Cotisations',
+      sharePositionOrigin: sharePositionOrigin,
+    );
   }
 
   static pw.Widget _buildPDFHeader(PdfColor primaryColor) {

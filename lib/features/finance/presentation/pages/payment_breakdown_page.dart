@@ -19,6 +19,7 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
   late AnimationController _scaleController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
+  final GlobalKey _downloadButtonKey = GlobalKey();
 
   @override
   void initState() {
@@ -131,6 +132,7 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
                         ),
                       ),
                       GestureDetector(
+                        key: _downloadButtonKey,
                         onTap: _exportToPDF,
                         child: Container(
                           padding: const EdgeInsets.all(8),
@@ -325,6 +327,14 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
       debugPrint('DEBUG: Export PDF avec ${controller.membersForTable.length} membres');
       debugPrint('DEBUG: Statistiques annuelles: ${controller.annualStatisticsCount} mois chargés');
       
+      // Obtenir la position du bouton pour iPhone
+      Rect? sharePositionOrigin;
+      final RenderBox? renderBox = _downloadButtonKey.currentContext?.findRenderObject() as RenderBox?;
+      if (renderBox != null) {
+        final position = renderBox.localToGlobal(Offset.zero);
+        sharePositionOrigin = Rect.fromLTWH(position.dx, position.dy, renderBox.size.width, renderBox.size.height);
+      }
+
       await PDFExportService.exportVentilationPDF(
         selectedMonth: controller.selectedMonth,
         members: controller.membersForTable,
@@ -334,6 +344,7 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
         montantReelParMois: controller.montantReelParMois,
         montantRemboursementParMois: controller.montantRemboursementParMois,
         montantAvanceParMois: controller.montantAvanceParMois,
+        sharePositionOrigin: sharePositionOrigin,
       );
       
       debugPrint('DEBUG: PDF export terminé avec succès');

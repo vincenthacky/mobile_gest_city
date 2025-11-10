@@ -731,24 +731,49 @@ class _ReportDetailModal extends StatelessWidget {
   final ReportModel report;
 
   const _ReportDetailModal({required this.report});
+  
+  // Fonction utilitaire pour les tailles responsives
+  double _getResponsiveFontSize(BuildContext context, double baseSize) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth > 500) {
+      return baseSize;
+    } else {
+      return baseSize * 0.9; // 10% plus petit sur petits écrans
+    }
+  }
+  
+  double _getResponsivePadding(BuildContext context, double basePadding) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    return screenWidth > 500 ? basePadding : basePadding * 0.8;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final screenHeight = screenSize.height;
+    final screenWidth = screenSize.width;
+    
+    // Responsive height: 90% pour petits écrans, 85% pour grands écrans
+    final modalHeight = screenHeight < 700 ? screenHeight * 0.90 : screenHeight * 0.85;
+    
     return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
-      decoration: const BoxDecoration(
-        color: Color(0xFFF9FAFB),
+      height: modalHeight,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFB),
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
+          topLeft: Radius.circular(screenWidth > 500 ? 24 : 20),
+          topRight: Radius.circular(screenWidth > 500 ? 24 : 20),
         ),
       ),
       child: Column(
         children: [
           Container(
-            width: 40,
+            width: screenWidth * 0.1, // 10% de la largeur d'écran
             height: 4,
-            margin: const EdgeInsets.only(top: 12, bottom: 20),
+            margin: EdgeInsets.only(
+              top: screenHeight > 700 ? 12 : 8,
+              bottom: screenHeight > 700 ? 20 : 16,
+            ),
             decoration: BoxDecoration(
               color: const Color(0xFFE5E7EB),
               borderRadius: BorderRadius.circular(2),
@@ -756,19 +781,24 @@ class _ReportDetailModal extends StatelessWidget {
           ),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              padding: EdgeInsets.fromLTRB(
+                screenWidth > 500 ? 20 : 16, // Padding adaptatif
+                0, 
+                screenWidth > 500 ? 20 : 16, 
+                screenHeight > 700 ? 20 : 16
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildReportHeader(),
-                  const SizedBox(height: 24),
-                  _buildDescriptionSection(),
-                  const SizedBox(height: 20),
+                  _buildReportHeader(context),
+                  SizedBox(height: screenHeight > 700 ? 24 : 20),
+                  _buildDescriptionSection(context),
+                  SizedBox(height: screenHeight > 700 ? 20 : 16),
                   if (report.hasImages) ...[
-                    _buildImagesSection(),
-                    const SizedBox(height: 20),
+                    _buildImagesSection(context),
+                    SizedBox(height: screenHeight > 700 ? 20 : 16),
                   ],
-                  _buildReportInfoSection(),
+                  _buildReportInfoSection(context),
                 ],
               ),
             ),
@@ -778,30 +808,32 @@ class _ReportDetailModal extends StatelessWidget {
     );
   }
 
-  Widget _buildReportHeader() {
+  Widget _buildReportHeader(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: EdgeInsets.all(screenWidth > 500 ? 12 : 10),
           decoration: BoxDecoration(
             color: report.priorityColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(screenWidth > 500 ? 12 : 10),
           ),
           child: Icon(
             report.typeIcon,
             color: report.priorityColor,
-            size: 24,
+            size: screenWidth > 500 ? 24 : 20,
           ),
         ),
-        const SizedBox(width: 16),
+        SizedBox(width: screenWidth > 500 ? 16 : 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 report.title,
-                style: const TextStyle(
-                  fontSize: 20,
+                style: TextStyle(
+                  fontSize: _getResponsiveFontSize(context, 20),
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF1F2937),
                   fontFamily: 'Poppins',
@@ -810,8 +842,8 @@ class _ReportDetailModal extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 'Par ${report.authorText}',
-                style: const TextStyle(
-                  fontSize: 14,
+                style: TextStyle(
+                  fontSize: _getResponsiveFontSize(context, 14),
                   color: Color(0xFF6B7280),
                   fontFamily: 'Nunito',
                 ),
@@ -839,9 +871,11 @@ class _ReportDetailModal extends StatelessWidget {
     );
   }
 
-  Widget _buildDescriptionSection() {
+  Widget _buildDescriptionSection(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(screenWidth > 500 ? 20 : 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -897,9 +931,11 @@ class _ReportDetailModal extends StatelessWidget {
     );
   }
 
-  Widget _buildImagesSection() {
+  Widget _buildImagesSection(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(screenWidth > 500 ? 20 : 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -1043,9 +1079,11 @@ class _ReportDetailModal extends StatelessWidget {
     );
   }
 
-  Widget _buildReportInfoSection() {
+  Widget _buildReportInfoSection(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(screenWidth > 500 ? 20 : 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,

@@ -643,21 +643,32 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.85,
-        decoration: const BoxDecoration(
-          color: Color(0xFFF9FAFB),
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
+      builder: (context) {
+        final screenSize = MediaQuery.of(context).size;
+        final screenHeight = screenSize.height;
+        final screenWidth = screenSize.width;
+        
+        // Responsive height: 90% pour petits écrans, 85% pour grands écrans
+        final modalHeight = screenHeight < 700 ? screenHeight * 0.90 : screenHeight * 0.85;
+        
+        return Container(
+          height: modalHeight,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF9FAFB),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(screenWidth > 500 ? 24 : 20),
+              topRight: Radius.circular(screenWidth > 500 ? 24 : 20),
+            ),
           ),
-        ),
         child: Column(
           children: [
             Container(
-              width: 40,
+              width: screenWidth * 0.1, // 10% de la largeur d'écran
               height: 4,
-              margin: const EdgeInsets.only(top: 12, bottom: 20),
+              margin: EdgeInsets.only(
+                top: screenHeight > 700 ? 12 : 8,
+                bottom: screenHeight > 700 ? 20 : 16,
+              ),
               decoration: BoxDecoration(
                 color: const Color(0xFFE5E7EB),
                 borderRadius: BorderRadius.circular(2),
@@ -665,25 +676,30 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
             ),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                padding: EdgeInsets.fromLTRB(
+                  screenWidth > 500 ? 20 : 16, // Padding adaptatif
+                  0, 
+                  screenWidth > 500 ? 20 : 16, 
+                  screenHeight > 700 ? 20 : 16
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(12),
+                          padding: EdgeInsets.all(screenWidth > 500 ? 12 : 10),
                           decoration: BoxDecoration(
                             color: information.statusColor.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(screenWidth > 500 ? 12 : 10),
                           ),
                           child: Icon(
                             information.typeIcon,
                             color: information.statusColor,
-                            size: 24,
+                            size: screenWidth > 500 ? 24 : 20,
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        SizedBox(width: screenWidth > 500 ? 16 : 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -877,7 +893,8 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
             ),
           ],
         ),
-      ),
+      );
+      },
     );
   }
 
