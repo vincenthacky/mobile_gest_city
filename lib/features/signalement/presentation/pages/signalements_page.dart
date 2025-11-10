@@ -162,7 +162,7 @@ class _SignalementsPageState extends State<SignalementsPage> {
                 ),
               ),
               child: const AppHeader(
-                title: 'Signalements',
+                title: 'Vigilance',
               ),
             ),
             

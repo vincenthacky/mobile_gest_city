@@ -313,7 +313,7 @@ class _ProjetsPageState extends State<ProjetsPage> {
                 ),
               ),
               child: const AppHeader(
-                title: 'Projets communautaires',
+                title: 'Projets de la cité',
               ),
             ),
             
