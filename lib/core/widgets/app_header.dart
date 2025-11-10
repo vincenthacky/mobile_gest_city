@@ -25,8 +25,8 @@ class AppHeader extends StatelessWidget {
               },
               borderRadius: BorderRadius.circular(12),
               child: Container(
-                width: 40,
-                height: 40,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: const Color(0xFF4F46E5),
                   borderRadius: BorderRadius.circular(12),
@@ -34,7 +34,7 @@ class AppHeader extends StatelessWidget {
                 child: const Icon(
                   Icons.person,
                   color: Colors.white,
-                  size: 20,
+                  size: 18,
                 ),
               ),
             ),
@@ -42,14 +42,14 @@ class AppHeader extends StatelessWidget {
             // Titre au centre avec gestion responsive
             Expanded(
               child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
+                margin: const EdgeInsets.symmetric(horizontal: 12),
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final textPainter = TextPainter(
                       text: TextSpan(
                         text: title,
                         style: const TextStyle(
-                          fontSize: 20,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF1F2937),
                           letterSpacing: -0.3,
@@ -89,7 +89,7 @@ class AppHeader extends StatelessWidget {
                         title,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                          fontSize: 20,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF1F2937),
                           letterSpacing: -0.3,
@@ -111,7 +111,7 @@ class AppHeader extends StatelessWidget {
                   icon: const Icon(
                     Icons.notifications_outlined,
                     color: Color(0xFF6B7280),
-                    size: 24,
+                    size: 22,
                   ),
                 ),
                 Positioned(

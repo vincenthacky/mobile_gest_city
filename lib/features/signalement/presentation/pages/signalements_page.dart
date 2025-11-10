@@ -151,7 +151,7 @@ class _SignalementsPageState extends State<SignalementsPage> {
           children: [
             // Header fixe
             Container(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
               decoration: BoxDecoration(
                 color: const Color(0xFFF8FAFC),
                 border: Border(
@@ -226,7 +226,7 @@ class _SignalementsPageState extends State<SignalementsPage> {
                     return SingleChildScrollView(
                   controller: _scrollController,
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -238,11 +238,11 @@ class _SignalementsPageState extends State<SignalementsPage> {
                             child: Container(
                               decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(10),
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.black.withValues(alpha: 0.05),
-                                    blurRadius: 4,
+                                    blurRadius: 6,
                                     offset: const Offset(0, 2),
                                   ),
                                 ],
@@ -251,37 +251,43 @@ class _SignalementsPageState extends State<SignalementsPage> {
                                 controller: _searchController,
                                 decoration: InputDecoration(
                                   hintText: 'Rechercher un signalement...',
+                                  hintStyle: const TextStyle(
+                                    color: Color(0xFF6B7280),
+                                    fontFamily: 'Nunito',
+                                    fontSize: 14,
+                                  ),
                                   prefixIcon: const Icon(
                                     Icons.search,
                                     color: Color(0xFF6B7280),
+                                    size: 20,
                                   ),
                                   suffixIcon: _searchController.text.isNotEmpty
                                       ? IconButton(
-                                          icon: const Icon(Icons.clear),
+                                          icon: const Icon(Icons.clear, size: 18),
                                           onPressed: () {
                                             _searchController.clear();
                                           },
                                         )
                                       : null,
                                   border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(10),
                                     borderSide: BorderSide.none,
                                   ),
                                   filled: true,
                                   fillColor: Colors.white,
                                   contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
+                                    horizontal: 12,
+                                    vertical: 8,
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 8),
                           Container(
                             decoration: BoxDecoration(
                               color: const Color(0xFFEF4444),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(8),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withValues(alpha: 0.05),
@@ -297,32 +303,33 @@ class _SignalementsPageState extends State<SignalementsPage> {
                               icon: const Icon(
                                 Icons.add,
                                 color: Colors.white,
+                                size: 18,
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       
                       // Filtres
                       SizedBox(
-                        height: 40,
+                        height: 32,
                         child: ListView(
                           scrollDirection: Axis.horizontal,
                           children: [
                             _buildFilterChip('Tous', SignalementFilter.tous),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 6),
                             _buildFilterChip('En attente', SignalementFilter.nouveaux),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 6),
                             _buildFilterChip('En cours', SignalementFilter.enCours),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 6),
                             _buildFilterChip('Résolus', SignalementFilter.resolus),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 6),
                             _buildFilterChip('Urgents', SignalementFilter.urgents),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 12),
                       
                       // Liste des signalements
                       if (_filteredReports.isEmpty)
@@ -348,7 +355,7 @@ class _SignalementsPageState extends State<SignalementsPage> {
                           children: [
                             ..._filteredReports.map((report) {
                               return Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
+                                padding: const EdgeInsets.only(bottom: 10),
                                 child: _buildSignalementCard(report),
                               );
                             }),
@@ -462,25 +469,46 @@ class _SignalementsPageState extends State<SignalementsPage> {
                     Text(
                       report.title,
                       style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
                         color: Color(0xFF1F2937),
+                        fontFamily: 'Poppins',
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Row(
                       children: [
                         Icon(
                           Icons.access_time,
-                          size: 14,
+                          size: 11,
                           color: Colors.grey.shade500,
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: 3),
                         Text(
                           report.formattedDate,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 10,
                             color: Colors.grey.shade500,
+                            fontFamily: 'Nunito',
+                          ),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: report.priorityColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            report.priorityText,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: report.priorityColor,
+                              fontFamily: 'Nunito',
+                            ),
                           ),
                         ),
                       ],
@@ -488,24 +516,9 @@ class _SignalementsPageState extends State<SignalementsPage> {
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: report.priorityColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  report.priorityText,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: report.priorityColor,
-                  ),
-                ),
-              ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           
           Text(
             report.description,
@@ -583,91 +596,96 @@ class _SignalementsPageState extends State<SignalementsPage> {
             ],
           ),
           
-          // Images attachées (max 3)
+          
           if (report.hasImages) ...[
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 80,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: report.imageCount > 3 ? 3 : report.imageCount,
-                itemBuilder: (context, index) {
-                  final isLastAndMore = index == 2 && report.imageCount > 3;
-                  return Padding(
-                    padding: EdgeInsets.only(
-                      right: index < 2 && index < report.imageCount - 1 ? 8 : 0,
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Stack(
-                          children: [
-                            Image.network(
-                              report.images[index],
-                              width: 80,
-                              height: 80,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  color: Colors.grey.shade200,
-                                  child: Icon(
-                                    Icons.image,
-                                    color: Colors.grey.shade400,
-                                    size: 24,
-                                  ),
-                                );
-                              },
-                            ),
-                            if (isLastAndMore)
-                              Container(
-                                width: 80,
-                                height: 80,
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.6),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    '+${report.imageCount - 2}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Row(
               children: [
-                Icon(
-                  Icons.photo_camera,
-                  size: 16,
-                  color: Colors.grey.shade500,
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6B7280).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.photo_library,
+                        size: 12,
+                        color: Color(0xFF6B7280),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${report.imageCount}',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF6B7280),
+                          fontFamily: 'Nunito',
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 4),
-                Text(
-                  '${report.imageCount} photo(s) attachée(s)',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
+                const Spacer(),
+                GestureDetector(
+                  onTap: () => _showReportDetails(report),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Voir plus',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFFEF4444),
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                      SizedBox(width: 4),
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        size: 12,
+                        color: Color(0xFFEF4444),
+                      ),
+                    ],
                   ),
                 ),
               ],
+            ),
+          ] else ...[
+            const SizedBox(height: 6),
+            GestureDetector(
+              onTap: () => _showReportDetails(report),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Voir plus',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFEF4444),
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                    SizedBox(width: 4),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 12,
+                      color: Color(0xFFEF4444),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ],
@@ -687,10 +705,10 @@ class _SignalementsPageState extends State<SignalementsPage> {
     return GestureDetector(
       onTap: () => _onFilterChanged(filter),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected ? chipColor : Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? chipColor : const Color(0xFFE5E7EB),
             width: 1,
@@ -699,8 +717,8 @@ class _SignalementsPageState extends State<SignalementsPage> {
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
             color: isSelected ? Colors.white : const Color(0xFF374151),
           ),
         ),

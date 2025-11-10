@@ -25,7 +25,7 @@ class ProjectCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: const Color(0xFFFAFBFC), // Fond légèrement off-white pour meilleur contraste
           borderRadius: BorderRadius.circular(20),
@@ -40,14 +40,9 @@ class ProjectCard extends StatelessWidget {
                 ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08), // Ombre légèrement plus forte
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03), // Ombre douce supplémentaire
-              blurRadius: 4,
-              offset: const Offset(0, 1),
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -59,7 +54,7 @@ class ProjectCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: const Color(0xFF3B82F6).withOpacity(0.08),
                     borderRadius: BorderRadius.circular(12),
@@ -70,7 +65,7 @@ class ProjectCard extends StatelessWidget {
                     size: 20,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,26 +73,45 @@ class ProjectCard extends StatelessWidget {
                       Text(
                         project.title,
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: Color(0xFF1F2937),
                           fontFamily: 'Poppins',
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.person, size: 14, color: Color(0xFF475569)), // Couleur plus foncée
-                          const SizedBox(width: 6),
+                          const Icon(Icons.person, size: 12, color: Color(0xFF475569)),
+                          const SizedBox(width: 4),
                           Flexible(
                             child: Text(
                               project.authorName ?? '',
                               style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF475569), // Couleur plus foncée pour meilleure lisibilité
+                                fontSize: 11,
+                                color: Color(0xFF475569),
                                 fontFamily: 'Nunito',
                               ),
                               overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: project.statusColor.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              project.statusText,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: project.statusColor,
+                                fontFamily: 'Nunito',
+                              ),
                             ),
                           ),
                         ],
@@ -106,27 +120,10 @@ class ProjectCard extends StatelessWidget {
                   ),
                 ),
 
-                // STATUS PILL (en haut droite)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: project.statusColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    project.statusText,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: project.statusColor,
-                      fontFamily: 'Nunito',
-                    ),
-                  ),
-                ),
               ],
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
 
             // DESCRIPTION
             Text(
@@ -141,7 +138,7 @@ class ProjectCard extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
 
-            const SizedBox(height: 14),
+            const SizedBox(height: 8),
 
             // BUDGET & DATE PILLs (montant avec span, jour de clôture avec span)
             Row(
@@ -151,7 +148,7 @@ class ProjectCard extends StatelessWidget {
                   label: project.formattedEstimatedAmount,
                   color: const Color(0xFF10B981),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 if (project.voteCloseDate != null)
                   _pillWithIcon(
                     icon: Icons.schedule,
@@ -182,7 +179,7 @@ class ProjectCard extends StatelessWidget {
               ],
             ),
 
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
 
             // VOTER + VOIR PLUS sur la même ligne (ou message selon status)
             if (isVoteOpen && project.canVote && onVote != null) ...[
@@ -192,7 +189,7 @@ class ProjectCard extends StatelessWidget {
                   Expanded(
                     flex: 1,
                     child: SizedBox(
-                      height: 40,
+                      height: 36,
                       child: ElevatedButton(
                         key: buttonKey,
                         onPressed: onVote != null ? () {
@@ -243,12 +240,12 @@ class ProjectCard extends StatelessWidget {
                 ],
               ),
             ] else ...[
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               // Message conditionnel en remplacement du bouton
               _statusMessage(context, project, statusKey),
             ],
 
-            const SizedBox(height: 14),
+            const SizedBox(height: 8),
 
             // Votes (4 colonnes sur une seule ligne)
             if (project.totalVotes > 0)
@@ -297,7 +294,7 @@ class ProjectCard extends StatelessWidget {
       child: Column(
         children: [
           Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF475569), fontFamily: 'Nunito')), // Couleur plus foncée
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -335,7 +332,7 @@ class ProjectCard extends StatelessWidget {
         child: Container(
           key: statusKey,
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -389,7 +386,7 @@ class ProjectCard extends StatelessWidget {
     if (isVoteNotOpen) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
           color: Colors.orange.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(12),

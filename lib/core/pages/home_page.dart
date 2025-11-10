@@ -14,7 +14,7 @@ class HomePage extends StatelessWidget {
           children: [
             // Header avec AppHeader
             Container(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
               decoration: BoxDecoration(
                 color: const Color(0xFFF8FAFC),
                 border: Border(

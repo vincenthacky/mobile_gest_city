@@ -84,7 +84,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
           children: [
             // Header
             Container(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
               decoration: BoxDecoration(
                 color: const Color(0xFFF9FAFB),
                 border: Border(
@@ -107,7 +107,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                 color: const Color(0xFF10B981),
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -118,7 +118,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                             child: Container(
                               decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(10),
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.black.withValues(alpha: 0.05),
@@ -135,30 +135,32 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                                   hintStyle: const TextStyle(
                                     color: Color(0xFF6B7280),
                                     fontFamily: 'Nunito',
+                                    fontSize: 14,
                                   ),
                                   prefixIcon: const Icon(
                                     Icons.search,
                                     color: Color(0xFF6B7280),
+                                    size: 20,
                                   ),
                                   border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius: BorderRadius.circular(10),
                                     borderSide: BorderSide.none,
                                   ),
                                   filled: true,
                                   fillColor: Colors.white,
                                   contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 16,
+                                    horizontal: 12,
+                                    vertical: 8,
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 8),
                           Container(
                             decoration: BoxDecoration(
                               color: const Color(0xFF10B981),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(8),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withValues(alpha: 0.08),
@@ -179,39 +181,39 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                               icon: const Icon(
                                 Icons.add,
                                 color: Colors.white,
-                                size: 20,
+                                size: 18,
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 12),
                       
                       // Filtres
                       SizedBox(
-                        height: 40,
+                        height: 32,
                         child: ListView(
                           scrollDirection: Axis.horizontal,
                           children: [
                             _buildFilterChip('Tous', InformationFilter.tous, Icons.apps),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 8),
                             _buildFilterChip('Récents', InformationFilter.recents, Icons.schedule),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 8),
                             _buildFilterChip('Sécurité', InformationFilter.security, Icons.security),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 8),
                             _buildFilterChip('Drogue', InformationFilter.drugs, Icons.medical_services),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 8),
                             _buildFilterChip('Suspect', InformationFilter.suspect, Icons.person_search),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 8),
                             _buildFilterChip('Nuisance', InformationFilter.nuisance, Icons.volume_up),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 8),
                             _buildFilterChip('Infrastructure', InformationFilter.infrastructure, Icons.construction),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 8),
                             _buildFilterChip('Autres', InformationFilter.autres, Icons.more_horiz),
                           ],
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 12),
                       
                       // Liste des informations
                       Consumer<InformationController>(
@@ -323,7 +325,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                           return Column(
                             children: filteredInformations.map((information) {
                               return Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
+                                padding: const EdgeInsets.only(bottom: 10),
                                 child: _buildInformationCard(information),
                               );
                             }).toList(),
@@ -348,10 +350,10 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
       onTap: () => setState(() => _selectedFilter = filter),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF10B981) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected 
                 ? const Color(0xFF10B981) 
@@ -379,14 +381,14 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
           children: [
             Icon(
               icon,
-              size: 16,
+              size: 14,
               color: isSelected ? Colors.white : const Color(0xFF6B7280),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 4),
             Text(
               label,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: isSelected ? Colors.white : const Color(0xFF374151),
                 fontFamily: 'Nunito',
@@ -402,15 +404,15 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
     return GestureDetector(
       onTap: () => _showInformationDetails(information),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -420,18 +422,18 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: information.statusColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     information.typeIcon,
                     color: information.statusColor,
-                    size: 20,
+                    size: 18,
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -439,27 +441,49 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                       Text(
                         information.title,
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: Color(0xFF1F2937),
                           fontFamily: 'Poppins',
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
                       Row(
                         children: [
                           Icon(
                             Icons.person,
-                            size: 14,
+                            size: 11,
                             color: Colors.grey.shade500,
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            information.authorText,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade500,
-                              fontFamily: 'Nunito',
+                          const SizedBox(width: 3),
+                          Flexible(
+                            child: Text(
+                              information.authorText,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey.shade500,
+                                fontFamily: 'Nunito',
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: information.priorityColor.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              information.priorityText,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: information.priorityColor,
+                                fontFamily: 'Nunito',
+                              ),
                             ),
                           ),
                         ],
@@ -467,25 +491,9 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: information.priorityColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    information.priorityText,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: information.priorityColor,
-                      fontFamily: 'Nunito',
-                    ),
-                  ),
-                ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             
             Text(
               information.description,
@@ -498,30 +506,30 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             
             Row(
               children: [
                 if (information.place != null) ...[
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(6),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(
                           Icons.location_on,
-                          size: 14,
+                          size: 12,
                           color: Color(0xFF3B82F6),
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 4),
                         Text(
                           information.place!,
                           style: const TextStyle(
-                            fontSize: 12,
+                            fontSize: 10,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF3B82F6),
                             fontFamily: 'Nunito',
@@ -530,27 +538,27 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                 ],
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.orange.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(
                         Icons.schedule,
-                        size: 14,
+                        size: 12,
                         color: Colors.orange,
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 4),
                       Text(
                         information.formattedDate,
                         style: const TextStyle(
-                          fontSize: 12,
+                          fontSize: 10,
                           fontWeight: FontWeight.w600,
                           color: Colors.orange,
                           fontFamily: 'Nunito',
@@ -572,14 +580,14 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                       children: [
                         const Icon(
                           Icons.photo_library,
-                          size: 14,
+                          size: 12,
                           color: Color(0xFF6B7280),
                         ),
                         const SizedBox(width: 4),
                         Text(
                           '${information.imageCount}',
                           style: const TextStyle(
-                            fontSize: 12,
+                            fontSize: 10,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF6B7280),
                             fontFamily: 'Nunito',
@@ -592,12 +600,12 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
               ],
             ),
             
-            const SizedBox(height: 12),
+            const SizedBox(height: 6),
             GestureDetector(
               onTap: () => _showInformationDetails(information),
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(vertical: 6),
                 decoration: BoxDecoration(
                   color: Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
@@ -608,7 +616,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                     Text(
                       'Voir plus',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: Color(0xFF10B981),
                         fontFamily: 'Poppins',

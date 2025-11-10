@@ -14,7 +14,7 @@ class ProjectFilters extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 40,
+      height: 32,
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
@@ -24,35 +24,35 @@ class ProjectFilters extends StatelessWidget {
             selectedStatus == null,
             Icons.apps,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           _buildFilterChip(
             'Vote ouvert',
             ProjectStatus.voteOpen,
             selectedStatus == ProjectStatus.voteOpen,
             Icons.how_to_vote,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           _buildFilterChip(
             'Pas encore ouvert',
             ProjectStatus.voteNotOpen,
             selectedStatus == ProjectStatus.voteNotOpen,
             Icons.schedule,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           _buildFilterChip(
             'Vote clos',
             ProjectStatus.voteClosed,
             selectedStatus == ProjectStatus.voteClosed,
             Icons.lock_clock,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           _buildFilterChip(
             'Accepté',
             ProjectStatus.accepted,
             selectedStatus == ProjectStatus.accepted,
             Icons.check_circle,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           _buildFilterChip(
             'Rejeté',
             ProjectStatus.rejected,
@@ -74,10 +74,10 @@ class ProjectFilters extends StatelessWidget {
       onTap: () => onFilterChanged(status),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF3B82F6) : Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected 
                 ? const Color(0xFF3B82F6) 
@@ -105,14 +105,14 @@ class ProjectFilters extends StatelessWidget {
           children: [
             Icon(
               icon,
-              size: 16,
+              size: 14,
               color: isSelected ? Colors.white : const Color(0xFF6B7280),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 4),
             Text(
               label,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: isSelected ? Colors.white : const Color(0xFF374151),
                 fontFamily: 'Nunito',

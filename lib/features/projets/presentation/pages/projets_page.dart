@@ -302,7 +302,7 @@ class _ProjetsPageState extends State<ProjetsPage> {
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
               decoration: BoxDecoration(
                 color: const Color(0xFFF9FAFB),
                 border: Border(
@@ -378,7 +378,7 @@ class _ProjetsPageState extends State<ProjetsPage> {
                     return SingleChildScrollView(
                   controller: _scrollController,
                   physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -389,7 +389,7 @@ class _ProjetsPageState extends State<ProjetsPage> {
                             child: Container(
                               decoration: BoxDecoration(
                                 color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(10),
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.black.withValues(alpha: 0.05),
@@ -405,38 +405,40 @@ class _ProjetsPageState extends State<ProjetsPage> {
                                   hintStyle: const TextStyle(
                                     color: Color(0xFF6B7280),
                                     fontFamily: 'Nunito',
+                                    fontSize: 14,
                                   ),
                                   prefixIcon: const Icon(
                                     Icons.search,
                                     color: Color(0xFF6B7280),
+                                    size: 20,
                                   ),
                                   suffixIcon: _searchController.text.isNotEmpty
                                       ? IconButton(
-                                          icon: const Icon(Icons.clear),
+                                          icon: const Icon(Icons.clear, size: 18),
                                           onPressed: () {
                                             _searchController.clear();
                                           },
                                         )
                                       : null,
                                   border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius: BorderRadius.circular(10),
                                     borderSide: BorderSide.none,
                                   ),
                                   filled: true,
                                   fillColor: Colors.white,
                                   contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 16,
+                                    horizontal: 12,
+                                    vertical: 8,
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: 8),
                           Container(
                             decoration: BoxDecoration(
                               color: const Color(0xFF3B82F6),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(8),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withValues(alpha: 0.08),
@@ -457,19 +459,19 @@ class _ProjetsPageState extends State<ProjetsPage> {
                               icon: const Icon(
                                 Icons.add,
                                 color: Colors.white,
-                                size: 20,
+                                size: 18,
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 12),
                       
                       ProjectFilters(
                         selectedStatus: _statusFilter,
                         onFilterChanged: _onFilterChanged,
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 12),
                       
                       if (_filteredProjects.isEmpty)
                         Container(
@@ -521,7 +523,7 @@ class _ProjetsPageState extends State<ProjetsPage> {
                           children: [
                             ..._filteredProjects.map((project) {
                               return Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
+                                padding: const EdgeInsets.only(bottom: 10),
                                 child: Stack(
                                   children: [
                                     ProjectCard(
