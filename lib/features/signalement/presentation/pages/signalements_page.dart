@@ -409,8 +409,19 @@ class _SignalementsPageState extends State<SignalementsPage> {
     );
   }
 
+  void _showReportDetails(ReportModel report) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _ReportDetailModal(report: report),
+    );
+  }
+
   Widget _buildSignalementCard(ReportModel report) {
-    return Container(
+    return GestureDetector(
+      onTap: () => _showReportDetails(report),
+      child: Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -572,54 +583,67 @@ class _SignalementsPageState extends State<SignalementsPage> {
             ],
           ),
           
-          // Images attachées
+          // Images attachées (max 3)
           if (report.hasImages) ...[
             const SizedBox(height: 12),
             SizedBox(
-              height: 120,
+              height: 80,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                itemCount: report.images.length,
+                itemCount: report.imageCount > 3 ? 3 : report.imageCount,
                 itemBuilder: (context, index) {
+                  final isLastAndMore = index == 2 && report.imageCount > 3;
                   return Padding(
                     padding: EdgeInsets.only(
-                      right: index < report.images.length - 1 ? 8 : 0,
+                      right: index < 2 && index < report.imageCount - 1 ? 8 : 0,
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
-                        width: 120,
-                        height: 120,
+                        width: 80,
+                        height: 80,
                         decoration: BoxDecoration(
                           color: Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Image.network(
-                          report.images[index],
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: Colors.grey.shade200,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
+                        child: Stack(
+                          children: [
+                            Image.network(
+                              report.images[index],
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey.shade200,
+                                  child: Icon(
                                     Icons.image,
                                     color: Colors.grey.shade400,
-                                    size: 32,
+                                    size: 24,
                                   ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Image',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Colors.grey.shade500,
+                                );
+                              },
+                            ),
+                            if (isLastAndMore)
+                              Container(
+                                width: 80,
+                                height: 80,
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.6),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    '+${report.imageCount - 2}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                ],
+                                ),
                               ),
-                            );
-                          },
+                          ],
                         ),
                       ),
                     ),
@@ -647,6 +671,7 @@ class _SignalementsPageState extends State<SignalementsPage> {
             ),
           ],
         ],
+      ),
       ),
     );
   }
@@ -678,6 +703,509 @@ class _SignalementsPageState extends State<SignalementsPage> {
             fontWeight: FontWeight.w500,
             color: isSelected ? Colors.white : const Color(0xFF374151),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReportDetailModal extends StatelessWidget {
+  final ReportModel report;
+
+  const _ReportDetailModal({required this.report});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      decoration: const BoxDecoration(
+        color: Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(top: 12, bottom: 20),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE5E7EB),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildReportHeader(),
+                  const SizedBox(height: 24),
+                  _buildDescriptionSection(),
+                  const SizedBox(height: 20),
+                  if (report.hasImages) ...[
+                    _buildImagesSection(),
+                    const SizedBox(height: 20),
+                  ],
+                  _buildReportInfoSection(),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReportHeader() {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: report.priorityColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            report.typeIcon,
+            color: report.priorityColor,
+            size: 24,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                report.title,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1F2937),
+                  fontFamily: 'Poppins',
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Par ${report.authorText}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF6B7280),
+                  fontFamily: 'Nunito',
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: report.statusColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            report.statusText,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: report.statusColor,
+              fontFamily: 'Nunito',
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDescriptionSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withValues(alpha: 0.95),
+            Colors.white.withValues(alpha: 0.85),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.4),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
+            spreadRadius: 1,
+          ),
+          BoxShadow(
+            color: Colors.white.withValues(alpha: 0.9),
+            blurRadius: 8,
+            offset: const Offset(-1, -1),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Description complète',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1F2937),
+              fontFamily: 'Poppins',
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            report.description,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF6B7280),
+              height: 1.5,
+              fontFamily: 'Nunito',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImagesSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withValues(alpha: 0.95),
+            Colors.white.withValues(alpha: 0.85),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.4),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
+            spreadRadius: 1,
+          ),
+          BoxShadow(
+            color: Colors.white.withValues(alpha: 0.9),
+            blurRadius: 8,
+            offset: const Offset(-1, -1),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.photo_library,
+                  color: Color(0xFFEF4444),
+                  size: 14,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Images du signalement (${report.imageCount})',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1F2937),
+                  fontFamily: 'Poppins',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 120,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: report.images.length,
+              itemBuilder: (context, index) {
+                return Padding(
+                  padding: EdgeInsets.only(
+                    right: index < report.images.length - 1 ? 12 : 0,
+                  ),
+                  child: GestureDetector(
+                    onTap: () {
+                      _showFullScreenImage(context, report.images[index]);
+                    },
+                    child: Container(
+                      width: 120,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFFEF4444).withValues(alpha: 0.2),
+                          width: 1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Stack(
+                          children: [
+                            Image.network(
+                              report.images[index],
+                              width: 120,
+                              height: 120,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  width: 120,
+                                  height: 120,
+                                  color: const Color(0xFFF3F4F6),
+                                  child: const Center(
+                                    child: Icon(
+                                      Icons.image,
+                                      color: Color(0xFFEF4444),
+                                      size: 40,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.6),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Icon(
+                                  Icons.zoom_in,
+                                  color: Colors.white,
+                                  size: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReportInfoSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white.withValues(alpha: 0.95),
+            Colors.white.withValues(alpha: 0.85),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.4),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
+            spreadRadius: 1,
+          ),
+          BoxShadow(
+            color: Colors.white.withValues(alpha: 0.9),
+            blurRadius: 8,
+            offset: const Offset(-1, -1),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Informations du signalement',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF1F2937),
+              fontFamily: 'Poppins',
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildInfoRow(Icons.category, 'Type', report.typeText, report.priorityColor),
+          _buildInfoRow(Icons.priority_high, 'Priorité', report.priorityText, report.priorityColor),
+          if (report.place != null)
+            _buildInfoRow(Icons.location_on, 'Localisation', report.place!, const Color(0xFF3B82F6)),
+          _buildInfoRow(Icons.schedule, 'Date de signalement', report.formattedDate, const Color(0xFFF59E0B)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value, Color iconColor) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: iconColor,
+              size: 14,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF6B7280),
+                    fontFamily: 'Nunito',
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1F2937),
+                    fontFamily: 'Nunito',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFullScreenImage(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.9),
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.8,
+                maxWidth: MediaQuery.of(context).size.width * 0.9,
+              ),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: const Color(0xFFF3F4F6),
+                      height: 200,
+                      child: const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.image,
+                              color: Color(0xFFEF4444),
+                              size: 80,
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'Image du signalement',
+                              style: TextStyle(
+                                color: Color(0xFF6B7280),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                fontFamily: 'Poppins',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.close,
+                  color: Color(0xFF1F2937),
+                  size: 24,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

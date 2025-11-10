@@ -48,7 +48,7 @@ class HomePage extends StatelessWidget {
                   _buildFeatureCard(
                     context,
                     title: 'Finance',
-                    subtitle: 'Cotisations & Caisse',
+                    subtitle: 'Transparence dans les cotisations et les dépenses',
                     icon: Icons.account_balance_wallet,
                     gradient: const LinearGradient(
                       colors: [Color(0xFF10B981), Color(0xFF059669)],
@@ -58,7 +58,7 @@ class HomePage extends StatelessWidget {
                   _buildFeatureCard(
                     context,
                     title: 'Projets',
-                    subtitle: 'Gestion & Votes',
+                    subtitle: 'Faites le choix des projets de votre cité',
                     icon: Icons.engineering,
                     gradient: const LinearGradient(
                       colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
@@ -67,23 +67,23 @@ class HomePage extends StatelessWidget {
                   ),
                   _buildFeatureCard(
                     context,
-                    title: 'Signalements',
-                    subtitle: 'Rapports & Suivi',
-                    icon: Icons.report_problem,
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
-                    ),
-                    onTap: () => context.go('/signalements'),
-                  ),
-                  _buildFeatureCard(
-                    context,
                     title: 'Cadre de Vie',
-                    subtitle: 'Infos & Activités',
+                    subtitle: 'Information, activité, actualité, famille',
                     icon: Icons.location_city,
                     gradient: const LinearGradient(
                       colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
                     ),
                     onTap: () => context.go('/cadre-de-vie'),
+                  ),
+                  _buildFeatureCard(
+                    context,
+                    title: 'Vigilance',
+                    subtitle: 'Signaler tout acte suspect, dégradation ou mauvais comportement',
+                    icon: Icons.security,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
+                    ),
+                    onTap: () => context.go('/signalements'),
                   ),
                 ]),
               ),
@@ -112,48 +112,7 @@ class HomePage extends StatelessWidget {
             ),
             
             // Actions rapides
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Actions rapides',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1F2937),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildQuickActionCard(
-                            context,
-                            title: 'Profil',
-                            icon: Icons.person,
-                            color: const Color(0xFF6366F1),
-                            onTap: () => context.go('/compte'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildQuickActionCard(
-                            context,
-                            title: 'Support',
-                            icon: Icons.help_outline,
-                            color: const Color(0xFF8B5CF6),
-                            onTap: () => _showSupportDialog(context),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
+           
                 ],
               ),
             ),
@@ -210,18 +169,23 @@ class HomePage extends StatelessWidget {
                   title,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    fontFamily: 'Poppins',
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
-                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 12,
                     fontWeight: FontWeight.w500,
+                    height: 1.3,
+                    fontFamily: 'Nunito',
                   ),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -251,9 +215,9 @@ class HomePage extends StatelessWidget {
             children: [
               Expanded(
                 child: _buildStatItem(
-                  label: 'Membres actifs',
+                  label: 'Villa inscrits',
                   value: '156',
-                  icon: Icons.people,
+                  icon: Icons.home,
                   color: const Color(0xFF10B981),
                 ),
               ),
@@ -282,9 +246,9 @@ class HomePage extends StatelessWidget {
             children: [
               Expanded(
                 child: _buildStatItem(
-                  label: 'Signalements',
+                  label: 'Vigilance',
                   value: '12',
-                  icon: Icons.warning,
+                  icon: Icons.security,
                   color: const Color(0xFFF59E0B),
                 ),
               ),
@@ -295,9 +259,9 @@ class HomePage extends StatelessWidget {
               ),
               Expanded(
                 child: _buildStatItem(
-                  label: 'Cotisations du mois',
+                  label: 'Solde de la caisse',
                   value: '2.4M',
-                  icon: Icons.monetization_on,
+                  icon: Icons.account_balance,
                   color: const Color(0xFF8B5CF6),
                 ),
               ),
