@@ -18,48 +18,23 @@ class AppHeader extends StatelessWidget {
         // Header avec compte, titre et notifications
         Row(
           children: [
-            // Bouton Compte à gauche
+            // Bouton Profil à gauche
             InkWell(
               onTap: () {
                 context.go('/compte');
               },
               borderRadius: BorderRadius.circular(12),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
+                  color: const Color(0xFF4F46E5),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.grey.shade300,
-                    width: 1,
-                  ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF4F46E5),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.person,
-                        color: Colors.white,
-                        size: 14,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    const Text(
-                      'Compte',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF6B7280),
-                      ),
-                    ),
-                  ],
+                child: const Icon(
+                  Icons.person,
+                  color: Colors.white,
+                  size: 20,
                 ),
               ),
             ),

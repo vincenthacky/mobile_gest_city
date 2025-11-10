@@ -133,12 +133,12 @@ class ProjectDataSource {
     }
   }
 
-  Future<ApiResponse> voteYes(String projectId) async {
+  Future<Map<String, dynamic>> voteYes(String projectId) async {
     try {
       final response = await _dio.post('/projects/$projectId/votes/yes');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return ApiResponse.fromJson(response.data);
+        return response.data as Map<String, dynamic>;
       } else {
         throw DioException(
           requestOptions: response.requestOptions,
@@ -229,7 +229,7 @@ class ProjectDataSource {
     }
   }
 
-  Future<ApiResponse> voteYesWithReserve(String projectId, String conditions) async {
+  Future<Map<String, dynamic>> voteYesWithReserve(String projectId, String conditions) async {
     try {
       final response = await _dio.post(
         '/projects/$projectId/votes/yes-subject-to',
@@ -237,7 +237,7 @@ class ProjectDataSource {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return ApiResponse.fromJson(response.data);
+        return response.data as Map<String, dynamic>;
       } else {
         throw DioException(
           requestOptions: response.requestOptions,
@@ -296,7 +296,7 @@ class ProjectDataSource {
     }
   }
 
-  Future<ApiResponse> modifyVote(String projectId, String voteType, {String? conditions}) async {
+  Future<Map<String, dynamic>> modifyVote(String projectId, String voteType, {String? conditions}) async {
     try {
       final data = <String, dynamic>{'vote_type': voteType};
       if (conditions != null && conditions.isNotEmpty) {
@@ -314,7 +314,7 @@ class ProjectDataSource {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return ApiResponse.fromJson(response.data);
+        return response.data as Map<String, dynamic>;
       } else {
         throw DioException(
           requestOptions: response.requestOptions,

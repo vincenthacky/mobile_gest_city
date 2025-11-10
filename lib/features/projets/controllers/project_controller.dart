@@ -229,15 +229,21 @@ class ProjectController extends ChangeNotifier {
     }
   }
 
+  // Liste des projets avec votes oui/oui sous réserve
+  List<ProjectModel> _userProjectsVotedYes = [];
+  List<ProjectModel> get userProjectsVotedYes => List.unmodifiable(_userProjectsVotedYes);
+
   // Méthodes pour les votes
-  Future<bool> voteOnProject(String projectId, VoteChoice choice, {String? justification}) async {
+  Future<Map<String, dynamic>?> voteOnProject(String projectId, VoteChoice choice, {String? justification}) async {
     _setVoteStatus(VoteStatus.loading);
     _clearVoteError();
 
     try {
+      Map<String, dynamic>? response;
+      
       switch (choice) {
         case VoteChoice.yes:
-          await _projectDataSource.voteYes(projectId);
+          response = await _projectDataSource.voteYes(projectId);
           break;
         case VoteChoice.no:
           await _projectDataSource.voteNo(projectId);
@@ -246,7 +252,7 @@ class ProjectController extends ChangeNotifier {
           await _projectDataSource.voteNeutral(projectId);
           break;
         case VoteChoice.yesWithReserve:
-          await _projectDataSource.voteYesWithReserve(projectId, justification ?? '');
+          response = await _projectDataSource.voteYesWithReserve(projectId, justification ?? '');
           break;
       }
 
@@ -255,18 +261,23 @@ class ProjectController extends ChangeNotifier {
       // Mettre à jour le projet dans la liste locale immédiatement pour une UX fluide
       _updateProjectAfterVote(projectId, choice, justification);
       
+      // Mettre à jour la liste des projets avec votes oui/oui sous réserve
+      if (response != null && response['data'] != null) {
+        _updateUserProjectsVotedYes(response['data']);
+      }
+      
       // Recharger les projets depuis l'API pour avoir l'état exact (en arrière-plan)
       fetchProjects();
       
-      return true;
+      return response;
     } catch (e) {
       _setVoteError(e.toString());
       _setVoteStatus(VoteStatus.error);
-      return false;
+      return null;
     }
   }
 
-  Future<bool> modifyVote(String projectId, VoteChoice choice, {String? justification}) async {
+  Future<Map<String, dynamic>?> modifyVote(String projectId, VoteChoice choice, {String? justification}) async {
     _setVoteStatus(VoteStatus.loading);
     _clearVoteError();
 
@@ -283,25 +294,30 @@ class ProjectController extends ChangeNotifier {
           voteType = 'neutral';
           break;
         case VoteChoice.yesWithReserve:
-          voteType = 'yes-subject-to';
+          voteType = 'yes_to_subject';
           break;
       }
 
-      await _projectDataSource.modifyVote(projectId, voteType, conditions: justification);
+      final response = await _projectDataSource.modifyVote(projectId, voteType, conditions: justification);
 
       _setVoteStatus(VoteStatus.success);
       
       // Mettre à jour le projet dans la liste locale immédiatement pour une UX fluide
       _updateProjectAfterVote(projectId, choice, justification);
       
+      // Mettre à jour la liste des projets avec votes oui/oui sous réserve
+      if (response['data'] != null) {
+        _updateUserProjectsVotedYes(response['data']);
+      }
+      
       // Recharger les projets depuis l'API pour avoir l'état exact (en arrière-plan)
       fetchProjects();
       
-      return true;
+      return response;
     } catch (e) {
       _setVoteError(e.toString());
       _setVoteStatus(VoteStatus.error);
-      return false;
+      return null;
     }
   }
 
@@ -493,4 +509,39 @@ class ProjectController extends ChangeNotifier {
     _clearPrioritizationError();
     notifyListeners();
   }
+
+  // Méthode pour mettre à jour les projets avec votes oui/oui sous réserve
+  void _updateUserProjectsVotedYes(Map<String, dynamic> responseData) {
+    if (responseData['user_projects_voted_yes'] != null) {
+      final projectsData = responseData['user_projects_voted_yes'] as List<dynamic>;
+      _userProjectsVotedYes = projectsData
+          .map((json) => ProjectModel.fromJson(json as Map<String, dynamic>))
+          .toList();
+      notifyListeners();
+    }
+  }
+
+  // Méthode pour gérer la priorisation automatique
+  Future<PrioritizationAction> handlePrioritizationAfterVote() async {
+    final projectCount = _userProjectsVotedYes.length;
+    
+    if (projectCount == 0) {
+      return PrioritizationAction.none;
+    } else if (projectCount == 1) {
+      // Priorisation automatique pour un seul projet
+      final success = await prioritizeProjects([int.parse(_userProjectsVotedYes.first.id)]);
+      return success ? PrioritizationAction.autoCompleted : PrioritizationAction.error;
+    } else {
+      // Afficher le modal pour prioriser plusieurs projets
+      return PrioritizationAction.showModal;
+    }
+  }
+}
+
+// Enum pour les actions de priorisation
+enum PrioritizationAction {
+  none,           // Pas de priorisation nécessaire
+  autoCompleted,  // Priorisation automatique effectuée
+  showModal,      // Afficher le modal de priorisation
+  error,          // Erreur lors de la priorisation automatique
 }

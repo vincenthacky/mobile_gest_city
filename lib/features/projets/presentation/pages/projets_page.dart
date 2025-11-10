@@ -141,22 +141,22 @@ class _ProjetsPageState extends State<ProjetsPage> {
 
 
   Future<void> _handleVoteSubmitted(ProjectModel project, VoteChoice choice, String? justification) async {
-    final bool success;
+    Map<String, dynamic>? response;
     if (project.hasUserVoted) {
-      success = await _projectController.modifyVote(
+      response = await _projectController.modifyVote(
         project.id,
         choice,
         justification: justification,
       );
     } else {
-      success = await _projectController.voteOnProject(
+      response = await _projectController.voteOnProject(
         project.id,
         choice,
         justification: justification,
       );
     }
 
-    if (success) {
+    if (response != null) {
       final messageText = project.hasUserVoted 
           ? 'Vote modifié: ${_getVoteText(choice)}'
           : 'Vote enregistré: ${_getVoteText(choice)}';
@@ -173,14 +173,10 @@ class _ProjetsPageState extends State<ProjetsPage> {
         );
       }
 
-      // Vérifier si il faut afficher le modal de priorité
-      final yesVotedProjects = _projectController.projects
-          .where((p) => p.userVote == VoteChoice.yes || p.userVote == VoteChoice.yesWithReserve)
-          .length;
-
-      if ((choice == VoteChoice.yes || choice == VoteChoice.yesWithReserve) && yesVotedProjects >= 2) {
-        Future.delayed(const Duration(milliseconds: 500), () {
-          _showPriorityModal();
+      // Gérer la priorisation basée sur user_projects_voted_yes
+      if (choice == VoteChoice.yes || choice == VoteChoice.yesWithReserve) {
+        Future.delayed(const Duration(milliseconds: 500), () async {
+          await _handlePrioritizationLogic();
         });
       }
     } else {
@@ -211,10 +207,48 @@ class _ProjetsPageState extends State<ProjetsPage> {
     }
   }
 
+  Future<void> _handlePrioritizationLogic() async {
+    final action = await _projectController.handlePrioritizationAfterVote();
+    
+    if (!mounted) return;
+
+    switch (action) {
+      case PrioritizationAction.none:
+        // Rien à faire
+        break;
+        
+      case PrioritizationAction.autoCompleted:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Priorisation automatique effectuée'),
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+        break;
+        
+      case PrioritizationAction.showModal:
+        _showPriorityModal();
+        break;
+        
+      case PrioritizationAction.error:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Erreur lors de la priorisation automatique'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+        break;
+    }
+  }
+
   void _showPriorityModal() {
-    final yesVotedProjects = _projectController.projects
-        .where((p) => p.userVote == VoteChoice.yes || p.userVote == VoteChoice.yesWithReserve)
-        .toList();
+    final yesVotedProjects = _projectController.userProjectsVotedYes;
 
     if (yesVotedProjects.length < 2) return;
 
@@ -223,16 +257,20 @@ class _ProjetsPageState extends State<ProjetsPage> {
       barrierDismissible: false,
       builder: (context) => PriorityModal(
         projects: yesVotedProjects,
-        onPrioritySubmitted: (projectIds) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Classement enregistré !'),
-              backgroundColor: const Color(0xFF10B981),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              margin: const EdgeInsets.all(16),
-            ),
-          );
+        onPrioritySubmitted: (projectIds) async {
+          final intProjectIds = projectIds.map((id) => int.parse(id)).toList();
+          final success = await _projectController.prioritizeProjects(intProjectIds);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(success ? 'Classement enregistré !' : 'Erreur lors du classement'),
+                backgroundColor: success ? const Color(0xFF10B981) : Colors.red,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                margin: const EdgeInsets.all(16),
+              ),
+            );
+          }
         },
       ),
     );
