@@ -46,6 +46,8 @@ class ProjectModel {
   final DateTime updatedAt;
   final String authorId;
   final String authorName;
+  final bool authorIsAnonymous;
+  final String? authorVillaNumber;
 
   ProjectModel({
     required this.id,
@@ -72,6 +74,8 @@ class ProjectModel {
     required this.updatedAt,
     required this.authorId,
     required this.authorName,
+    required this.authorIsAnonymous,
+    this.authorVillaNumber,
   });
 
   int get totalVotes => votesYes + votesNo + votesYesWithReserve + votesBlank;
@@ -95,6 +99,18 @@ class ProjectModel {
   
   bool get hasImages => imageAttachments.isNotEmpty;
   int get imageCount => imageAttachments.length;
+
+  String get displayAuthorName {
+    // Si l'utilisateur est anonyme ou n'a pas de nom, utiliser le numéro de villa
+    if (authorIsAnonymous || authorName.isEmpty) {
+      if (authorVillaNumber != null && authorVillaNumber!.isNotEmpty) {
+        return 'Villa N°$authorVillaNumber';
+      } else {
+        return 'Auteur anonyme';
+      }
+    }
+    return authorName;
+  }
 
   String get statusText {
     switch (status) {
@@ -295,6 +311,8 @@ class ProjectModel {
       updatedAt: DateTime.parse(json['updated_at'] ?? DateTime.now().toIso8601String()),
       authorId: json['created_by']?.toString() ?? '',
       authorName: user['full_name'] ?? '',
+      authorIsAnonymous: user['anonymity'] ?? false,
+      authorVillaNumber: user['villa']?['number'],
     );
   }
 
@@ -324,6 +342,8 @@ class ProjectModel {
       'updated_at': updatedAt.toIso8601String(),
       'author_id': authorId,
       'author_name': authorName,
+      'author_is_anonymous': authorIsAnonymous,
+      'author_villa_number': authorVillaNumber,
     };
   }
 
@@ -352,6 +372,8 @@ class ProjectModel {
     DateTime? updatedAt,
     String? authorId,
     String? authorName,
+    bool? authorIsAnonymous,
+    String? authorVillaNumber,
   }) {
     return ProjectModel(
       id: id ?? this.id,
@@ -378,6 +400,8 @@ class ProjectModel {
       updatedAt: updatedAt ?? this.updatedAt,
       authorId: authorId ?? this.authorId,
       authorName: authorName ?? this.authorName,
+      authorIsAnonymous: authorIsAnonymous ?? this.authorIsAnonymous,
+      authorVillaNumber: authorVillaNumber ?? this.authorVillaNumber,
     );
   }
 }

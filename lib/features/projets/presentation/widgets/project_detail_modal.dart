@@ -157,7 +157,7 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
               ),
               const SizedBox(height: 4),
               Text(
-                'Par ${widget.project.authorName}',
+                'Par ${widget.project.displayAuthorName}',
                 style: const TextStyle(
                   fontSize: 14,
                   color: Color(0xFF6B7280),

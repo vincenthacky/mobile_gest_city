@@ -88,7 +88,7 @@ class ProjectCard extends StatelessWidget {
                           const SizedBox(width: 4),
                           Flexible(
                             child: Text(
-                              project.authorName ?? '',
+                              project.displayAuthorName,
                               style: const TextStyle(
                                 fontSize: 11,
                                 color: Color(0xFF475569),
