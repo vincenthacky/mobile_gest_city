@@ -48,8 +48,8 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
     final screenHeight = screenSize.height;
     final screenWidth = screenSize.width;
     
-    // Responsive height: 90% pour petits écrans, 85% pour grands écrans
-    final modalHeight = screenHeight < 700 ? screenHeight * 0.90 : screenHeight * 0.85;
+    // Responsive height: 80% pour petits écrans, 85% pour grands écrans
+    final modalHeight = screenHeight < 700 ? screenHeight * 0.80 : screenHeight * 0.85;
     
     return Container(
       height: modalHeight,

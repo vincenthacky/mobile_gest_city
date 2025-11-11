@@ -746,10 +746,6 @@ class _ReportDetailModal extends StatelessWidget {
     }
   }
   
-  double _getResponsivePadding(BuildContext context, double basePadding) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    return screenWidth > 500 ? basePadding : basePadding * 0.8;
-  }
 
   @override
   Widget build(BuildContext context) {
