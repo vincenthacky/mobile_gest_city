@@ -216,7 +216,7 @@ class HomePage extends StatelessWidget {
                 Container(
                   padding: EdgeInsets.all(_getResponsiveIconPadding(context)),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -239,7 +239,7 @@ class HomePage extends StatelessWidget {
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontSize: _getResponsiveSubtitleSize(context),
                     fontWeight: FontWeight.w500,
                     height: 1.3,
@@ -264,7 +264,7 @@ class HomePage extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -368,86 +368,4 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickActionCard(
-    BuildContext context, {
-    required String title,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1F2937),
-                  ),
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 16,
-                color: Colors.grey.shade400,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showSupportDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: const Row(
-          children: [
-            Icon(Icons.help_outline, color: Color(0xFF8B5CF6)),
-            SizedBox(width: 12),
-            Text('Support'),
-          ],
-        ),
-        content: const Text(
-          'Pour toute assistance, contactez l\'équipe de support à l\'adresse :\n\nsupport@gestcity.com\n\nOu appelez le : +221 XX XXX XX XX',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Fermer'),
-          ),
-        ],
-      ),
-    );
-  }
 }

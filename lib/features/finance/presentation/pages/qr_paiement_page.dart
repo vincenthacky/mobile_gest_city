@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../data_source/contribution_data_source.dart';
-import 'preuve_paiement_page.dart';
+import '../../models/contribution_model.dart';
+import 'cotisation/widgets/payment_submission_modal.dart';
+
 
 class QrPaiementPage extends StatefulWidget {
   final String cotisationTitle;
@@ -479,17 +481,8 @@ class _QrPaiementPageState extends State<QrPaiementPage> {
                     height: 56,
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        // Rediriger vers la page de preuve si l'utilisateur préfère
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => PreuvePaiementPage(
-                              cotisationTitle: widget.cotisationTitle,
-                              montant: widget.montant,
-                              cotisationId: int.parse(widget.cotisationId),
-                            ),
-                          ),
-                        );
+                        // Afficher le modal de soumission de paiement
+                        _showPaymentSubmissionModal();
                       },
                       icon: const Icon(Icons.receipt),
                       label: const Text('Utiliser preuve de paiement'),
@@ -509,5 +502,23 @@ class _QrPaiementPageState extends State<QrPaiementPage> {
         ),
       ),
     );
+  }
+
+  void _showPaymentSubmissionModal() {
+    // Créer un objet ContributionData basique avec les informations disponibles
+    final contributionData = ContributionData(
+      id: int.parse(widget.cotisationId),
+      name: widget.cotisationTitle,
+      description: null,
+      amountByPerson: widget.montant.toDouble(),
+      deadlineDay: 31,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      totalAmountPaymentCollectedCurrentPeriod: 0.0,
+      totalExpectedAmountThisMonth: 0.0,
+      currentPeriod: 'current',
+    );
+
+    PaymentSubmissionModal.show(context, contributionData);
   }
 }

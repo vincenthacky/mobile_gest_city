@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../../cotisationOld/presentation/pages/qr_paiement_page.dart';
+import '../../qr_paiement_page.dart';
 import '../../../../models/contribution_model.dart';
 import 'mobile_money_modal.dart';
 

@@ -238,33 +238,66 @@ class _PaymentSubmissionModalState extends State<PaymentSubmissionModal> {
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
-        border: Border(
-          bottom: BorderSide(
-            color: Colors.grey.shade200,
-            width: 1,
-          ),
-        ),
+      padding: const EdgeInsets.all(20),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF9FAFB),
       ),
-      child: Row(
+      child: Column(
         children: [
-          IconButton(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(
-              Icons.arrow_back_ios,
-              color: Color(0xFF1F2937),
+          // Handle du modal
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE5E7EB),
+              borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const SizedBox(width: 8),
-          const Text(
-            '💳 Prouver un paiement',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1F2937),
-              fontFamily: 'Poppins',
+          const SizedBox(height: 20),
+          
+          // Informations de la cotisation dans un container stylé
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: const Color(0xFF4F46E5).withValues(alpha: 0.2),
+              ),
+            ),
+            child: Column(
+              children: [
+                const Text(
+                  '💳 Prouver un paiement',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1F2937),
+                    fontFamily: 'Poppins',
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  widget.contributionData.name,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1F2937),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Montant : ${widget.contributionData.formattedAmountByPerson}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF4F46E5),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
