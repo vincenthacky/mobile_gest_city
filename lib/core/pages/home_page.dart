@@ -5,6 +5,67 @@ import '../widgets/app_header.dart';
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
+  // Méthode pour calculer le ratio d'aspect selon la taille d'écran
+  double _getChildAspectRatio(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth > 1200) return 1.2; // Grands écrans
+    if (screenWidth > 800) return 1.1; // Tablettes
+    if (screenWidth > 600) return 1.0; // Petites tablettes
+    return 0.9; // Téléphones
+  }
+
+  // Méthode pour calculer le padding responsive
+  double _getResponsivePadding(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth > 1200) return 32; // Grands écrans
+    if (screenWidth > 800) return 28; // Tablettes
+    if (screenWidth > 600) return 24; // Petites tablettes
+    return 16; // Téléphones
+  }
+
+  // Méthodes pour le responsive des cartes
+  double _getResponsiveCardPadding(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth > 800) return 20;
+    if (screenWidth > 600) return 18;
+    return 16;
+  }
+
+  double _getResponsiveIconPadding(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth > 800) return 12;
+    if (screenWidth > 600) return 10;
+    return 8;
+  }
+
+  double _getResponsiveIconSize(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth > 800) return 28;
+    if (screenWidth > 600) return 26;
+    return 24;
+  }
+
+  double _getResponsiveTitleSize(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth > 800) return 18;
+    if (screenWidth > 600) return 17;
+    return 16;
+  }
+
+  double _getResponsiveSubtitleSize(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth > 800) return 13;
+    if (screenWidth > 600) return 12.5;
+    return 12;
+  }
+
+  double _getResponsiveSpacing(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    if (screenWidth > 800) return 8;
+    if (screenWidth > 600) return 7;
+    return 6;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -34,15 +95,15 @@ class HomePage extends StatelessWidget {
               child: CustomScrollView(
                 slivers: [
             
-            // Grid des fonctionnalités
+            // Grid des fonctionnalités responsive
             SliverPadding(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(_getResponsivePadding(context)),
               sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
+                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 200, // Largeur max de chaque carte
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
-                  childAspectRatio: 1.1,
+                  childAspectRatio: _getChildAspectRatio(context),
                 ),
                 delegate: SliverChildListDelegate([
                   _buildFeatureCard(
@@ -92,7 +153,7 @@ class HomePage extends StatelessWidget {
             // Section statistiques rapides
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: EdgeInsets.symmetric(horizontal: _getResponsivePadding(context)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -148,12 +209,12 @@ class HomePage extends StatelessWidget {
             ],
           ),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(_getResponsiveCardPadding(context)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.all(_getResponsiveIconPadding(context)),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),
@@ -161,25 +222,25 @@ class HomePage extends StatelessWidget {
                   child: Icon(
                     icon,
                     color: Colors.white,
-                    size: 24,
+                    size: _getResponsiveIconSize(context),
                   ),
                 ),
                 const Spacer(),
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 16,
+                    fontSize: _getResponsiveTitleSize(context),
                     fontWeight: FontWeight.bold,
                     fontFamily: 'Poppins',
                   ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: _getResponsiveSpacing(context)),
                 Text(
                   subtitle,
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.9),
-                    fontSize: 12,
+                    fontSize: _getResponsiveSubtitleSize(context),
                     fontWeight: FontWeight.w500,
                     height: 1.3,
                     fontFamily: 'Nunito',
