@@ -24,7 +24,11 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
   void initState() {
     super.initState();
     _informationController = context.read<InformationController>();
-    _informationController.fetchInformations();
+    
+    // Charger les informations après que le widget soit complètement initialisé
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _informationController.fetchInformations();
+    });
   }
 
 

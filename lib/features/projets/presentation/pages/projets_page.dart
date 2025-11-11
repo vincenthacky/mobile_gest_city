@@ -31,9 +31,13 @@ class _ProjetsPageState extends State<ProjetsPage> {
   void initState() {
     super.initState();
     _projectController = Provider.of<ProjectController>(context, listen: false);
-    _loadProjects();
     _setupScrollListener();
     _setupSearchListener();
+    
+    // Charger les projets après que le widget soit complètement initialisé
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProjects();
+    });
   }
 
   void _setupScrollListener() {
@@ -259,9 +263,10 @@ class _ProjetsPageState extends State<ProjetsPage> {
         projects: yesVotedProjects,
         onPrioritySubmitted: (projectIds) async {
           final intProjectIds = projectIds.map((id) => int.parse(id)).toList();
+          final scaffoldMessenger = ScaffoldMessenger.of(context);
           final success = await _projectController.prioritizeProjects(intProjectIds);
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
+            scaffoldMessenger.showSnackBar(
               SnackBar(
                 content: Text(success ? 'Classement enregistré !' : 'Erreur lors du classement'),
                 backgroundColor: success ? const Color(0xFF10B981) : Colors.red,

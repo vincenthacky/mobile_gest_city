@@ -30,9 +30,13 @@ class _SignalementsPageState extends State<SignalementsPage> {
   void initState() {
     super.initState();
     _reportController = Provider.of<ReportController>(context, listen: false);
-    _loadReports();
     _setupScrollListener();
     _setupSearchListener();
+    
+    // Charger les signalements après que le widget soit complètement initialisé
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadReports();
+    });
   }
 
   void _setupScrollListener() {
