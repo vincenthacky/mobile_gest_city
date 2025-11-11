@@ -652,8 +652,8 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
         final screenHeight = screenSize.height;
         final screenWidth = screenSize.width;
         
-        // Responsive height: 90% pour petits écrans, 85% pour grands écrans
-        final modalHeight = screenHeight < 700 ? screenHeight * 0.90 : screenHeight * 0.85;
+        // Hauteur fixe: 83% pour tous les écrans
+        final modalHeight = screenHeight * 0.83;
         
         return Container(
           height: modalHeight,
@@ -689,61 +689,76 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          padding: EdgeInsets.all(screenWidth > 500 ? 12 : 10),
-                          decoration: BoxDecoration(
-                            color: information.statusColor.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(screenWidth > 500 ? 12 : 10),
-                          ),
-                          child: Icon(
-                            information.typeIcon,
-                            color: information.statusColor,
-                            size: screenWidth > 500 ? 24 : 20,
-                          ),
-                        ),
-                        SizedBox(width: screenWidth > 500 ? 16 : 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                information.title,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF1F2937),
-                                  fontFamily: 'Poppins',
-                                ),
+                        // Première ligne: Icône et titre avec auteur
+                        Row(
+                          children: [
+                            Container(
+                              padding: EdgeInsets.all(screenWidth > 500 ? 12 : 10),
+                              decoration: BoxDecoration(
+                                color: information.statusColor.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(screenWidth > 500 ? 12 : 10),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Par ${information.authorText}',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Color(0xFF6B7280),
+                              child: Icon(
+                                information.typeIcon,
+                                color: information.statusColor,
+                                size: screenWidth > 500 ? 24 : 20,
+                              ),
+                            ),
+                            SizedBox(width: screenWidth > 500 ? 16 : 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    information.title,
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF1F2937),
+                                      fontFamily: 'Poppins',
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Par ${information.authorText}',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Color(0xFF6B7280),
+                                      fontFamily: 'Nunito',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        // Deuxième ligne: Statut aligné à droite
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: information.statusColor.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                information.statusText,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: information.statusColor,
                                   fontFamily: 'Nunito',
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: information.statusColor.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            information.statusText,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: information.statusColor,
-                              fontFamily: 'Nunito',
                             ),
-                          ),
+                          ],
                         ),
                       ],
                     ),
