@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../core/network/dio_client.dart';
 import '../models/api_response.dart';
 import '../models/project_model.dart';
+import '../models/sync_models.dart';
 
 class ProjectDataSource {
   final Dio _dio = DioClient.instance;
@@ -378,6 +379,49 @@ class ProjectDataSource {
       }
     } catch (e) {
       throw Exception('Erreur inattendue: $e');
+    }
+  }
+
+  /// Synchronise les projets avec le serveur
+  Future<SyncResponse> syncProjects(SyncRequest request) async {
+    try {
+      final data = request.toJson();
+      
+      final response = await _dio.post(
+        '/projects/sync',
+        data: data,
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return SyncResponse.fromJson(response.data);
+      } else {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          response: response,
+          message: 'Erreur lors de la synchronisation',
+        );
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final errorMessage = e.response?.data['message'] ?? 'Erreur lors de la synchronisation';
+        throw DioException(
+          requestOptions: e.requestOptions,
+          response: e.response,
+          message: errorMessage,
+        );
+      } else {
+        throw DioException(
+          requestOptions: e.requestOptions,
+          message: 'Erreur de réseau. Vérifiez votre connexion internet.',
+        );
+      }
+    } catch (e) {
+      throw Exception('Erreur inattendue lors de la synchronisation: $e');
     }
   }
 }

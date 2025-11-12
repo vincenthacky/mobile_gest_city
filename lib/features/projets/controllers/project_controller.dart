@@ -4,6 +4,8 @@ import 'package:image_picker/image_picker.dart';
 import '../data_sources/project_data_source.dart';
 import '../models/project_model.dart';
 import '../models/voter_model.dart';
+import '../models/sync_models.dart';
+import '../services/sync_service.dart';
 
 enum ProjectSubmissionStatus { initial, loading, success, error }
 enum ProjectLoadingStatus { initial, loading, success, error }
@@ -39,6 +41,11 @@ class ProjectController extends ChangeNotifier {
   PrioritizationStatus _prioritizationStatus = PrioritizationStatus.initial;
   String? _prioritizationErrorMessage;
 
+  // Pour la synchronisation
+  SyncStatus _syncStatus = SyncStatus.idle;
+  String? _syncErrorMessage;
+  String? _syncMessage;
+
   // Getters pour la soumission de projet
   ProjectSubmissionStatus get status => _status;
   String? get errorMessage => _errorMessage;
@@ -69,6 +76,12 @@ class ProjectController extends ChangeNotifier {
   PrioritizationStatus get prioritizationStatus => _prioritizationStatus;
   String? get prioritizationErrorMessage => _prioritizationErrorMessage;
   bool get isPrioritizing => _prioritizationStatus == PrioritizationStatus.loading;
+
+  // Getters pour la synchronisation
+  SyncStatus get syncStatus => _syncStatus;
+  String? get syncErrorMessage => _syncErrorMessage;
+  String? get syncMessage => _syncMessage;
+  bool get isSyncing => _syncStatus == SyncStatus.syncing;
 
   Future<void> pickImages() async {
     try {
@@ -182,52 +195,7 @@ class ProjectController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Méthodes pour récupérer les projets
-  Future<void> fetchProjects({
-    String? status,
-    bool? alreadyVoted,
-    String? search,
-    String? createdBy,
-    int perPage = 10,
-    int page = 1,
-    bool append = false,
-  }) async {
-    if (!append) {
-      _setLoadingStatus(ProjectLoadingStatus.loading);
-      _clearLoadingError();
-    }
-
-    try {
-      final response = await _projectDataSource.getProjects(
-        status: status,
-        alreadyVoted: alreadyVoted,
-        search: search,
-        createdBy: createdBy,
-        perPage: perPage,
-        page: page,
-      );
-
-      if (response['success'] == true) {
-        final projectsData = response['data'] as List<dynamic>;
-        final newProjects = projectsData.map((json) => ProjectModel.fromJson(json as Map<String, dynamic>)).toList();
-        
-        if (append) {
-          _projects.addAll(newProjects);
-        } else {
-          _projects = newProjects;
-        }
-        
-        _pagination = response['pagination'] as Map<String, dynamic>?;
-        _setLoadingStatus(ProjectLoadingStatus.success);
-      } else {
-        _setLoadingError(response['message'] ?? 'Erreur lors de la récupération des projets');
-        _setLoadingStatus(ProjectLoadingStatus.error);
-      }
-    } catch (e) {
-      _setLoadingError(e.toString());
-      _setLoadingStatus(ProjectLoadingStatus.error);
-    }
-  }
+  // Méthodes pour récupérer les projets - VERSION AVEC SYNCHRONISATION INTELLIGENTE
 
   // Liste des projets avec votes oui/oui sous réserve
   List<ProjectModel> _userProjectsVotedYes = [];
@@ -535,6 +503,204 @@ class ProjectController extends ChangeNotifier {
       // Afficher le modal pour prioriser plusieurs projets
       return PrioritizationAction.showModal;
     }
+  }
+
+  // ============ MÉTHODES DE SYNCHRONISATION ============
+
+  /// Synchronise les projets avec le serveur
+  Future<void> syncProjects({
+    SyncFilters? filters,
+    bool forceFullSync = false,
+  }) async {
+    _setSyncStatus(SyncStatus.syncing);
+    _clearSyncMessages();
+
+    try {
+      // 1. Déterminer le type de synchronisation
+      final operation = await SyncService.determineSyncOperation(
+        filters: filters,
+        forceFullSync: forceFullSync,
+      );
+
+      // 2. Préparer la requête
+      final request = await SyncService.prepareSyncRequest(
+        operation: operation,
+        filters: filters,
+      );
+
+      // 3. Appeler l'API
+      final response = await _projectDataSource.syncProjects(request);
+
+      // 4. Traiter la réponse
+      final result = await SyncService.processSyncResponse(response, _projects);
+
+      // 5. Mettre à jour les données locales
+      if (result.hasChanges) {
+        _projects = result.projects;
+        _pagination = null; // Reset pagination après sync
+      }
+
+      _setSyncMessage(result.message);
+      _setSyncStatus(SyncStatus.success);
+      
+    } catch (e) {
+      _setSyncError(e.toString());
+      _setSyncStatus(SyncStatus.error);
+    }
+  }
+
+  /// Synchronise avec des filtres spécifiques
+  Future<void> syncWithFilters(SyncFilters filters) async {
+    await syncProjects(filters: filters);
+  }
+
+  /// Force une synchronisation complète
+  Future<void> forceFullSync() async {
+    await syncProjects(forceFullSync: true);
+  }
+
+  /// Synchronise de manière intelligente (détection automatique)
+  Future<void> smartSync() async {
+    await syncProjects();
+  }
+
+  /// Vérifie et synchronise si nécessaire
+  Future<bool> checkAndSync({SyncFilters? filters}) async {
+    try {
+      await syncProjects(filters: filters);
+      return _syncStatus == SyncStatus.success;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Méthode principale pour récupérer les projets avec synchronisation intelligente
+  Future<void> fetchProjects({
+    String? status,
+    bool? alreadyVoted,
+    String? search,
+    String? createdBy,
+    int perPage = 10,
+    int page = 1,
+    bool append = false,
+    bool useSync = true, // Nouveau paramètre pour activer/désactiver la sync
+  }) async {
+    if (useSync) {
+      // Utiliser la synchronisation intelligente
+      final filters = SyncFilters(
+        status: status,
+        search: search,
+        createdBy: createdBy,
+      );
+      await syncProjects(filters: filters.isEmpty ? null : filters);
+    } else {
+      // Utiliser l'ancienne méthode (fallback)
+      await _fetchProjectsLegacy(
+        status: status,
+        alreadyVoted: alreadyVoted,
+        search: search,
+        createdBy: createdBy,
+        perPage: perPage,
+        page: page,
+        append: append,
+      );
+    }
+  }
+
+  /// Ancienne méthode fetchProjects (fallback)
+  Future<void> _fetchProjectsLegacy({
+    String? status,
+    bool? alreadyVoted,
+    String? search,
+    String? createdBy,
+    int perPage = 10,
+    int page = 1,
+    bool append = false,
+  }) async {
+    if (!append) {
+      _setLoadingStatus(ProjectLoadingStatus.loading);
+      _clearLoadingError();
+    }
+
+    try {
+      final response = await _projectDataSource.getProjects(
+        status: status,
+        alreadyVoted: alreadyVoted,
+        search: search,
+        createdBy: createdBy,
+        perPage: perPage,
+        page: page,
+      );
+
+      if (response['success'] == true) {
+        final projectsData = response['data'] as List<dynamic>;
+        final newProjects = projectsData.map((json) => ProjectModel.fromJson(json as Map<String, dynamic>)).toList();
+        
+        if (append) {
+          _projects.addAll(newProjects);
+        } else {
+          _projects = newProjects;
+        }
+        
+        _pagination = response['pagination'] as Map<String, dynamic>?;
+        _setLoadingStatus(ProjectLoadingStatus.success);
+      } else {
+        _setLoadingError(response['message'] ?? 'Erreur lors de la récupération des projets');
+        _setLoadingStatus(ProjectLoadingStatus.error);
+      }
+    } catch (e) {
+      _setLoadingError(e.toString());
+      _setLoadingStatus(ProjectLoadingStatus.error);
+    }
+  }
+
+  /// Obtient les statistiques de synchronisation
+  Future<Map<String, dynamic>> getSyncStats() async {
+    return await SyncService.getSyncStats();
+  }
+
+  /// Valide la cohérence des données locales
+  Future<SyncValidation> validateLocalData() async {
+    return await SyncService.validateLocalData(_projects);
+  }
+
+  /// Nettoie les données de synchronisation
+  Future<void> clearSyncData() async {
+    await SyncService.clearLocalData();
+    _setSyncMessage('Données de synchronisation effacées');
+  }
+
+  // Méthodes utilitaires pour la synchronisation
+  void _setSyncStatus(SyncStatus status) {
+    _syncStatus = status;
+    notifyListeners();
+  }
+
+  void _setSyncError(String error) {
+    _syncErrorMessage = error;
+    notifyListeners();
+  }
+
+  void _setSyncMessage(String message) {
+    _syncMessage = message;
+    notifyListeners();
+  }
+
+  void _clearSyncMessages() {
+    _syncErrorMessage = null;
+    _syncMessage = null;
+    notifyListeners();
+  }
+
+  void clearSyncError() {
+    _syncErrorMessage = null;
+    notifyListeners();
+  }
+
+  void resetSyncStatus() {
+    _syncStatus = SyncStatus.idle;
+    _clearSyncMessages();
+    notifyListeners();
   }
 }
 

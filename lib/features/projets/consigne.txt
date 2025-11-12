@@ -1,20 +1,514 @@
- public function prioritizeProjects(Request $request)
+
+/**
+     * Synchronisation intelligente basée sur les checksums
+     *
+     * @param Request $request
+     * - is_initializing: bool - true pour la première sync (envoie tout)
+     * - global_checksum: string - checksum global du client
+     * - items_checksums: array - [{id: uuid, checksum: string}]
+     * - filters: object - filtres appliqués (status, search, etc.)
+     */
+    public function syncProjects(Request $request)
     {
-        $projects = $request->projects; // [3, 1, 5, 8, 2]
+        try {
+            $isInitializing = $request->query('is_initializing') === 'true';
+            $clientGlobalChecksum = $request->input('global_checksum');
+            $clientItemsChecksums = $request->input('items_checksums', []);
 
-        $count = count($projects);
-        $score = $count; // Score max = nombre de projets
+            // Récupérer les filtres du client
+            $filters = [
+                'status' => $request->input('filters.status'),
+                'search' => $request->input('filters.search'),
+                'created_by' => $request->input('filters.created_by'),
+                'sort' => $request->input('filters.sort'),
+            ];
 
-        foreach ($projects as $position => $projectId) {
-            Vote::where('user_id', auth()->id())
-                ->where('project_id', $projectId)
-                ->update([
-                    'priority_position' => $position + 1,
-                    'score' => $score - $position,
-                ]);
+            // Construire la requête avec les mêmes filtres que getProjects
+            $query = $this->buildProjectQuery($filters);
+
+            // Charger toutes les données (pas de pagination pour la sync)
+            $projects = $query->get();
+
+            // Calculer le checksum de chaque projet
+            $serverItemsWithChecksums = $projects->map(function ($project) {
+                return [
+                    'id' => $project->id,
+                    'checksum' => model_checksum($project),
+                    'data' => ProjectResource::make($project)
+                ];
+            });
+
+            // Calculer le checksum global côté serveur
+            $serverGlobalChecksum = calculate_checksum(
+                $serverItemsWithChecksums->pluck('checksum')->toArray()
+            );
+
+            // CAS 1: Première synchronisation - Envoyer tout
+            if ($isInitializing) {
+                return $this->responseSuccess([
+                    'sync_type' => 'full',
+                    'global_checksum' => $serverGlobalChecksum,
+                    // 'items' => $serverItemsWithChecksums->map(fn($item) => [
+                    //     'id' => $item['id'],
+                    //     'checksum' => $item['checksum'],
+                    //     'data' => $item['data']
+                    // ]),
+                    'items' => $serverItemsWithChecksums->map(fn($item) => $item['data'])->toArray(),
+                    'total' => $projects->count(),
+                    'timestamp' => now()->toIso8601String()
+                ], 'Full synchronization completed');
+            }
+
+            // CAS 2: Checksum global identique - Aucune modification
+            if ($clientGlobalChecksum === $serverGlobalChecksum) {
+                return $this->responseSuccess([
+                    'sync_type' => 'none',
+                    'global_checksum' => $serverGlobalChecksum,
+                    'message' => 'Local database is already synchronized',
+                    'timestamp' => now()->toIso8601String()
+                ], 'No synchronization needed');
+            }
+
+            // CAS 3: Différences détectées - Synchronisation différentielle
+            $clientChecksumsMap = collect($clientItemsChecksums)->keyBy('id');
+$toAdd = []; // Nouveaux projets
+            $toUpdate = []; // Projets modifiés
+            $toDelete = []; // Projets supprimés
+
+            // Identifier les ajouts et modifications
+            foreach ($serverItemsWithChecksums as $serverItem) {
+                $clientItem = $clientChecksumsMap->get($serverItem['id']);
+
+                if (!$clientItem) {
+                    // Nouveau projet côté serveur
+                    $toAdd[] = [
+                        // 'id' => $serverItem['id'],
+                        // 'checksum' => $serverItem['checksum'],
+                        // 'data' =>
+                        $serverItem['data']
+                    ];
+                } elseif ($clientItem['checksum'] !== $serverItem['checksum']) {
+                    // Projet modifié
+                    $toUpdate[] = [
+                        // 'id' => $serverItem['id'],
+                        // 'checksum' => $serverItem['checksum'],
+                        // 'data' =>
+                        $serverItem['data']
+                    ];
+                }
+            }
+
+            // Identifier les suppressions
+            $serverIds = $serverItemsWithChecksums->pluck('id')->toArray();
+            foreach ($clientChecksumsMap as $clientId => $clientItem) {
+                if (!in_array($clientId, $serverIds)) {
+                    $toDelete[] = $clientId;
+                }
+            }
+
+            return $this->responseSuccess([
+                'sync_type' => 'differential',
+                'global_checksum' => $serverGlobalChecksum,
+                'changes' => [
+                    'added' => $toAdd,
+                    'updated' => $toUpdate,
+                    'deleted' => $toDelete,
+                ],
+                'stats' => [
+                    'added_count' => count($toAdd),
+                    'updated_count' => count($toUpdate),
+                    'deleted_count' => count($toDelete),
+                    'total_server' => $projects->count(),
+                ],
+                'timestamp' => now()->toIso8601String()
+            ], 'Differential synchronization completed');
+        } catch (Throwable $e) {
+            return $this->responseError($e->getMessage(), 500);
+        }
+    } 
+
+
+    private function buildProjectQuery(array $filters)
+    {
+        $query = Project::query();
+
+        // Appliquer les filtres
+        if ($filters['status']) {
+            $statusMap = [
+                'open' => 'vote_open',
+                'not_open' => 'vote_not_open',
+                'closed' => 'vote_closed',
+                'project_accepted' => 'project_accepted',
+                'project_rejected' => 'project_rejected',
+            ];
+            $query->where('status', $statusMap[$filters['status']] ?? $filters['status']);
         }
 
-        $this->scoreService->updateAllScores();
+        if ($filters['search']) {
+            $query->whereRaw('LOWER(title) LIKE ?', ['%' . strtolower($filters['search']) . '%']);
+        }
 
-        return response()->json(['message' => 'Priorisation enregistrée']);
+        if ($filters['created_by']) {
+            $query->where('created_by', $filters['created_by']);
+        }
+
+        if ($filters['sort']) {
+            $query->orderByDesc('total_score');
+        }
+
+        // Eager loading pour éviter N+1
+        $query->with([
+            'images',
+            'user',
+            'votes' => function ($q) {
+                $q->select('id', 'project_id', 'user_id', 'vote_type', 'created_at');
+            },
+            'votes.user:id,full_name,email,phone,image_url'
+        ])
+            ->withCount([
+                'votes as positive_votes_count' => function ($q) {
+                    $q->where('vote_type', 'yes');
+                },
+                'votes as negative_votes_count' => function ($q) {
+                    $q->where('vote_type', 'no');
+                },
+                'votes as neutral_votes_count' => function ($q) {
+                    $q->whereNull('vote_type');
+                },
+                'votes as yes_to_subject_votes_count' => function ($q) {
+                    $q->where('vote_type', 'yes_to_subject');
+                }
+            ]);
+
+        return $query;
     }
+
+
+
+
+
+
+
+
+voici le data envoyer a l api /projects/sync en mode poste quand on a dejas les donnee charger dans la bd local de
+l app , quand on vient pour la premiere fois alors on envoie rien , si c est pour les partie de filtre envoie seulement
+ "filters" , mais si les data sont dejas dans la bd et il sagit de verifier seulemtnt pour la synchronisation 
+ il doit envoyer tous les donnees comme la structure en bas en plus du type de filtre , quand il s agit de recuperer
+ toutes les donnees, on envoie pas filtre 
+
+Le global_checksum doit être généré à partir de tous les checksums individuels (items_checksums) combinés ensemble 
+— c’est une empreinte unique de l’ensemble des données locales.use cette fontion en flutter
+public static function calculate($data, string $algorithm = 'sha256'): string
+{
+    // Convert data to JSON string for consistent hashing
+    $jsonData = is_string($data) ? $data : json_encode($data);
+    
+    return hash($algorithm, $jsonData);
+}
+
+
+
+    {
+  "global_checksum": "b30ac0eabcff6b1e23109ccc0f91a4e11a7bd3d557c76445eb055e2d401dcb10",
+  "items_checksums": [
+    {
+      "id": "1f38dea4-efa5-4eda-8fb8-425e2e29db0a",
+      "checksum": "ae0eb102ea93c36dd6e407a85b0efe761474e9055c4426edbaadb8eaa55e9e0a"
+    },
+    {
+      "id": "ae8a4beb-c49e-4a55-aa74-a2b38b66b58b",
+      "checksum": "1b73a88669b893af02d7f0ff472e4df8210e96e8c0e8f501c6dcb70d89935859"
+    },
+    {
+      "id": "1703ec19-1d6a-48d9-9cda-edcca3b7aacb",
+      "checksum": "6233e3ffad83916465c72060419522f2397b061f1508e6aae60b920b9d5ac703"
+    },
+    {
+      "id": "337d53c6-8d06-4e7e-8094-561af59d0700",
+      "checksum": "3e1e8ea5bd1560d75aee54962a91ecee4b36d2f40ca4701a4eaee723266bbac0"
+    },
+    {
+      "id": "0930d23d-6c24-4c9f-b3f0-ae5b1584ab24",
+      "checksum": "888bf24280592451970fa3d436ae46e6c57df87308fe667d0ee0ec4f7f7c5566"
+    }
+  ],
+  "filters": {
+    "status": "not_open"
+  }
+}
+
+
+
+voici le data que l api renvoie
+
+{
+  "success": true,
+  "status_code": 200,
+  "message": "Differential synchronization completed",
+  "data": {
+    "sync_type": "differential",
+    "global_checksum": "2dc3e8390894f7186f3c0789a07454e339a17a24d8c470218a3691217243103d",
+    "changes": {
+      "added": [
+        [
+          {
+            "id": "90e26bc8-0a16-48c5-b8ea-a842bb5c6381",
+            "checksum": "b8c3f8505ba8ed4002708442361e943099861ec7f70f85c14b8ae0fda452abed",
+            "title": "Aménagement d'un terrain de jeux",
+            "brief_description": "Création d'une aire de jeux sécurisée pour les enfants",
+            "detailed_description": "Aménagement d'un terrain de jeux moderne avec équipements certifiés, sol amortissant et clôture de sécurité.",
+            "estimated_budget": 3500000,
+            "start_date": "2025-12-01",
+            "estimated_completion_date": "2026-05-19",
+            "date_lapses": "2026-05-31",
+            "with_call_for_tenders": false,
+            "with_service_provider": true,
+            "service_provider_budget": 2800000,
+            "created_by": "c3e38976-3c6c-42b9-b32b-150552ef5671",
+            "total_score": 1,
+            "status": "vote_open",
+            "images": [],
+            "votes": {
+              "positive_votes": 1,
+              "negative_votes": 0,
+              "neutral_votes": 0,
+              "yes_to_subject_votes": 0,
+              "voters_count": 1,
+              "vote_rate": 10,
+              "user_vote": "yes"
+            },
+            "user": {
+              "anonymity": false,
+              "id": "78cf2b22-431a-465f-8603-246e2df7bf4e",
+              "full_name": "Ryley Carter",
+              "email": "joany.yost@example.net",
+              "phone": "323-357-2199",
+              "villa_id": "53c84d99-fee3-4a00-964d-c80907212ea2",
+              "image_url": null,
+              "role": "USER",
+              "villa": {
+                "id": "53c84d99-fee3-4a00-964d-c80907212ea2",
+                "number": "Villa-369",
+                "code": ""
+              }
+            }
+          }
+        ],
+        [
+          {
+            "id": "d2de4680-3743-4cd1-bafa-5f178c84da5b",
+            "checksum": "ae4d27557d31cff4e5224bcbc2b958a274d9ca49a824a192bead15b013b4fb6d",
+            "title": "Rénovation de la piscine communautaire",
+            "brief_description": "Rénovation complète de la piscine avec nouveau système de filtration",
+            "detailed_description": "Ce projet vise à rénover entièrement la piscine communautaire, incluant le remplacement du système de filtration, la réparation des carreaux endommagés et l'installation d'un nouveau système d'éclairage LED.",
+            "estimated_budget": 5000000,
+            "start_date": "2025-12-25",
+            "estimated_completion_date": "2026-03-07",
+            "date_lapses": "2026-03-30",
+            "with_call_for_tenders": true,
+            "with_service_provider": false,
+            "service_provider_budget": 0,
+            "created_by": "c3e38976-3c6c-42b9-b32b-150552ef5671",
+            "total_score": 0,
+            "status": "project_rejected",
+            "images": [],
+            "votes": {
+              "positive_votes": 0,
+              "negative_votes": 0,
+              "neutral_votes": 0,
+              "yes_to_subject_votes": 0,
+              "voters_count": 0,
+              "vote_rate": 0,
+              "user_vote": null
+            },
+            "user": {
+              "anonymity": false,
+              "id": "0c9a0147-366a-42ec-8bc1-d145271697ce",
+              "full_name": "Ismael Dach",
+              "email": "lind.alden@example.org",
+              "phone": "+1 (740) 207-1215",
+              "villa_id": "30e2a45d-f874-480b-afbc-bc3fbb0654fa",
+              "image_url": null,
+              "role": "USER",
+              "villa": {
+                "id": "30e2a45d-f874-480b-afbc-bc3fbb0654fa",
+                "number": "Villa-659",
+                "code": ""
+              }
+            }
+          }
+        ],
+        [
+          {
+            "id": "be7e4a50-c601-49de-aced-880c0c68a8e1",
+            "checksum": "f02275054debc8cde6998d2ed7d16c021b70f993e8659b3943b83e3d12248d3b",
+            "title": "Installation de panneaux solaires",
+            "brief_description": "Installation de panneaux solaires pour l'éclairage public",
+            "detailed_description": "Installation de panneaux solaires photovoltaïques pour alimenter l'éclairage public de la communauté et réduire les coûts énergétiques.",
+            "estimated_budget": 8000000,
+            "start_date": "2025-12-04",
+            "estimated_completion_date": "2026-01-25",
+            "date_lapses": "2026-02-21",
+            "with_call_for_tenders": false,
+            "with_service_provider": false,
+            "service_provider_budget": 0,
+            "created_by": "c3e38976-3c6c-42b9-b32b-150552ef5671",
+            "total_score": 0,
+            "status": "vote_closed",
+            "images": [],
+            "votes": {
+              "positive_votes": 0,
+              "negative_votes": 0,
+              "neutral_votes": 0,
+              "yes_to_subject_votes": 0,
+              "voters_count": 0,
+              "vote_rate": 0,
+              "user_vote": null
+            },
+            "user": {
+              "anonymity": false,
+              "id": "8a022d45-0e5b-4f7f-b91e-fb3dab731365",
+              "full_name": "Charity Pouros",
+              "email": "mcdermott.ophelia@example.net",
+              "phone": "+1-972-721-2907",
+              "villa_id": "8052d85b-9bc5-4144-a8c3-a37727a79998",
+              "image_url": null,
+              "role": "USER",
+              "villa": {
+                "id": "8052d85b-9bc5-4144-a8c3-a37727a79998",
+                "number": "Villa-360",
+                "code": ""
+              }
+            }
+          }
+        ],
+        [
+          {
+            "id": "15fd908b-90f6-4f7f-839a-067454700f5e",
+            "checksum": "b3d2a5f4bf69a33f784581fbf43182313de490c72e65bcefd9c42293e0bd6109",
+            "title": "Aménagement d'un terrain de jeux",
+            "brief_description": "Création d'une aire de jeux sécurisée pour les enfants",
+            "detailed_description": "Aménagement d'un terrain de jeux moderne avec équipements certifiés, sol amortissant et clôture de sécurité.",
+            "estimated_budget": 3500000,
+            "start_date": "2025-12-23",
+            "estimated_completion_date": "2026-02-28",
+            "date_lapses": "2026-03-29",
+            "with_call_for_tenders": false,
+            "with_service_provider": true,
+            "service_provider_budget": 2800000,
+            "created_by": "c3e38976-3c6c-42b9-b32b-150552ef5671",
+            "total_score": 0,
+            "status": "project_rejected",
+            "images": [],
+            "votes": {
+              "positive_votes": 0,
+              "negative_votes": 0,
+              "neutral_votes": 0,
+              "yes_to_subject_votes": 0,
+              "voters_count": 0,
+              "vote_rate": 0,
+              "user_vote": null
+            },
+            "user": {
+              "anonymity": true,
+              "villa": {
+                "id": "eb1c4a3d-a4fa-454c-ba16-16a67efe69b6",
+                "number": "Villa-323"
+              }
+            }
+          }
+        ],
+        [
+          {
+            "id": "1703ec19-1d6a-48d9-9cda-edcca3b7aacb",
+            "checksum": "6233e3ffad83916465c72060419522f2397b061f1508e6aae60b920b9d5ac703",
+            "title": "Réfection des routes internes",
+            "brief_description": "Réparation et goudronnage des routes de la communauté",
+            "detailed_description": "Réfection complète des routes internes avec goudronnage, marquage au sol et installation de dos d'âne aux endroits stratégiques.",
+            "estimated_budget": 12000000,
+            "start_date": "2025-12-24",
+            "estimated_completion_date": "2026-02-09",
+            "date_lapses": "2026-03-10",
+            "with_call_for_tenders": true,
+            "with_service_provider": false,
+            "service_provider_budget": 0,
+            "created_by": "c3e38976-3c6c-42b9-b32b-150552ef5671",
+            "total_score": 0,
+            "status": "vote_not_open",
+            "images": [],
+            "votes": {
+              "positive_votes": 0,
+              "negative_votes": 0,
+              "neutral_votes": 0,
+              "yes_to_subject_votes": 0,
+              "voters_count": 0,
+              "vote_rate": 0,
+              "user_vote": null
+            },
+            "user": {
+              "anonymity": false,
+              "id": "dc13ecd4-f898-4e24-811c-54051800fdfd",
+              "full_name": "Trisha Dibbert DVM",
+              "email": "jermaine.stark@example.com",
+              "phone": "401-949-4103",
+              "villa_id": "daca4e59-aecc-430f-8ddf-323852130e19",
+              "image_url": null,
+              "role": "USER",
+              "villa": {
+                "id": "daca4e59-aecc-430f-8ddf-323852130e19",
+                "number": "Villa-878",
+                "code": ""
+              }
+            }
+          }
+        ],
+        [
+          {
+            "id": "fa744d28-c24f-4010-9bd5-0d7e838a83ba",
+            "checksum": "2e20027cbd302f985b4c2db91419a9dae28eef7250745b2149e55438a9ff759c",
+            "title": "Construction d'un centre communautaire",
+            "brief_description": "Construction d'un espace polyvalent pour les événements",
+            "detailed_description": "Construction d'un centre communautaire moderne pouvant accueillir 200 personnes, équipé de climatisation, cuisine et sanitaires.",
+            "estimated_budget": 25000000,
+            "start_date": "2025-12-14",
+            "estimated_completion_date": "2026-05-08",
+            "date_lapses": "2026-06-05",
+            "with_call_for_tenders": false,
+            "with_service_provider": true,
+            "service_provider_budget": 20000000,
+            "created_by": "c3e38976-3c6c-42b9-b32b-150552ef5671",
+            "total_score": 0,
+            "status": "vote_closed",
+            "images": [],
+            "votes": {
+              "positive_votes": 0,
+              "negative_votes": 0,
+              "neutral_votes": 0,
+              "yes_to_subject_votes": 0,
+              "voters_count": 0,
+              "vote_rate": 0,
+              "user_vote": null
+            },
+            "user": {
+              "anonymity": true,
+              "villa": {
+                "id": "eb1c4a3d-a4fa-454c-ba16-16a67efe69b6",
+                "number": "Villa-323"
+              }
+            }
+          }
+        ],
+      
+      ],
+      "updated": [],
+      "deleted": []
+    },
+    "stats": {
+      "added_count": 13,
+      "updated_count": 0,
+      "deleted_count": 0,
+      "total_server": 13
+    },
+    "timestamp": "2025-11-12T12:50:15+00:00"
+  }
+}
