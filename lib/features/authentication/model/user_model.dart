@@ -1,9 +1,9 @@
 class UserModel {
-  final int id;
+  final String id;
   final String fullName;
   final String email;
   final String phone;
-  final int villaId;
+  final String? villaId;
   final String? imageUrl;
   final String role;
 
@@ -12,7 +12,7 @@ class UserModel {
     required this.fullName,
     required this.email,
     required this.phone,
-    required this.villaId,
+    this.villaId,
     this.imageUrl,
     required this.role,
   });
@@ -23,7 +23,7 @@ class UserModel {
       fullName: json['full_name'],
       email: json['email'],
       phone: json['phone'],
-      villaId: json['villa_id'],
+      villaId: json['villa_id']?.toString(),
       imageUrl: json['image_url'],
       role: json['role'],
     );
