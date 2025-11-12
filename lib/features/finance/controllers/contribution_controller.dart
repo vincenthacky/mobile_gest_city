@@ -168,7 +168,7 @@ class ContributionController extends ChangeNotifier {
   }
 
   // Charger plus de paiements validés (pagination)
-  Future<void> loadMoreValidatedPayments(int userId) async {
+  Future<void> loadMoreValidatedPayments(String userId) async {
     if (_validatedPagination?.hasNextPage != true) return;
     
     try {

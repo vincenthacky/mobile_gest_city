@@ -166,7 +166,7 @@ class ContributionDataSource {
   }
 
   Future<PaymentProofsResponse> getValidatedPayments({
-    required int userId,
+    required String userId,
     int page = 1,
   }) async {
     try {
