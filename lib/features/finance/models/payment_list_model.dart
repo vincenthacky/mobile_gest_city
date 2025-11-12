@@ -1,5 +1,5 @@
 class PaymentUser {
-  final int id;
+  final String id;
   final String name;
   final String phone;
   final String email;
@@ -22,8 +22,8 @@ class PaymentUser {
 }
 
 class PaymentItem {
-  final int id;
-  final int contributionId;
+  final String id;
+  final String contributionId;
   final int amountPaid;
   final String? paymentDate;
   final String? paymentMethod;
@@ -55,8 +55,8 @@ class PaymentItem {
   factory PaymentItem.fromJson(Map<String, dynamic> json) {
     try {
       return PaymentItem(
-        id: json['id'] ?? 0,
-        contributionId: json['contribution_id'] ?? 0,
+        id: json['id'] ?? '',
+        contributionId: json['contribution_id'] ?? '',
         amountPaid: json['amount_paid'] ?? 0,
         paymentDate: json['payment_date'],
         paymentMethod: json['payment_method'],

@@ -28,7 +28,9 @@ class ContributionDataSource {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        final errorMessage = e.response?.data['message'] ?? 'Erreur lors de la récupération des données de cotisation';
+        final errorMessage =
+            e.response?.data['message'] ??
+            'Erreur lors de la récupération des données de cotisation';
         throw DioException(
           requestOptions: e.requestOptions,
           response: e.response,
@@ -65,7 +67,9 @@ class ContributionDataSource {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        final errorMessage = e.response?.data['message'] ?? 'Erreur lors de la génération du code QR';
+        final errorMessage =
+            e.response?.data['message'] ??
+            'Erreur lors de la génération du code QR';
         throw DioException(
           requestOptions: e.requestOptions,
           response: e.response,
@@ -97,7 +101,9 @@ class ContributionDataSource {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        final errorMessage = e.response?.data['message'] ?? 'Erreur lors de la récupération des mois impayés';
+        final errorMessage =
+            e.response?.data['message'] ??
+            'Erreur lors de la récupération des mois impayés';
         throw DioException(
           requestOptions: e.requestOptions,
           response: e.response,
@@ -114,7 +120,9 @@ class ContributionDataSource {
     }
   }
 
-  Future<PaymentProofResponse> submitPaymentProof(PaymentProofRequest request) async {
+  Future<PaymentProofResponse> submitPaymentProof(
+    PaymentProofRequest request,
+  ) async {
     try {
       // Créer le FormData pour l'envoi multipart
       final formData = FormData.fromMap({
@@ -130,11 +138,7 @@ class ContributionDataSource {
       final response = await _dio.post(
         '/payments/proofs/contributions',
         data: formData,
-        options: Options(
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        ),
+        options: Options(headers: {'Content-Type': 'multipart/form-data'}),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -148,7 +152,9 @@ class ContributionDataSource {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        final errorMessage = e.response?.data['message'] ?? 'Erreur lors de l\'envoi de la preuve de paiement';
+        final errorMessage =
+            e.response?.data['message'] ??
+            'Erreur lors de l\'envoi de la preuve de paiement';
         throw DioException(
           requestOptions: e.requestOptions,
           response: e.response,
@@ -190,7 +196,9 @@ class ContributionDataSource {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        final errorMessage = e.response?.data['message'] ?? 'Erreur lors de la récupération des paiements validés';
+        final errorMessage =
+            e.response?.data['message'] ??
+            'Erreur lors de la récupération des paiements validés';
         throw DioException(
           requestOptions: e.requestOptions,
           response: e.response,
@@ -208,17 +216,13 @@ class ContributionDataSource {
   }
 
   Future<PaymentProofsResponse> getPendingPayments({
-    required int userId,
+    required String userId,
     int page = 1,
   }) async {
     try {
       final response = await _dio.get(
         '/payments/proofs/contributions',
-        queryParameters: {
-          'status': 'PENDING',
-          'user_id': userId,
-          'page': page,
-        },
+        queryParameters: {'status': 'PENDING', 'user_id': userId, 'page': page},
       );
 
       if (response.statusCode == 200) {
@@ -232,7 +236,9 @@ class ContributionDataSource {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        final errorMessage = e.response?.data['message'] ?? 'Erreur lors de la récupération des paiements en attente';
+        final errorMessage =
+            e.response?.data['message'] ??
+            'Erreur lors de la récupération des paiements en attente';
         throw DioException(
           requestOptions: e.requestOptions,
           response: e.response,
@@ -251,16 +257,13 @@ class ContributionDataSource {
 
   // Nouvelle méthode pour récupérer tous les paiements
   Future<PaymentListResponse> getAllPayments({
-    required int userId,
+    required String userId,
     int page = 1,
   }) async {
     try {
       final response = await _dio.get(
         '/payments',
-        queryParameters: {
-          'user_id': userId,
-          'page': page,
-        },
+        queryParameters: {'user_id': userId, 'page': page},
       );
 
       if (response.statusCode == 200) {
@@ -274,7 +277,9 @@ class ContributionDataSource {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        final errorMessage = e.response?.data['message'] ?? 'Erreur lors de la récupération des paiements';
+        final errorMessage =
+            e.response?.data['message'] ??
+            'Erreur lors de la récupération des paiements';
         throw DioException(
           requestOptions: e.requestOptions,
           response: e.response,
@@ -307,7 +312,9 @@ class ContributionDataSource {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        final errorMessage = e.response?.data['message'] ?? 'Erreur lors de la récupération des périodes de paiement';
+        final errorMessage =
+            e.response?.data['message'] ??
+            'Erreur lors de la récupération des périodes de paiement';
         throw DioException(
           requestOptions: e.requestOptions,
           response: e.response,
@@ -325,40 +332,40 @@ class ContributionDataSource {
   }
 
   // Nouvelle méthode pour soumettre un paiement avec périodes et images
-  Future<PaymentSubmissionResponse> submitPaymentWithPeriods(PaymentSubmissionRequest request) async {
+  Future<PaymentSubmissionResponse> submitPaymentWithPeriods(
+    PaymentSubmissionRequest request,
+  ) async {
     try {
       // Créer le FormData pour l'envoi multipart avec le format attendu par l'API
       final Map<String, dynamic> formFields = {};
-      
+
       // Ajouter les périodes avec le format periods[index][field]
       for (int i = 0; i < request.periods.length; i++) {
         final period = request.periods[i];
         formFields['periods[$i][year]'] = period.year;
         formFields['periods[$i][month]'] = period.month;
       }
-      
+
       final formData = FormData.fromMap(formFields);
-      
+
       // Ajouter les images avec le format images[index]
       for (int i = 0; i < request.images.length; i++) {
         final file = request.images[i];
-        formData.files.add(MapEntry(
-          'images[$i]',
-          await MultipartFile.fromFile(
-            file.path,
-            filename: file.path.split('/').last,
+        formData.files.add(
+          MapEntry(
+            'images[$i]',
+            await MultipartFile.fromFile(
+              file.path,
+              filename: file.path.split('/').last,
+            ),
           ),
-        ));
+        );
       }
 
       final response = await _dio.post(
         '/payments/contributions',
         data: formData,
-        options: Options(
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        ),
+        options: Options(headers: {'Content-Type': 'multipart/form-data'}),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -372,7 +379,9 @@ class ContributionDataSource {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        final errorMessage = e.response?.data['message'] ?? 'Erreur lors de la soumission du paiement';
+        final errorMessage =
+            e.response?.data['message'] ??
+            'Erreur lors de la soumission du paiement';
         throw DioException(
           requestOptions: e.requestOptions,
           response: e.response,
@@ -405,7 +414,9 @@ class ContributionDataSource {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        final errorMessage = e.response?.data['message'] ?? 'Erreur lors de la récupération de l\'aperçu des paiements';
+        final errorMessage =
+            e.response?.data['message'] ??
+            'Erreur lors de la récupération de l\'aperçu des paiements';
         throw DioException(
           requestOptions: e.requestOptions,
           response: e.response,
@@ -430,10 +441,7 @@ class ContributionDataSource {
     try {
       final response = await _dio.get(
         '/payments/statistics-by-month',
-        queryParameters: {
-          'year': year,
-          'month': month,
-        },
+        queryParameters: {'year': year, 'month': month},
       );
 
       if (response.statusCode == 200) {
@@ -442,12 +450,15 @@ class ContributionDataSource {
         throw DioException(
           requestOptions: response.requestOptions,
           response: response,
-          message: 'Erreur lors de la récupération des statistiques de paiement',
+          message:
+              'Erreur lors de la récupération des statistiques de paiement',
         );
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        final errorMessage = e.response?.data['message'] ?? 'Erreur lors de la récupération des statistiques de paiement';
+        final errorMessage =
+            e.response?.data['message'] ??
+            'Erreur lors de la récupération des statistiques de paiement';
         throw DioException(
           requestOptions: e.requestOptions,
           response: e.response,

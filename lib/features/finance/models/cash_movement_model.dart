@@ -1,12 +1,12 @@
 class CashMovement {
-  final int id;
-  final int contributionId;
+  final String id;
+  final String contributionId;
   final int amount;
   final DateTime date;
   final String kind;
   final String? method;
   final String status;
-  final int? projectId;
+  final String? projectId;
   final CashMovementUser? user;
   final CashMovementProject? project;
 
@@ -25,16 +25,20 @@ class CashMovement {
 
   factory CashMovement.fromJson(Map<String, dynamic> json) {
     return CashMovement(
-      id: json['id'] as int,
-      contributionId: json['contribution_id'] as int,
+      id: json['id'] as String,
+      contributionId: json['contribution_id'] as String,
       amount: json['amount'] as int,
       date: DateTime.parse(json['date'] as String),
       kind: json['kind'] as String,
       method: json['method'] as String?,
       status: json['status'] as String,
-      projectId: json['project_id'] as int?,
-      user: json['user'] != null ? CashMovementUser.fromJson(json['user']) : null,
-      project: json['project'] != null ? CashMovementProject.fromJson(json['project']) : null,
+      projectId: json['project_id'] as String?,
+      user: json['user'] != null
+          ? CashMovementUser.fromJson(json['user'])
+          : null,
+      project: json['project'] != null
+          ? CashMovementProject.fromJson(json['project'])
+          : null,
     );
   }
 
@@ -124,7 +128,7 @@ class CashMovement {
 }
 
 class CashMovementUser {
-  final int userId;
+  final String userId;
   final String fullName;
   final String email;
   final String phone;
@@ -138,7 +142,7 @@ class CashMovementUser {
 
   factory CashMovementUser.fromJson(Map<String, dynamic> json) {
     return CashMovementUser(
-      userId: json['user_id'] as int,
+      userId: json['user_id'] as String,
       fullName: json['full_name'] as String,
       email: json['email'] as String,
       phone: json['phone'] as String,
@@ -156,7 +160,7 @@ class CashMovementUser {
 }
 
 class CashMovementProject {
-  final int projectId;
+  final String projectId;
   final String title;
   final int estimatedBudget;
 
@@ -168,7 +172,7 @@ class CashMovementProject {
 
   factory CashMovementProject.fromJson(Map<String, dynamic> json) {
     return CashMovementProject(
-      projectId: json['project_id'] as int,
+      projectId: json['project_id'] as String,
       title: json['title'] as String,
       estimatedBudget: json['estimated_budget'] as int,
     );

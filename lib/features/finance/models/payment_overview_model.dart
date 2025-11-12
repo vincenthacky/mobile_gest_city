@@ -1,5 +1,5 @@
 class PaymentOverviewUser {
-  final int id;
+  final String id;
   final String fullName;
   final String email;
   final String phone;
@@ -17,7 +17,7 @@ class PaymentOverviewUser {
     final paymentsList = json['payments'] as List<dynamic>? ?? [];
     
     return PaymentOverviewUser(
-      id: json['id'] ?? 0,
+      id: json['id'] ?? '',
       fullName: json['full_name'] ?? '',
       email: json['email'] ?? '',
       phone: json['phone'] ?? '',

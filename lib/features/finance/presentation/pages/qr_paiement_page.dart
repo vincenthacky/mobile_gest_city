@@ -7,7 +7,6 @@ import '../../data_source/contribution_data_source.dart';
 import '../../models/contribution_model.dart';
 import 'cotisation/widgets/payment_submission_modal.dart';
 
-
 class QrPaiementPage extends StatefulWidget {
   final String cotisationTitle;
   final int montant;
@@ -26,13 +25,13 @@ class QrPaiementPage extends StatefulWidget {
 
 class _QrPaiementPageState extends State<QrPaiementPage> {
   final ContributionDataSource _dataSource = ContributionDataSource();
-  
+
   String? _qrToken;
   bool _isLoading = true;
   bool _hasError = false;
   String? _errorMessage;
   bool _isExpired = false;
-  
+
   Timer? _expirationTimer;
   Timer? _countdownTimer;
   int _remainingSeconds = 0;
@@ -60,7 +59,7 @@ class _QrPaiementPageState extends State<QrPaiementPage> {
 
     try {
       final response = await _dataSource.generateQrCode();
-      
+
       setState(() {
         _qrToken = response.data.token;
         _remainingSeconds = response.data.expiresInSeconds;
@@ -70,7 +69,6 @@ class _QrPaiementPageState extends State<QrPaiementPage> {
       // Démarrer le timer d'expiration
       _startExpirationTimer(response.data.expiresInSeconds);
       _startCountdownTimer();
-      
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -126,10 +124,7 @@ class _QrPaiementPageState extends State<QrPaiementPage> {
               SizedBox(height: 16),
               Text(
                 'Génération du code QR...',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Color(0xFF6B7280),
-                ),
+                style: TextStyle(fontSize: 16, color: Color(0xFF6B7280)),
               ),
             ],
           ),
@@ -221,11 +216,7 @@ class _QrPaiementPageState extends State<QrPaiementPage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.refresh,
-                            color: Colors.white,
-                            size: 48,
-                          ),
+                          Icon(Icons.refresh, color: Colors.white, size: 48),
                           SizedBox(height: 16),
                           Text(
                             'Code QR expiré',
@@ -264,10 +255,7 @@ class _QrPaiementPageState extends State<QrPaiementPage> {
       child: const Center(
         child: Text(
           'Aucun code QR disponible',
-          style: TextStyle(
-            fontSize: 16,
-            color: Color(0xFF6B7280),
-          ),
+          style: TextStyle(fontSize: 16, color: Color(0xFF6B7280)),
         ),
       ),
     );
@@ -312,7 +300,7 @@ class _QrPaiementPageState extends State<QrPaiementPage> {
                 ],
               ),
             ),
-            
+
             // Contenu principal
             Expanded(
               child: SingleChildScrollView(
@@ -320,7 +308,7 @@ class _QrPaiementPageState extends State<QrPaiementPage> {
                 child: Column(
                   children: [
                     const SizedBox(height: 20),
-                    
+
                     // Titre instruction
                     const Text(
                       'Présentez ce code QR à l\'administrateur',
@@ -334,14 +322,11 @@ class _QrPaiementPageState extends State<QrPaiementPage> {
                     const SizedBox(height: 8),
                     const Text(
                       'L\'admin doit scanner ce code pour enregistrer votre paiement',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF6B7280),
-                      ),
+                      style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // Info cotisation avec timer
                     Container(
                       width: double.infinity,
@@ -373,12 +358,17 @@ class _QrPaiementPageState extends State<QrPaiementPage> {
                               color: Color(0xFF4F46E5),
                             ),
                           ),
-                          if (!_isLoading && !_hasError && _qrToken != null) ...[
+                          if (!_isLoading &&
+                              !_hasError &&
+                              _qrToken != null) ...[
                             const SizedBox(height: 12),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
-                                color: _isExpired 
+                                color: _isExpired
                                     ? Colors.red.withValues(alpha: 0.1)
                                     : Colors.green.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
@@ -387,19 +377,25 @@ class _QrPaiementPageState extends State<QrPaiementPage> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    _isExpired ? Icons.access_time : Icons.timer,
+                                    _isExpired
+                                        ? Icons.access_time
+                                        : Icons.timer,
                                     size: 16,
-                                    color: _isExpired ? Colors.red : Colors.green,
+                                    color: _isExpired
+                                        ? Colors.red
+                                        : Colors.green,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    _isExpired 
+                                    _isExpired
                                         ? 'Code expiré'
                                         : 'Expire dans ${_formatTime(_remainingSeconds)}',
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
-                                      color: _isExpired ? Colors.red : Colors.green,
+                                      color: _isExpired
+                                          ? Colors.red
+                                          : Colors.green,
                                     ),
                                   ),
                                 ],
@@ -410,7 +406,7 @@ class _QrPaiementPageState extends State<QrPaiementPage> {
                       ),
                     ),
                     const SizedBox(height: 40),
-                    
+
                     // QR Code Section
                     Container(
                       padding: const EdgeInsets.all(24),
@@ -470,7 +466,7 @@ class _QrPaiementPageState extends State<QrPaiementPage> {
                 ),
               ),
             ),
-            
+
             // Actions en bas
             Padding(
               padding: const EdgeInsets.all(16),
@@ -507,7 +503,7 @@ class _QrPaiementPageState extends State<QrPaiementPage> {
   void _showPaymentSubmissionModal() {
     // Créer un objet ContributionData basique avec les informations disponibles
     final contributionData = ContributionData(
-      id: int.parse(widget.cotisationId),
+      id: widget.cotisationId,
       name: widget.cotisationTitle,
       description: null,
       amountByPerson: widget.montant.toDouble(),

@@ -7,7 +7,7 @@ enum ReportStatus { pending, inProgress, resolved }
 enum PriorityLevel { low, medium, high, urgent }
 
 class ReportModel {
-  final int id;
+  final String id;
   final String title;
   final String description;
   final ReportType reportType;
@@ -15,7 +15,7 @@ class ReportModel {
   final String? place;
   final PriorityLevel priority;
   final bool anonymous;
-  final int? reportedBy;
+  final String? reportedBy;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isNew;
@@ -92,7 +92,7 @@ class ReportModel {
     final user = json['user'] as Map<String, dynamic>?;
 
     return ReportModel(
-      id: json['id'] ?? 0,
+      id: json['id'] ?? '',
       title: json['title'] ?? '',
       description: json['description'] ?? '',
       reportType: mapReportType(json['report_type'] ?? 'other'),
@@ -100,7 +100,7 @@ class ReportModel {
       place: json['place'],
       priority: mapPriority(json['priority'] ?? 'medium'),
       anonymous: json['anonymous'] ?? false,
-      reportedBy: json['reported_by'],
+      reportedBy: json['reported_by'] ?? '',
       createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
       updatedAt: DateTime.parse(json['updated_at'] ?? DateTime.now().toIso8601String()),
       isNew: json['new'] ?? false,

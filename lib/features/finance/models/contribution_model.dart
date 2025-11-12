@@ -27,7 +27,7 @@ class ContributionResponse {
 }
 
 class ContributionData {
-  final int id;
+  final String id;
   final String name;
   final String? description;
   final double amountByPerson;
@@ -54,7 +54,7 @@ class ContributionData {
   factory ContributionData.fromJson(Map<String, dynamic> json) {
     try {
       return ContributionData(
-        id: json['id'] ?? 0,
+        id: json['id'] ?? '',
         name: json['name'] ?? '',
         description: json['description'],
         amountByPerson: (json['amount_by_person'] ?? 0).toDouble(),

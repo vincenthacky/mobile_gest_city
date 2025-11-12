@@ -28,7 +28,7 @@ class PaymentProofsResponse {
 }
 
 class PaymentProof {
-  final int id;
+  final String id;
   final String title;
   final DateTime createdAt;
   final double amount;

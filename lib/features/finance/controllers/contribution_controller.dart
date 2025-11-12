@@ -10,7 +10,7 @@ enum ContributionStatus { initial, loading, loaded, error }
 
 class ContributionController extends ChangeNotifier {
   final ContributionDataSource _dataSource = ContributionDataSource();
-  
+
   ContributionStatus _status = ContributionStatus.initial;
   ContributionData? _contributionData;
   List<UnpaidMonth> _unpaidMonths = [];
@@ -18,7 +18,7 @@ class ContributionController extends ChangeNotifier {
   List<PaymentProof> _pendingPayments = [];
   PaginationInfo? _validatedPagination;
   PaginationInfo? _pendingPagination;
-  
+
   // Nouvelle liste unifiée des paiements
   List<PaymentItem> _allPayments = [];
   PaymentPagination? _allPaymentsPagination;
@@ -31,7 +31,7 @@ class ContributionController extends ChangeNotifier {
   List<PaymentProof> get pendingPayments => _pendingPayments;
   PaginationInfo? get validatedPagination => _validatedPagination;
   PaginationInfo? get pendingPagination => _pendingPagination;
-  
+
   // Nouveaux getters pour la liste unifiée
   List<PaymentItem> get allPayments => _allPayments;
   PaymentPagination? get allPaymentsPagination => _allPaymentsPagination;
@@ -39,14 +39,14 @@ class ContributionController extends ChangeNotifier {
   bool get isLoading => _status == ContributionStatus.loading;
   bool get hasData => _contributionData != null;
 
-  Future<void> loadContribution({int? userId}) async {
+  Future<void> loadContribution({String? userId}) async {
     _setStatus(ContributionStatus.loading);
     _clearError();
-    
+
     try {
       // Charger d'abord les données de contribution (prioritaire)
       final contributionResponse = await _dataSource.getContribution();
-      
+
       if (contributionResponse.success) {
         _contributionData = contributionResponse.data;
         _setStatus(ContributionStatus.loaded);
@@ -55,22 +55,21 @@ class ContributionController extends ChangeNotifier {
         _setStatus(ContributionStatus.error);
         return;
       }
-      
+
       // Charger les autres données en arrière-plan sans bloquer l'affichage
       _loadAdditionalData(userId);
-      
+
       // Charger la nouvelle liste unifiée des paiements
       if (userId != null) {
         _loadAllPayments(userId);
       }
-      
     } catch (e) {
       _setError(e.toString());
       _setStatus(ContributionStatus.error);
     }
   }
 
-  Future<void> _loadAdditionalData(int? userId) async {
+  Future<void> _loadAdditionalData(String? userId) async {
     try {
       // Charger les mois impayés
       try {
@@ -83,11 +82,13 @@ class ContributionController extends ChangeNotifier {
         debugPrint('Erreur lors du chargement des mois impayés: $e');
         _unpaidMonths = [];
       }
-      
+
       // Charger les paiements si userId fourni
       if (userId != null) {
         try {
-          final validatedResponse = await _dataSource.getValidatedPayments(userId: userId);
+          final validatedResponse = await _dataSource.getValidatedPayments(
+            userId: userId,
+          );
           if (validatedResponse.success) {
             _validatedPayments = validatedResponse.data;
             _validatedPagination = validatedResponse.pagination;
@@ -97,9 +98,11 @@ class ContributionController extends ChangeNotifier {
           debugPrint('Erreur lors du chargement des paiements validés: $e');
           _validatedPayments = [];
         }
-        
+
         try {
-          final pendingResponse = await _dataSource.getPendingPayments(userId: userId);
+          final pendingResponse = await _dataSource.getPendingPayments(
+            userId: userId,
+          );
           if (pendingResponse.success) {
             _pendingPayments = pendingResponse.data;
             _pendingPagination = pendingResponse.pagination;
@@ -118,17 +121,20 @@ class ContributionController extends ChangeNotifier {
   Future<void> refreshContribution() async {
     _setStatus(ContributionStatus.loading);
     _clearError();
-    
+
     try {
       // Rafraîchir les données de contribution et les mois impayés en parallèle
       final contributionFuture = _dataSource.getContribution();
       final unpaidMonthsFuture = _dataSource.getUnpaidMonths();
-      
-      final results = await Future.wait([contributionFuture, unpaidMonthsFuture]);
-      
+
+      final results = await Future.wait([
+        contributionFuture,
+        unpaidMonthsFuture,
+      ]);
+
       final contributionResponse = results[0] as ContributionResponse;
       final unpaidMonthsResponse = results[1] as UnpaidMonthsResponse;
-      
+
       if (contributionResponse.success) {
         _contributionData = contributionResponse.data;
       } else {
@@ -136,16 +142,15 @@ class ContributionController extends ChangeNotifier {
         _setStatus(ContributionStatus.error);
         return;
       }
-      
+
       if (unpaidMonthsResponse.success) {
         _unpaidMonths = unpaidMonthsResponse.data;
       } else {
         // Ne pas faire échouer le refresh si les mois impayés échouent
         _unpaidMonths = [];
       }
-      
+
       _setStatus(ContributionStatus.loaded);
-      
     } catch (e) {
       _setError(e.toString());
       _setStatus(ContributionStatus.error);
@@ -170,14 +175,14 @@ class ContributionController extends ChangeNotifier {
   // Charger plus de paiements validés (pagination)
   Future<void> loadMoreValidatedPayments(String userId) async {
     if (_validatedPagination?.hasNextPage != true) return;
-    
+
     try {
       final nextPage = (_validatedPagination?.currentPage ?? 0) + 1;
       final response = await _dataSource.getValidatedPayments(
         userId: userId,
         page: nextPage,
       );
-      
+
       if (response.success) {
         _validatedPayments.addAll(response.data);
         _validatedPagination = response.pagination;
@@ -189,16 +194,16 @@ class ContributionController extends ChangeNotifier {
   }
 
   // Charger plus de paiements en attente (pagination)
-  Future<void> loadMorePendingPayments(int userId) async {
+  Future<void> loadMorePendingPayments(String userId) async {
     if (_pendingPagination?.hasNextPage != true) return;
-    
+
     try {
       final nextPage = (_pendingPagination?.currentPage ?? 0) + 1;
       final response = await _dataSource.getPendingPayments(
         userId: userId,
         page: nextPage,
       );
-      
+
       if (response.success) {
         _pendingPayments.addAll(response.data);
         _pendingPagination = response.pagination;
@@ -210,7 +215,7 @@ class ContributionController extends ChangeNotifier {
   }
 
   // Charger tous les paiements (nouvelle approche)
-  Future<void> _loadAllPayments(int userId) async {
+  Future<void> _loadAllPayments(String userId) async {
     try {
       final response = await _dataSource.getAllPayments(userId: userId);
       if (response.success) {
@@ -226,16 +231,16 @@ class ContributionController extends ChangeNotifier {
   }
 
   // Charger plus de paiements (pagination unifiée)
-  Future<void> loadMoreAllPayments(int userId) async {
+  Future<void> loadMoreAllPayments(String userId) async {
     if (_allPaymentsPagination?.hasNextPage != true) return;
-    
+
     try {
       final nextPage = (_allPaymentsPagination?.currentPage ?? 0) + 1;
       final response = await _dataSource.getAllPayments(
         userId: userId,
         page: nextPage,
       );
-      
+
       if (response.success) {
         _allPayments.addAll(response.data);
         _allPaymentsPagination = response.pagination;
@@ -257,7 +262,9 @@ class ContributionController extends ChangeNotifier {
   }
 
   // Nouvelle méthode pour soumettre un paiement avec périodes
-  Future<PaymentSubmissionResponse> submitPaymentWithPeriods(PaymentSubmissionRequest request) async {
+  Future<PaymentSubmissionResponse> submitPaymentWithPeriods(
+    PaymentSubmissionRequest request,
+  ) async {
     try {
       return await _dataSource.submitPaymentWithPeriods(request);
     } catch (e) {
