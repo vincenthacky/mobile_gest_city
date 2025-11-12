@@ -21,7 +21,7 @@ La fonctionnalité de synchronisation intelligente des projets a été **entièr
    - `controllers/project_controller.dart` - Méthodes de synchronisation
 
 4. **Infrastructure**
-   - `core/database/database_initializer.dart` - Initialisation Isar
+   - `core/database/database_initializer.dart` - Initialisation Hive
    - `examples/sync_usage_example.dart` - Exemples d'utilisation
 
 ### 🔧 Dépendances Ajoutées
@@ -29,12 +29,12 @@ La fonctionnalité de synchronisation intelligente des projets a été **entièr
 ```yaml
 dependencies:
   crypto: ^3.0.3           # SHA256 checksums
-  isar: ^3.1.0+1          # Base de données locale
-  isar_flutter_libs: ^3.1.0+1
+  hive: ^2.2.3            # Base de données locale
+  hive_flutter: ^1.1.0    # Hive pour Flutter
 
 dev_dependencies:
-  isar_generator: ^3.1.0+1  # Génération de code
-  build_runner: ^2.4.7      # Build runner
+  hive_generator: ^2.0.1   # Génération de code
+  build_runner: ^2.4.7     # Build runner
 ```
 
 ## 🚀 Comment Utiliser
@@ -162,7 +162,7 @@ Consumer<ProjectController>(
 
 ## 🧪 Test de l'Implémentation
 
-1. **Générer les fichiers Isar** (déjà fait) :
+1. **Générer les fichiers Hive** (déjà fait) :
    ```bash
    dart run build_runner build
    ```
@@ -195,7 +195,7 @@ if (!validation.isValid) {
 ### Reset complet
 ```dart
 await controller.clearSyncData(); // Efface les checksums
-await DatabaseInitializer.reset(); // Reset complet DB
+await DatabaseInitializer.reset(); // Reset complet Hive DB
 ```
 
 ## ⚡ Prêt à l'emploi !

@@ -84,8 +84,8 @@ dependencies:
   crypto: ^3.0.3
   
   # Local database
-  isar: ^3.1.0+1
-  isar_flutter_libs: ^3.1.0+1
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
 
 dev_dependencies:
   flutter_test:
@@ -98,8 +98,8 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
   
-  # Code generation for Isar
-  isar_generator: ^3.1.0+1
+  # Code generation for Hive
+  hive_generator: ^2.0.1
   build_runner: ^2.4.7
 
 # For information on the generic Dart part of this file, see the

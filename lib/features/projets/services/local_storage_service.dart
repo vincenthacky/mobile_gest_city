@@ -1,32 +1,33 @@
-import 'package:isar/isar.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../models/sync_models.dart';
 
 class LocalStorageService {
-  static Isar? _isar;
+  static const String _boxName = 'project_checksums';
+  static Box<ProjectChecksum>? _box;
   
-  /// Instance singleton d'Isar
-  static Future<Isar> get instance async {
-    if (_isar != null) return _isar!;
+  /// Initialise Hive et ouvre la box
+  static Future<Box<ProjectChecksum>> get instance async {
+    if (_box != null && _box!.isOpen) return _box!;
     
-    final dir = await getApplicationDocumentsDirectory();
-    _isar = await Isar.open(
-      [ProjectChecksumSchema],
-      directory: dir.path,
-    );
+    await Hive.initFlutter();
     
-    return _isar!;
+    if (!Hive.isAdapterRegistered(0)) {
+      Hive.registerAdapter(ProjectChecksumAdapter());
+    }
+    
+    _box = await Hive.openBox<ProjectChecksum>(_boxName);
+    return _box!;
   }
 
   /// Ferme la base de données
   static Future<void> close() async {
-    await _isar?.close();
-    _isar = null;
+    await _box?.close();
+    _box = null;
   }
 
   /// Sauvegarde un checksum de projet
   static Future<void> saveProjectChecksum(String projectId, String checksum) async {
-    final isar = await instance;
+    final box = await instance;
     
     final projectChecksum = ProjectChecksum.create(
       projectId: projectId,
@@ -34,45 +35,37 @@ class LocalStorageService {
       lastUpdated: DateTime.now(),
     );
 
-    await isar.writeTxn(() async {
-      await isar.projectChecksums.put(projectChecksum);
-    });
+    await box.put(projectId, projectChecksum);
   }
 
   /// Sauvegarde une liste de checksums de projets
   static Future<void> saveProjectChecksums(Map<String, String> projectChecksums) async {
-    final isar = await instance;
+    final box = await instance;
     final now = DateTime.now();
     
-    final checksums = projectChecksums.entries.map((entry) {
-      return ProjectChecksum.create(
+    final checksums = <String, ProjectChecksum>{};
+    for (final entry in projectChecksums.entries) {
+      checksums[entry.key] = ProjectChecksum.create(
         projectId: entry.key,
         checksum: entry.value,
         lastUpdated: now,
       );
-    }).toList();
+    }
 
-    await isar.writeTxn(() async {
-      await isar.projectChecksums.putAll(checksums);
-    });
+    await box.putAll(checksums);
   }
 
   /// Récupère le checksum d'un projet spécifique
   static Future<String?> getProjectChecksum(String projectId) async {
-    final isar = await instance;
-    
-    final projectChecksum = await isar.projectChecksums
-        .filter()
-        .projectIdEqualTo(projectId)
-        .findFirst();
-        
+    final box = await instance;
+    final projectChecksum = box.get(projectId);
     return projectChecksum?.checksum;
   }
 
   /// Récupère tous les checksums de projets
   static Future<List<ProjectChecksum>> getAllProjectChecksums() async {
-    final isar = await instance;
-    return await isar.projectChecksums.where().findAll();
+    final box = await instance;
+    return box.values.toList();
   }
 
   /// Récupère les checksums sous forme de Map pour l'API
@@ -83,20 +76,14 @@ class LocalStorageService {
 
   /// Met à jour le checksum d'un projet existant
   static Future<void> updateProjectChecksum(String projectId, String newChecksum) async {
-    final isar = await instance;
+    final box = await instance;
     
-    final existingChecksum = await isar.projectChecksums
-        .filter()
-        .projectIdEqualTo(projectId)
-        .findFirst();
+    final existingChecksum = box.get(projectId);
 
     if (existingChecksum != null) {
       existingChecksum.checksum = newChecksum;
       existingChecksum.lastUpdated = DateTime.now();
-
-      await isar.writeTxn(() async {
-        await isar.projectChecksums.put(existingChecksum);
-      });
+      await box.put(projectId, existingChecksum);
     } else {
       await saveProjectChecksum(projectId, newChecksum);
     }
@@ -104,37 +91,20 @@ class LocalStorageService {
 
   /// Supprime le checksum d'un projet
   static Future<void> deleteProjectChecksum(String projectId) async {
-    final isar = await instance;
-    
-    await isar.writeTxn(() async {
-      await isar.projectChecksums
-          .filter()
-          .projectIdEqualTo(projectId)
-          .deleteAll();
-    });
+    final box = await instance;
+    await box.delete(projectId);
   }
 
   /// Supprime une liste de checksums de projets
   static Future<void> deleteProjectChecksums(List<String> projectIds) async {
-    final isar = await instance;
-    
-    await isar.writeTxn(() async {
-      for (final projectId in projectIds) {
-        await isar.projectChecksums
-            .filter()
-            .projectIdEqualTo(projectId)
-            .deleteAll();
-      }
-    });
+    final box = await instance;
+    await box.deleteAll(projectIds);
   }
 
   /// Supprime tous les checksums (utile pour reset complet)
   static Future<void> clearAllChecksums() async {
-    final isar = await instance;
-    
-    await isar.writeTxn(() async {
-      await isar.projectChecksums.clear();
-    });
+    final box = await instance;
+    await box.clear();
   }
 
   /// Vérifie si un projet a un checksum stocké localement
@@ -145,8 +115,8 @@ class LocalStorageService {
 
   /// Récupère le nombre total de checksums stockés
   static Future<int> getChecksumsCount() async {
-    final isar = await instance;
-    return await isar.projectChecksums.count();
+    final box = await instance;
+    return box.length;
   }
 
   /// Synchronise les checksums locaux avec une liste de projets

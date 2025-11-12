@@ -512,6 +512,7 @@ class ProjectController extends ChangeNotifier {
     SyncFilters? filters,
     bool forceFullSync = false,
   }) async {
+    print('🔄 [SYNC] Début de la synchronisation...');
     _setSyncStatus(SyncStatus.syncing);
     _clearSyncMessages();
 
@@ -521,29 +522,38 @@ class ProjectController extends ChangeNotifier {
         filters: filters,
         forceFullSync: forceFullSync,
       );
+      print('📋 [SYNC] Type d\'opération: ${operation.name}');
 
       // 2. Préparer la requête
       final request = await SyncService.prepareSyncRequest(
         operation: operation,
         filters: filters,
       );
+      print('📤 [SYNC] Requête préparée: ${request.toJson()}');
 
       // 3. Appeler l'API
       final response = await _projectDataSource.syncProjects(request);
+      print('📥 [SYNC] Réponse reçue: ${response.syncType}');
 
       // 4. Traiter la réponse
       final result = await SyncService.processSyncResponse(response, _projects);
+      print('🔄 [SYNC] Résultat traité: ${result.projects.length} projets, hasChanges: ${result.hasChanges}');
 
       // 5. Mettre à jour les données locales
       if (result.hasChanges) {
         _projects = result.projects;
         _pagination = null; // Reset pagination après sync
+        print('✅ [SYNC] ${_projects.length} projets mis à jour dans le controller');
+      } else {
+        print('ℹ️  [SYNC] Aucun changement, ${_projects.length} projets conservés');
       }
 
       _setSyncMessage(result.message);
       _setSyncStatus(SyncStatus.success);
+      print('✅ [SYNC] Synchronisation terminée avec succès');
       
     } catch (e) {
+      print('❌ [SYNC] Erreur de synchronisation: $e');
       _setSyncError(e.toString());
       _setSyncStatus(SyncStatus.error);
     }
@@ -585,16 +595,21 @@ class ProjectController extends ChangeNotifier {
     bool append = false,
     bool useSync = true, // Nouveau paramètre pour activer/désactiver la sync
   }) async {
+    print('📲 [FETCH] fetchProjects appelée - useSync: $useSync, status: $status, search: $search');
+    
     if (useSync) {
       // Utiliser la synchronisation intelligente
+      print('🔄 [FETCH] Utilisation de la synchronisation intelligente');
       final filters = SyncFilters(
         status: status,
         search: search,
         createdBy: createdBy,
       );
+      print('📋 [FETCH] Filtres: ${filters.toJson()}');
       await syncProjects(filters: filters.isEmpty ? null : filters);
     } else {
       // Utiliser l'ancienne méthode (fallback)
+      print('🔙 [FETCH] Utilisation de la méthode legacy');
       await _fetchProjectsLegacy(
         status: status,
         alreadyVoted: alreadyVoted,
@@ -605,6 +620,7 @@ class ProjectController extends ChangeNotifier {
         append: append,
       );
     }
+    print('📱 [FETCH] fetchProjects terminée - ${_projects.length} projets en mémoire');
   }
 
   /// Ancienne méthode fetchProjects (fallback)
@@ -672,16 +688,19 @@ class ProjectController extends ChangeNotifier {
 
   // Méthodes utilitaires pour la synchronisation
   void _setSyncStatus(SyncStatus status) {
+    print('🔄 [SYNC] Changement de statut: ${_syncStatus.name} → ${status.name}');
     _syncStatus = status;
     notifyListeners();
   }
 
   void _setSyncError(String error) {
+    print('❌ [SYNC] Erreur: $error');
     _syncErrorMessage = error;
     notifyListeners();
   }
 
   void _setSyncMessage(String message) {
+    print('💬 [SYNC] Message: $message');
     _syncMessage = message;
     notifyListeners();
   }

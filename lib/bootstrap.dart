@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'core/network/dio_client.dart';
 import 'core/utils/app_router.dart';
 import 'core/controller/home_controller.dart';
+import 'core/database/database_initializer.dart';
 import 'features/authentication/controller/auth_controller.dart';
 import 'features/authentication/controller/register_controller.dart';
 import 'features/projets/controllers/project_controller.dart';
@@ -23,6 +24,9 @@ Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   await dotenv.load(fileName: ".env");
+  
+  // Initialiser la base de données Hive
+  await DatabaseInitializer.initialize();
   
   final router = AppRouter.createRouter();
   DioClient.setRouter(router);

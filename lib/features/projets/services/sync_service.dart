@@ -133,17 +133,27 @@ class SyncService {
       await LocalStorageService.deleteProjectChecksum(deletedId);
     }
 
-    // Traiter les ajouts
-    final addedProjects = changes.added
-        .map((json) => ProjectModel.fromJson(json))
-        .toList();
+    // Traiter les ajouts - l'API renvoie des listes imbriquées
+    final addedProjects = <ProjectModel>[];
+    for (final item in changes.added) {
+      if (item is List && item.isNotEmpty) {
+        // Chaque "added" est une liste contenant un seul projet
+        final projectData = item.first as Map<String, dynamic>;
+        addedProjects.add(ProjectModel.fromJson(projectData));
+      }
+    }
     
     updatedProjects.addAll(addedProjects);
 
-    // Traiter les mises à jour
-    final updatedProjectsList = changes.updated
-        .map((json) => ProjectModel.fromJson(json))
-        .toList();
+    // Traiter les mises à jour - même structure
+    final updatedProjectsList = <ProjectModel>[];
+    for (final item in changes.updated) {
+      if (item is List && item.isNotEmpty) {
+        // Chaque "updated" est une liste contenant un seul projet
+        final projectData = item.first as Map<String, dynamic>;
+        updatedProjectsList.add(ProjectModel.fromJson(projectData));
+      }
+    }
 
     for (final updatedProject in updatedProjectsList) {
       final index = updatedProjects.indexWhere((p) => p.id == updatedProject.id);

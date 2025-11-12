@@ -1,17 +1,17 @@
-import 'package:isar/isar.dart';
+import 'package:hive/hive.dart';
 
 part 'sync_models.g.dart';
 
 // Modèle pour stocker les checksums en local
-@collection
-class ProjectChecksum {
-  Id id = Isar.autoIncrement;
-  
-  @Index(unique: true)
+@HiveType(typeId: 0)
+class ProjectChecksum extends HiveObject {
+  @HiveField(0)
   late String projectId;
   
+  @HiveField(1)
   late String checksum;
   
+  @HiveField(2)
   late DateTime lastUpdated;
 
   ProjectChecksum();
@@ -135,8 +135,8 @@ class SyncResponse {
 
 // Modèle des changements dans la synchronisation
 class SyncChanges {
-  final List<Map<String, dynamic>> added;
-  final List<Map<String, dynamic>> updated;
+  final List<dynamic> added;    // L'API renvoie des listes imbriquées
+  final List<dynamic> updated;  // L'API renvoie des listes imbriquées
   final List<String> deleted;
 
   SyncChanges({
@@ -147,8 +147,8 @@ class SyncChanges {
 
   factory SyncChanges.fromJson(Map<String, dynamic> json) {
     return SyncChanges(
-      added: List<Map<String, dynamic>>.from(json['added'] ?? []),
-      updated: List<Map<String, dynamic>>.from(json['updated'] ?? []),
+      added: List<dynamic>.from(json['added'] ?? []),
+      updated: List<dynamic>.from(json['updated'] ?? []),
       deleted: List<String>.from(json['deleted'] ?? []),
     );
   }

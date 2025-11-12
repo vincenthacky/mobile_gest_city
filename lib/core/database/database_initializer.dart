@@ -1,22 +1,21 @@
 import 'package:flutter/foundation.dart';
-import 'package:isar/isar.dart';
 import '../../features/projets/services/local_storage_service.dart';
 
 class DatabaseInitializer {
   static bool _isInitialized = false;
 
-  /// Initialise la base de données Isar
+  /// Initialise la base de données Hive
   static Future<void> initialize() async {
     if (_isInitialized) return;
 
     try {
-      // Initialiser Isar via LocalStorageService
+      // Initialiser Hive via LocalStorageService
       await LocalStorageService.instance;
       
       _isInitialized = true;
       
       if (kDebugMode) {
-        print('✅ Base de données Isar initialisée avec succès');
+        print('✅ Base de données Hive initialisée avec succès');
         
         // Afficher les statistiques en mode debug
         final stats = await LocalStorageService.getStorageStats();
@@ -52,7 +51,7 @@ class DatabaseInitializer {
       await LocalStorageService.clearAllChecksums();
       
       if (kDebugMode) {
-        print('🗑️  Base de données réinitialisée');
+        print('🗑️  Base de données Hive réinitialisée');
       }
     } catch (e) {
       if (kDebugMode) {

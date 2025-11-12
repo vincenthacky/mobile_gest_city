@@ -71,6 +71,7 @@ class _ProjetsPageState extends State<ProjetsPage> {
       search: _searchQuery.length >= 2 ? _searchQuery : null,
       status: _mapStatusToApi(_statusFilter),
       page: _currentPage,
+      useSync: true, // Activer la synchronisation intelligente
     );
   }
 
@@ -89,6 +90,7 @@ class _ProjetsPageState extends State<ProjetsPage> {
         status: _mapStatusToApi(_statusFilter),
         page: _currentPage,
         append: true,
+        useSync: false, // Pour pagination, utiliser mode legacy
       );
 
       setState(() {
@@ -102,6 +104,7 @@ class _ProjetsPageState extends State<ProjetsPage> {
     await _projectController.fetchProjects(
       search: _searchQuery.length >= 2 ? _searchQuery : null,
       status: _mapStatusToApi(_statusFilter),
+      useSync: true, // Activer la synchronisation pour les recherches
       page: _currentPage,
     );
   }
