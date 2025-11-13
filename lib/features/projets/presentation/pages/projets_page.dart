@@ -9,6 +9,7 @@ import '../../models/project_model.dart';
 import '../../controllers/project_controller.dart';
 import 'create_project_page.dart';
 import '../../../../core/widgets/app_header.dart';
+import '../../../../core/widgets/sync_notification.dart';
 import '../../../../core/services/connectivity_service.dart';
 
 class ProjetsPage extends StatefulWidget {
@@ -41,6 +42,13 @@ class _ProjetsPageState extends State<ProjetsPage> {
     // Charger les projets après que le widget soit complètement initialisé
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       _connectivityService.startMonitoring();
+      
+      // Vérifier l'état initial de connexion après un court délai
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (!_connectivityService.isConnected && _projectController.allProjects.isNotEmpty) {
+        _projectController.showOfflineNotification();
+      }
+      
       _loadProjects();
     });
   }
@@ -60,10 +68,10 @@ class _ProjetsPageState extends State<ProjetsPage> {
         _searchQuery = query;
         _searchTimer?.cancel();
         
-        // Démarrer la recherche après 2 caractères et 500ms de délai
+        // Recherche locale instantanée comme WhatsApp
         if (query.length >= 2 || query.isEmpty) {
-          _searchTimer = Timer(const Duration(milliseconds: 500), () {
-            _resetAndSearch();
+          _searchTimer = Timer(const Duration(milliseconds: 300), () {
+            _resetAndSearch(); // Maintenant c'est du filtrage local
           });
         }
       }
@@ -75,19 +83,33 @@ class _ProjetsPageState extends State<ProjetsPage> {
       if (_connectivityService.isConnected) {
         // Quand la connexion revient, déclencher une synchronisation
         debugPrint('🌐 [PROJETS] Connexion détectée - synchronisation automatique');
-        _projectController.syncProjects();
+        // Synchronisation avec notification
+        _projectController.syncProjects(showNotifications: true);
+      } else {
+        // Afficher notification hors ligne si on a des données en cache
+        if (_projectController.allProjects.isNotEmpty) {
+          _projectController.showOfflineNotification();
+        }
       }
     });
   }
 
   Future<void> _loadProjects() async {
     _currentPage = 1;
+    
+    // Si pas de connexion et qu'on a du cache, afficher notification
+    if (!_connectivityService.isConnected && _projectController.allProjects.isNotEmpty) {
+      _projectController.showOfflineNotification();
+    }
+    
+    // Charger TOUS les projets sans filtre (cache complet)
     await _projectController.fetchProjects(
-      search: _searchQuery.length >= 2 ? _searchQuery : null,
-      status: _mapStatusToApi(_statusFilter),
-      page: _currentPage,
       useSync: true, // Activer la synchronisation intelligente
+      showNotifications: _connectivityService.isConnected, // Afficher notifications si en ligne
     );
+    // Appliquer les filtres après chargement
+    _projectController.applyStatusFilter(_statusFilter);
+    _projectController.applySearchFilter(_searchQuery.length >= 2 ? _searchQuery : null);
   }
 
   Future<void> _loadMoreProjects() async {
@@ -100,13 +122,16 @@ class _ProjetsPageState extends State<ProjetsPage> {
         _currentPage++;
       });
 
+      // Charger plus de projets dans le cache complet
       await _projectController.fetchProjects(
-        search: _searchQuery.length >= 2 ? _searchQuery : null,
-        status: _mapStatusToApi(_statusFilter),
         page: _currentPage,
         append: true,
         useSync: false, // Pour pagination, utiliser mode legacy
+        showNotifications: false, // Pas de notification pour pagination
       );
+      
+      // Réappliquer les filtres après ajout
+      _projectController.refreshFilters();
 
       setState(() {
         _isLoadingMore = false;
@@ -115,34 +140,14 @@ class _ProjetsPageState extends State<ProjetsPage> {
   }
 
   Future<void> _resetAndSearch() async {
-    _currentPage = 1;
-    await _projectController.fetchProjects(
-      search: _searchQuery.length >= 2 ? _searchQuery : null,
-      status: _mapStatusToApi(_statusFilter),
-      useSync: true, // Activer la synchronisation pour les recherches
-      page: _currentPage,
-    );
+    // Recherche locale instantanée (style WhatsApp)
+    _projectController.applySearchFilter(_searchQuery.length >= 2 ? _searchQuery : null);
   }
 
-  String? _mapStatusToApi(ProjectStatus? status) {
-    if (status == null) return null;
-    
-    switch (status) {
-      case ProjectStatus.voteOpen:
-        return 'open';
-      case ProjectStatus.voteNotOpen:
-        return 'not_open';
-      case ProjectStatus.voteClosed:
-        return 'closed';
-      case ProjectStatus.accepted:
-        return 'project_accepted';
-      case ProjectStatus.rejected:
-        return 'project_rejected';
-    }
-  }
+  // Méthode _mapStatusToApi supprimée - plus besoin avec filtrage local
 
   List<ProjectModel> get _filteredProjects {
-    // Plus besoin de filtrage local, l'API fait tout
+    // Filtrage local comme WhatsApp - pas d'appel API
     return _projectController.projects;
   }
 
@@ -159,7 +164,8 @@ class _ProjetsPageState extends State<ProjetsPage> {
     setState(() {
       _statusFilter = status;
     });
-    _resetAndSearch();
+    // Filtrage local instantané (style WhatsApp)
+    _projectController.applyStatusFilter(status);
   }
 
 
@@ -339,6 +345,19 @@ class _ProjetsPageState extends State<ProjetsPage> {
               child: const AppHeader(
                 title: 'Projets de la cité',
               ),
+            ),
+            
+            // Notification de synchronisation
+            Consumer<ProjectController>(
+              builder: (context, projectController, child) {
+                return SyncNotification(
+                  type: projectController.notificationType,
+                  customMessage: projectController.notificationMessage,
+                  onDismiss: () {
+                    projectController.clearNotification();
+                  },
+                );
+              },
             ),
             
             Expanded(

@@ -7,6 +7,7 @@ import '../models/voter_model.dart';
 import '../models/sync_models.dart';
 import '../services/sync_service.dart';
 import '../services/local_storage_service.dart';
+import '../../../core/widgets/sync_notification.dart';
 
 enum ProjectSubmissionStatus { initial, loading, success, error }
 enum ProjectLoadingStatus { initial, loading, success, error }
@@ -24,9 +25,14 @@ class ProjectController extends ChangeNotifier {
 
   // Pour la récupération des projets
   ProjectLoadingStatus _loadingStatus = ProjectLoadingStatus.initial;
-  List<ProjectModel> _projects = [];
+  List<ProjectModel> _allProjects = []; // Cache complet comme WhatsApp
+  List<ProjectModel> _projects = []; // Données filtrées affichées
   Map<String, dynamic>? _pagination;
   String? _loadingErrorMessage;
+  
+  // Filtres locaux (comme WhatsApp)
+  ProjectStatus? _currentFilter;
+  String? _currentSearch;
 
   // Pour les votes
   VoteStatus _voteStatus = VoteStatus.initial;
@@ -46,6 +52,10 @@ class ProjectController extends ChangeNotifier {
   SyncStatus _syncStatus = SyncStatus.idle;
   String? _syncErrorMessage;
   String? _syncMessage;
+  
+  // Pour les notifications de synchronisation
+  SyncNotificationType _notificationType = SyncNotificationType.none;
+  String? _notificationMessage;
 
   // Getters pour la soumission de projet
   ProjectSubmissionStatus get status => _status;
@@ -57,9 +67,16 @@ class ProjectController extends ChangeNotifier {
   // Getters pour la récupération des projets
   ProjectLoadingStatus get loadingStatus => _loadingStatus;
   List<ProjectModel> get projects => List.unmodifiable(_projects);
+  List<ProjectModel> get allProjects => List.unmodifiable(_allProjects);
   Map<String, dynamic>? get pagination => _pagination;
   String? get loadingErrorMessage => _loadingErrorMessage;
   bool get isLoadingProjects => _loadingStatus == ProjectLoadingStatus.loading;
+  
+  // Getters pour les filtres
+  ProjectStatus? get currentFilter => _currentFilter;
+  String? get currentSearch => _currentSearch;
+  int get totalProjectsCount => _allProjects.length;
+  int get filteredProjectsCount => _projects.length;
 
   // Getters pour les votes
   VoteStatus get voteStatus => _voteStatus;
@@ -83,6 +100,10 @@ class ProjectController extends ChangeNotifier {
   String? get syncErrorMessage => _syncErrorMessage;
   String? get syncMessage => _syncMessage;
   bool get isSyncing => _syncStatus == SyncStatus.syncing;
+  
+  // Getters pour les notifications
+  SyncNotificationType get notificationType => _notificationType;
+  String? get notificationMessage => _notificationMessage;
 
   Future<void> pickImages() async {
     try {
@@ -506,16 +527,79 @@ class ProjectController extends ChangeNotifier {
     }
   }
 
+  // ============ MÉTHODES DE NOTIFICATION ============
+  
+  /// Met à jour le type de notification
+  void _setNotificationType(SyncNotificationType type, [String? message]) {
+    _notificationType = type;
+    _notificationMessage = message;
+    notifyListeners();
+  }
+  
+  /// Efface la notification
+  void clearNotification() {
+    _setNotificationType(SyncNotificationType.none);
+  }
+  
+  /// Affiche la notification de données hors ligne
+  void showOfflineNotification() {
+    _setNotificationType(SyncNotificationType.offline);
+  }
+  
+  /// Affiche la notification de synchronisation en cours
+  void showSyncingNotification([String? message]) {
+    _setNotificationType(SyncNotificationType.syncing, message);
+  }
+  
+  /// Affiche la notification de synchronisation terminée
+  void showSyncCompleteNotification([String? message]) {
+    _setNotificationType(
+      SyncNotificationType.syncComplete, 
+      message ?? 'Données synchronisées avec succès'
+    );
+  }
+
+  // ============ MÉTHODES DE FILTRAGE LOCAL (WhatsApp Style) ============
+  
+  /// Applique un filtre de statut localement (SANS API)
+  void applyStatusFilter(ProjectStatus? status) {
+    _currentFilter = status;
+    _applyLocalFilters();
+  }
+  
+  /// Applique une recherche localement (SANS API)
+  void applySearchFilter(String? search) {
+    _currentSearch = search;
+    _applyLocalFilters();
+  }
+  
+  /// Efface tous les filtres et affiche tous les projets du cache
+  void clearAllFilters() {
+    _currentFilter = null;
+    _currentSearch = null;
+    _applyLocalFilters();
+  }
+  
+  /// Méthode publique pour rafraîchir les filtres
+  void refreshFilters() {
+    _applyLocalFilters();
+  }
+
   // ============ MÉTHODES DE SYNCHRONISATION ============
 
   /// Synchronise les projets avec le serveur
   Future<void> syncProjects({
     SyncFilters? filters,
     bool forceFullSync = false,
+    bool showNotifications = true, // Nouveau paramètre
   }) async {
-    print('🔄 [SYNC] Début de la synchronisation...');
     _setSyncStatus(SyncStatus.syncing);
     _clearSyncMessages();
+    
+    // Afficher notification de synchronisation si demandé
+    if (showNotifications) {
+      showSyncingNotification();
+    }
 
     try {
       // 1. Déterminer le type de synchronisation
@@ -540,23 +624,29 @@ class ProjectController extends ChangeNotifier {
       final result = await SyncService.processSyncResponse(response, _projects);
       print('🔄 [SYNC] Résultat traité: ${result.projects.length} projets, hasChanges: ${result.hasChanges}');
 
-      // 5. Mettre à jour les données locales
+      // 5. Mettre à jour les données locales dans le cache complet
       if (result.hasChanges) {
-        _projects = result.projects;
+        _allProjects = result.projects; // Cache complet
+        _applyLocalFilters(); // Filtrage local
         _pagination = null; // Reset pagination après sync
-        print('✅ [SYNC] ${_projects.length} projets mis à jour dans le controller');
-      } else {
-        print('ℹ️  [SYNC] Aucun changement, ${_projects.length} projets conservés');
       }
 
       _setSyncMessage(result.message);
       _setSyncStatus(SyncStatus.success);
-      print('✅ [SYNC] Synchronisation terminée avec succès');
+      
+      // Afficher notification de succès si demandé
+      if (showNotifications) {
+        showSyncCompleteNotification(result.message);
+      }
       
     } catch (e) {
-      print('❌ [SYNC] Erreur de synchronisation: $e');
       _setSyncError(e.toString());
       _setSyncStatus(SyncStatus.error);
+      
+      // En cas d'erreur, effacer la notification de syncing
+      if (showNotifications) {
+        clearNotification();
+      }
     }
   }
 
@@ -595,6 +685,7 @@ class ProjectController extends ChangeNotifier {
     int page = 1,
     bool append = false,
     bool useSync = true, // Nouveau paramètre pour activer/désactiver la sync
+    bool showNotifications = false, // Afficher les notifications durant la sync
   }) async {
     print('📲 [FETCH] fetchProjects appelée - useSync: $useSync, status: $status, search: $search');
     
@@ -612,9 +703,11 @@ class ProjectController extends ChangeNotifier {
       print('📋 [FETCH] Filtres: ${filters.toJson()}');
       
       try {
-        await syncProjects(filters: filters.isEmpty ? null : filters);
+        await syncProjects(
+          filters: filters.isEmpty ? null : filters,
+          showNotifications: showNotifications,
+        );
       } catch (e) {
-        print('❌ [FETCH] Erreur de synchronisation, utilisation du cache: $e');
         // En cas d'erreur réseau, on garde les données du cache
         _setLoadingStatus(ProjectLoadingStatus.success);
       }
@@ -634,20 +727,44 @@ class ProjectController extends ChangeNotifier {
     print('📱 [FETCH] fetchProjects terminée - ${_projects.length} projets en mémoire');
   }
 
-  /// Charge les projets depuis le cache si nécessaire
+  /// Charge les projets depuis le cache si nécessaire (architecture WhatsApp)
   Future<void> _loadFromCacheIfNeeded() async {
-    // Si on n'a pas de projets en mémoire, essayer de charger depuis le cache
-    if (_projects.isEmpty) {
-      print('📱 [CACHE] Aucun projet en mémoire, tentative de chargement depuis le cache...');
+    // Charger dans _allProjects (cache complet)
+    if (_allProjects.isEmpty) {
       final cachedProjects = await LocalStorageService.getCachedProjects();
       if (cachedProjects.isNotEmpty) {
-        _projects = cachedProjects;
+        _allProjects = cachedProjects;
+        _applyLocalFilters(); // Appliquer les filtres localement
         _setLoadingStatus(ProjectLoadingStatus.success);
-        print('✅ [CACHE] ${_projects.length} projets chargés depuis le cache');
-      } else {
-        print('ℹ️  [CACHE] Aucun projet en cache');
+        // Afficher notification si hors ligne
+        // (sera géré dans la page selon la connectivité)
       }
     }
+  }
+  
+  /// Applique les filtres localement comme WhatsApp (SANS API)
+  void _applyLocalFilters() {
+    var filteredProjects = List<ProjectModel>.from(_allProjects);
+    
+    // Filtrer par statut
+    if (_currentFilter != null) {
+      filteredProjects = filteredProjects.where((project) {
+        return project.status == _currentFilter;
+      }).toList();
+    }
+    
+    // Filtrer par recherche
+    if (_currentSearch != null && _currentSearch!.length >= 2) {
+      final searchLower = _currentSearch!.toLowerCase();
+      filteredProjects = filteredProjects.where((project) {
+        return project.title.toLowerCase().contains(searchLower) ||
+               project.shortDescription.toLowerCase().contains(searchLower) ||
+               project.longDescription.toLowerCase().contains(searchLower);
+      }).toList();
+    }
+    
+    _projects = filteredProjects;
+    notifyListeners();
   }
 
   /// Ancienne méthode fetchProjects (fallback)
@@ -680,10 +797,13 @@ class ProjectController extends ChangeNotifier {
         final newProjects = projectsData.map((json) => ProjectModel.fromJson(json as Map<String, dynamic>)).toList();
         
         if (append) {
-          _projects.addAll(newProjects);
+          _allProjects.addAll(newProjects);
         } else {
-          _projects = newProjects;
+          _allProjects = newProjects;
         }
+        
+        // Appliquer les filtres après mise à jour du cache
+        _applyLocalFilters();
         
         _pagination = response['pagination'] as Map<String, dynamic>?;
         _setLoadingStatus(ProjectLoadingStatus.success);
