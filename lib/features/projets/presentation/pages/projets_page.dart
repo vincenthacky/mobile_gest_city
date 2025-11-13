@@ -9,6 +9,7 @@ import '../../models/project_model.dart';
 import '../../controllers/project_controller.dart';
 import 'create_project_page.dart';
 import '../../../../core/widgets/app_header.dart';
+import '../../../../core/services/connectivity_service.dart';
 
 class ProjetsPage extends StatefulWidget {
   const ProjetsPage({super.key});
@@ -23,6 +24,7 @@ class _ProjetsPageState extends State<ProjetsPage> {
   String _searchQuery = '';
   ProjectStatus? _statusFilter;
   late ProjectController _projectController;
+  late ConnectivityService _connectivityService;
   Timer? _searchTimer;
   int _currentPage = 1;
   bool _isLoadingMore = false;
@@ -31,11 +33,14 @@ class _ProjetsPageState extends State<ProjetsPage> {
   void initState() {
     super.initState();
     _projectController = Provider.of<ProjectController>(context, listen: false);
+    _connectivityService = ConnectivityService();
     _setupScrollListener();
     _setupSearchListener();
+    _setupConnectivityListener();
     
     // Charger les projets après que le widget soit complètement initialisé
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _connectivityService.startMonitoring();
       _loadProjects();
     });
   }
@@ -61,6 +66,16 @@ class _ProjetsPageState extends State<ProjetsPage> {
             _resetAndSearch();
           });
         }
+      }
+    });
+  }
+
+  void _setupConnectivityListener() {
+    _connectivityService.addListener(() {
+      if (_connectivityService.isConnected) {
+        // Quand la connexion revient, déclencher une synchronisation
+        debugPrint('🌐 [PROJETS] Connexion détectée - synchronisation automatique');
+        _projectController.syncProjects();
       }
     });
   }
@@ -136,6 +151,7 @@ class _ProjetsPageState extends State<ProjetsPage> {
     _searchController.dispose();
     _scrollController.dispose();
     _searchTimer?.cancel();
+    _connectivityService.stopMonitoring();
     super.dispose();
   }
 

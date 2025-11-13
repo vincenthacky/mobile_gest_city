@@ -17,6 +17,7 @@ import 'features/cadre_de_vie/controllers/information_submission_controller.dart
 import 'features/finance/controllers/contribution_controller.dart';
 import 'features/finance/controllers/cash_movements_controller.dart';
 import 'features/finance/controllers/payment_breakdown_controller.dart';
+import 'core/services/connectivity_service.dart';
 // import 'features/cotisations/controller/cotisations_controller.dart';
 // import 'features/cotisations/controller/payment_proof_controller.dart';
 
@@ -45,11 +46,16 @@ class GestCityApp extends StatefulWidget {
 
 class _GestCityAppState extends State<GestCityApp> {
   late AuthController _authController;
+  late ConnectivityService _connectivityService;
 
   @override
   void initState() {
     super.initState();
     _authController = AuthController();
+    _connectivityService = ConnectivityService();
+    
+    // Démarrer le monitoring de la connexion
+    _connectivityService.startMonitoring();
     
     // Configurer le callback pour les erreurs 401
     DioClient.setUnauthorizedCallback(() {
@@ -63,6 +69,9 @@ class _GestCityAppState extends State<GestCityApp> {
       providers: [
         ChangeNotifierProvider.value(
           value: _authController,
+        ),
+        ChangeNotifierProvider.value(
+          value: _connectivityService,
         ),
         ChangeNotifierProvider(
           create: (_) => RegisterController(),
@@ -134,5 +143,11 @@ class _GestCityAppState extends State<GestCityApp> {
         routerConfig: widget.router,
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _connectivityService.stopMonitoring();
+    super.dispose();
   }
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../services/connectivity_service.dart';
 
 class AppHeader extends StatelessWidget {
   final String title;
@@ -103,28 +105,64 @@ class AppHeader extends StatelessWidget {
               ),
             ),
             
-            // Notifications à droite
-            Stack(
+            // Indicateur de connexion et notifications à droite
+            Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  onPressed: () {},
-                  icon: const Icon(
-                    Icons.notifications_outlined,
-                    color: Color(0xFF6B7280),
-                    size: 22,
-                  ),
+                // Indicateur de connexion
+                Consumer<ConnectivityService>(
+                  builder: (context, connectivityService, child) {
+                    final isConnected = connectivityService.isConnected;
+                    return Container(
+                      width: 20,
+                      height: 20,
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        color: isConnected ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: isConnected 
+                                ? const Color(0xFF10B981).withValues(alpha: 0.3)
+                                : const Color(0xFFEF4444).withValues(alpha: 0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        isConnected ? Icons.wifi : Icons.wifi_off,
+                        color: Colors.white,
+                        size: 12,
+                      ),
+                    );
+                  },
                 ),
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF4F46E5),
-                      shape: BoxShape.circle,
+                
+                // Notifications
+                Stack(
+                  children: [
+                    IconButton(
+                      onPressed: () {},
+                      icon: const Icon(
+                        Icons.notifications_outlined,
+                        color: Color(0xFF6B7280),
+                        size: 22,
+                      ),
                     ),
-                  ),
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF4F46E5),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
