@@ -6,6 +6,7 @@ import '../models/project_model.dart';
 import '../models/voter_model.dart';
 import '../models/sync_models.dart';
 import '../services/sync_service.dart';
+import '../services/local_storage_service.dart';
 
 enum ProjectSubmissionStatus { initial, loading, success, error }
 enum ProjectLoadingStatus { initial, loading, success, error }
@@ -598,7 +599,10 @@ class ProjectController extends ChangeNotifier {
     print('📲 [FETCH] fetchProjects appelée - useSync: $useSync, status: $status, search: $search');
     
     if (useSync) {
-      // Utiliser la synchronisation intelligente
+      // 1. Charger d'abord les données du cache si disponibles
+      await _loadFromCacheIfNeeded();
+      
+      // 2. Utiliser la synchronisation intelligente
       print('🔄 [FETCH] Utilisation de la synchronisation intelligente');
       final filters = SyncFilters(
         status: status,
@@ -606,7 +610,14 @@ class ProjectController extends ChangeNotifier {
         createdBy: createdBy,
       );
       print('📋 [FETCH] Filtres: ${filters.toJson()}');
-      await syncProjects(filters: filters.isEmpty ? null : filters);
+      
+      try {
+        await syncProjects(filters: filters.isEmpty ? null : filters);
+      } catch (e) {
+        print('❌ [FETCH] Erreur de synchronisation, utilisation du cache: $e');
+        // En cas d'erreur réseau, on garde les données du cache
+        _setLoadingStatus(ProjectLoadingStatus.success);
+      }
     } else {
       // Utiliser l'ancienne méthode (fallback)
       print('🔙 [FETCH] Utilisation de la méthode legacy');
@@ -621,6 +632,22 @@ class ProjectController extends ChangeNotifier {
       );
     }
     print('📱 [FETCH] fetchProjects terminée - ${_projects.length} projets en mémoire');
+  }
+
+  /// Charge les projets depuis le cache si nécessaire
+  Future<void> _loadFromCacheIfNeeded() async {
+    // Si on n'a pas de projets en mémoire, essayer de charger depuis le cache
+    if (_projects.isEmpty) {
+      print('📱 [CACHE] Aucun projet en mémoire, tentative de chargement depuis le cache...');
+      final cachedProjects = await LocalStorageService.getCachedProjects();
+      if (cachedProjects.isNotEmpty) {
+        _projects = cachedProjects;
+        _setLoadingStatus(ProjectLoadingStatus.success);
+        print('✅ [CACHE] ${_projects.length} projets chargés depuis le cache');
+      } else {
+        print('ℹ️  [CACHE] Aucun projet en cache');
+      }
+    }
   }
 
   /// Ancienne méthode fetchProjects (fallback)
@@ -683,6 +710,7 @@ class ProjectController extends ChangeNotifier {
   /// Nettoie les données de synchronisation
   Future<void> clearSyncData() async {
     await SyncService.clearLocalData();
+    await LocalStorageService.clearCachedProjects(); // Vider aussi les projets en cache
     _setSyncMessage('Données de synchronisation effacées');
   }
 

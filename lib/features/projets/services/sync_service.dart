@@ -52,7 +52,9 @@ class SyncService {
       case SyncOperation.checkSync:
         final checksums = await LocalStorageService.getChecksumsForApi();
         final globalChecksum = checksums.isNotEmpty 
-            ? ChecksumService.calculateGlobalChecksum(checksums)
+            ? ChecksumService.calculateGlobalChecksumFromStrings(
+                checksums.map((c) => c['checksum'] as String).toList()
+              )
             : null;
 
         return SyncRequest(
@@ -178,7 +180,7 @@ class SyncService {
     );
   }
 
-  /// Sauvegarde les checksums des projets
+  /// Sauvegarde les checksums des projets ET les projets complets
   static Future<void> _saveProjectChecksums(List<ProjectModel> projects) async {
     final checksums = <String, String>{};
     
@@ -189,7 +191,11 @@ class SyncService {
     }
 
     if (checksums.isNotEmpty) {
+      // Sauvegarder les checksums
       await LocalStorageService.saveProjectChecksums(checksums);
+      
+      // Sauvegarder les projets complets en cache
+      await LocalStorageService.saveCachedProjects(projects);
     }
   }
 

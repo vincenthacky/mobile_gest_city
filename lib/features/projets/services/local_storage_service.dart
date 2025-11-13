@@ -1,28 +1,44 @@
+import 'dart:convert';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/sync_models.dart';
+import '../models/project_model.dart';
 
 class LocalStorageService {
-  static const String _boxName = 'project_checksums';
-  static Box<ProjectChecksum>? _box;
+  static const String _checksumBoxName = 'project_checksums';
+  static const String _projectsBoxName = 'cached_projects';
+  static Box<ProjectChecksum>? _checksumBox;
+  static Box<CachedProject>? _projectsBox;
   
-  /// Initialise Hive et ouvre la box
+  /// Initialise Hive et ouvre les boxes
   static Future<Box<ProjectChecksum>> get instance async {
-    if (_box != null && _box!.isOpen) return _box!;
+    if (_checksumBox != null && _checksumBox!.isOpen) return _checksumBox!;
     
     await Hive.initFlutter();
     
     if (!Hive.isAdapterRegistered(0)) {
       Hive.registerAdapter(ProjectChecksumAdapter());
     }
+    if (!Hive.isAdapterRegistered(1)) {
+      Hive.registerAdapter(CachedProjectAdapter());
+    }
     
-    _box = await Hive.openBox<ProjectChecksum>(_boxName);
-    return _box!;
+    _checksumBox = await Hive.openBox<ProjectChecksum>(_checksumBoxName);
+    _projectsBox = await Hive.openBox<CachedProject>(_projectsBoxName);
+    return _checksumBox!;
+  }
+
+  /// Ouvre la box des projets
+  static Future<Box<CachedProject>> get projectsBox async {
+    await instance; // S'assurer que tout est initialisé
+    return _projectsBox!;
   }
 
   /// Ferme la base de données
   static Future<void> close() async {
-    await _box?.close();
-    _box = null;
+    await _checksumBox?.close();
+    await _projectsBox?.close();
+    _checksumBox = null;
+    _projectsBox = null;
   }
 
   /// Sauvegarde un checksum de projet
@@ -156,5 +172,74 @@ class LocalStorageService {
           ? null 
           : allChecksums.map((c) => c.lastUpdated).reduce((a, b) => a.isAfter(b) ? a : b),
     };
+  }
+
+  // ============ MÉTHODES POUR LES PROJETS COMPLETS ============
+
+  /// Sauvegarde les projets complets dans le cache local
+  static Future<void> saveCachedProjects(List<ProjectModel> projects) async {
+    final box = await projectsBox;
+    final now = DateTime.now();
+    
+    final cachedProjects = <String, CachedProject>{};
+    for (final project in projects) {
+      final projectJson = jsonEncode(project.toJson());
+      cachedProjects[project.id] = CachedProject.create(
+        projectId: project.id,
+        projectJson: projectJson,
+        cachedAt: now,
+      );
+    }
+
+    await box.clear(); // Efface les anciens projets
+    await box.putAll(cachedProjects);
+    print('💾 [CACHE] ${projects.length} projets sauvegardés en cache');
+  }
+
+  /// Récupère tous les projets en cache
+  static Future<List<ProjectModel>> getCachedProjects() async {
+    final box = await projectsBox;
+    final cachedProjects = box.values.toList();
+    
+    print('📂 [CACHE] ${cachedProjects.length} entrées trouvées dans la box cached_projects');
+    
+    final projects = <ProjectModel>[];
+    for (final cached in cachedProjects) {
+      try {
+        print('🔄 [CACHE] Désérialisation du projet ${cached.projectId}');
+        final projectJson = jsonDecode(cached.projectJson) as Map<String, dynamic>;
+        print('📋 [CACHE] JSON décodé pour ${cached.projectId}: ${projectJson.keys}');
+        
+        final project = ProjectModel.fromJson(projectJson);
+        projects.add(project);
+        print('✅ [CACHE] Projet ${cached.projectId} désérialisé avec succès - titre: "${project.title}"');
+      } catch (e, stackTrace) {
+        print('❌ [CACHE] Erreur lors du décodage du projet ${cached.projectId}: $e');
+        print('🔍 [CACHE] StackTrace: $stackTrace');
+        print('📄 [CACHE] JSON brut: ${cached.projectJson.substring(0, 200)}...');
+      }
+    }
+    
+    print('📱 [CACHE] ${projects.length} projets récupérés du cache avec succès');
+    return projects;
+  }
+
+  /// Supprime tous les projets en cache
+  static Future<void> clearCachedProjects() async {
+    final box = await projectsBox;
+    await box.clear();
+    print('🗑️  [CACHE] Tous les projets en cache supprimés');
+  }
+
+  /// Vérifie si on a des projets en cache
+  static Future<bool> hasCachedProjects() async {
+    final box = await projectsBox;
+    return box.isNotEmpty;
+  }
+
+  /// Récupère le nombre de projets en cache
+  static Future<int> getCachedProjectsCount() async {
+    final box = await projectsBox;
+    return box.length;
   }
 }

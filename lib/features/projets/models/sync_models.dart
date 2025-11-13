@@ -30,6 +30,27 @@ class ProjectChecksum extends HiveObject {
   }
 }
 
+// Modèle pour stocker les projets complets en local
+@HiveType(typeId: 1)
+class CachedProject extends HiveObject {
+  @HiveField(0)
+  late String projectId;
+  
+  @HiveField(1)
+  late String projectJson; // JSON complet du projet
+  
+  @HiveField(2)
+  late DateTime cachedAt;
+
+  CachedProject();
+
+  CachedProject.create({
+    required this.projectId,
+    required this.projectJson,
+    required this.cachedAt,
+  });
+}
+
 // Modèle pour les filtres de synchronisation
 class SyncFilters {
   final String? status;

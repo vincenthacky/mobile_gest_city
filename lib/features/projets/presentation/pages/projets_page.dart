@@ -35,7 +35,7 @@ class _ProjetsPageState extends State<ProjetsPage> {
     _setupSearchListener();
     
     // Charger les projets après que le widget soit complètement initialisé
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       _loadProjects();
     });
   }
