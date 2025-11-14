@@ -165,9 +165,9 @@ Online → Offline detected → Cache preserved → 🟡 Offline notification
 ## 🎛️ Paramètres de Configuration
 
 ### Auto-Dismiss
-- **Offline** : Manuel (bouton X)
-- **Syncing** : Auto (quand sync terminée)  
-- **Complete** : Auto (3 secondes)
+- **Offline** : Manuel (bouton X) + Auto (15 secondes)
+- **Syncing** : Auto (quand sync terminée) + Auto (15 secondes)  
+- **Complete** : Auto (3 secondes) + Auto (15 secondes si pas fermée)
 
 ### Animations
 - **Slide-in** : `Curves.easeOutBack` (300ms)

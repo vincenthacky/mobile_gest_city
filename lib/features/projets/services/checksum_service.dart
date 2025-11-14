@@ -15,9 +15,10 @@ class ChecksumService {
   }
 
   /// Calcule le checksum global à partir d'une liste de strings de checksums
+  /// CONFORME à la logique JavaScript (SANS tri pour préserver l'ordre)
   static String calculateGlobalChecksumFromStrings(List<String> checksums) {
-    final sortedChecksums = List<String>.from(checksums)..sort();
-    final jsonString = jsonEncode(sortedChecksums);
+    // NE PAS trier - garder l'ordre naturel comme en JavaScript
+    final jsonString = jsonEncode(checksums);
     return sha256.convert(utf8.encode(jsonString)).toString();
   }
 

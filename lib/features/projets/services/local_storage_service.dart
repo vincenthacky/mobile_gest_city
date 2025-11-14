@@ -15,6 +15,16 @@ class LocalStorageService {
     
     await Hive.initFlutter();
     
+    // 🧹 MIGRATION: Supprimer complètement les anciennes boxes pour corriger statuts
+    // MIGRATION TERMINÉE - Correction sérialisation statuts validée
+    // try {
+    //   await Hive.deleteBoxFromDisk(_checksumBoxName);
+    //   await Hive.deleteBoxFromDisk(_projectsBoxName);
+    //   print('🧹 [MIGRATION] Anciennes boxes supprimées du disque - Correction sérialisation statuts');
+    // } catch (e) {
+    //   print('ℹ️ [MIGRATION] Pas d\'anciennes boxes à supprimer: $e');
+    // }
+    
     if (!Hive.isAdapterRegistered(0)) {
       Hive.registerAdapter(ProjectChecksumAdapter());
     }
@@ -24,6 +34,9 @@ class LocalStorageService {
     
     _checksumBox = await Hive.openBox<ProjectChecksum>(_checksumBoxName);
     _projectsBox = await Hive.openBox<CachedProject>(_projectsBoxName);
+    
+    print('✅ [MIGRATION] Nouvelles boxes créées avec receptionOrder');
+    
     return _checksumBox!;
   }
 
@@ -49,22 +62,53 @@ class LocalStorageService {
       projectId: projectId,
       checksum: checksum,
       lastUpdated: DateTime.now(),
+      receptionOrder: 0, // Ordre arbitraire pour sauvegarde individuelle
     );
 
     await box.put(projectId, projectChecksum);
   }
 
-  /// Sauvegarde une liste de checksums de projets
+  /// Sauvegarde une liste de checksums de projets AVEC ordre de réception
+  static Future<void> saveProjectChecksumsWithOrder(
+    List<ProjectModel> projects, 
+    Map<String, String> projectChecksums
+  ) async {
+    final box = await instance;
+    final now = DateTime.now();
+    
+    final checksums = <String, ProjectChecksum>{};
+    
+    // Respecter l'ordre de réception depuis l'API
+    for (int i = 0; i < projects.length; i++) {
+      final project = projects[i];
+      final checksum = projectChecksums[project.id];
+      
+      if (checksum != null) {
+        checksums[project.id] = ProjectChecksum.create(
+          projectId: project.id,
+          checksum: checksum,
+          lastUpdated: now,
+          receptionOrder: i, // Préserver l'ordre de réception
+        );
+      }
+    }
+
+    await box.putAll(checksums);
+  }
+
+  /// Sauvegarde une liste de checksums de projets (méthode legacy)
   static Future<void> saveProjectChecksums(Map<String, String> projectChecksums) async {
     final box = await instance;
     final now = DateTime.now();
     
     final checksums = <String, ProjectChecksum>{};
+    int order = 0;
     for (final entry in projectChecksums.entries) {
       checksums[entry.key] = ProjectChecksum.create(
         projectId: entry.key,
         checksum: entry.value,
         lastUpdated: now,
+        receptionOrder: order++, // Ordre arbitraire pour legacy
       );
     }
 
@@ -85,8 +129,13 @@ class LocalStorageService {
   }
 
   /// Récupère les checksums sous forme de Map pour l'API
+  /// RESPECTE l'ordre de réception depuis l'API Laravel
   static Future<List<Map<String, dynamic>>> getChecksumsForApi() async {
     final checksums = await getAllProjectChecksums();
+    
+    // TRIER par ordre de réception pour correspondre à l'ordre Laravel
+    checksums.sort((a, b) => a.receptionOrder.compareTo(b.receptionOrder));
+    
     return checksums.map((checksum) => checksum.toJson()).toList();
   }
 

@@ -137,10 +137,20 @@ class SyncService {
 
     // Traiter les ajouts - l'API renvoie des listes imbriquées
     final addedProjects = <ProjectModel>[];
+    final addedChecksums = <String, String>{};
     for (final item in changes.added) {
       if (item is List && item.isNotEmpty) {
-        // Chaque "added" est une liste contenant un seul projet
-        final projectData = item.first as Map<String, dynamic>;
+        // Chaque "added" est une liste contenant un seul projet avec checksum
+        final projectWithChecksum = item.first as Map<String, dynamic>;
+        
+        // ✅ EXTRAIRE le checksum de l'API (ne pas recalculer)
+        final projectId = projectWithChecksum['id'] as String;
+        final apiChecksum = projectWithChecksum['checksum'] as String;
+        addedChecksums[projectId] = apiChecksum;
+        
+        // Créer le ProjectModel (sans le checksum dans les données)
+        final projectData = Map<String, dynamic>.from(projectWithChecksum);
+        projectData.remove('checksum'); // Supprimer checksum des données projet
         addedProjects.add(ProjectModel.fromJson(projectData));
       }
     }
@@ -149,10 +159,20 @@ class SyncService {
 
     // Traiter les mises à jour - même structure
     final updatedProjectsList = <ProjectModel>[];
+    final updatedChecksums = <String, String>{};
     for (final item in changes.updated) {
       if (item is List && item.isNotEmpty) {
-        // Chaque "updated" est une liste contenant un seul projet
-        final projectData = item.first as Map<String, dynamic>;
+        // Chaque "updated" est une liste contenant un seul projet avec checksum
+        final projectWithChecksum = item.first as Map<String, dynamic>;
+        
+        // ✅ EXTRAIRE le checksum de l'API (ne pas recalculer)
+        final projectId = projectWithChecksum['id'] as String;
+        final apiChecksum = projectWithChecksum['checksum'] as String;
+        updatedChecksums[projectId] = apiChecksum;
+        
+        // Créer le ProjectModel (sans le checksum dans les données)
+        final projectData = Map<String, dynamic>.from(projectWithChecksum);
+        projectData.remove('checksum'); // Supprimer checksum des données projet
         updatedProjectsList.add(ProjectModel.fromJson(projectData));
       }
     }
@@ -168,7 +188,12 @@ class SyncService {
 
     // Sauvegarder les checksums pour les projets ajoutés et modifiés
     final allChangedProjects = [...addedProjects, ...updatedProjectsList];
-    await _saveProjectChecksums(allChangedProjects);
+    final allApiChecksums = <String, String>{};
+    allApiChecksums.addAll(addedChecksums);
+    allApiChecksums.addAll(updatedChecksums);
+    
+    // ✅ UTILISER les checksums de l'API (ne pas recalculer)
+    await _saveProjectChecksumsWithApiData(allChangedProjects, allApiChecksums);
 
     return SyncResult(
       operation: SyncOperation.checkSync,
@@ -181,18 +206,34 @@ class SyncService {
   }
 
   /// Sauvegarde les checksums des projets ET les projets complets
+  /// UTILISE les checksums fournis par l'API (ne recalcule PAS)
+  static Future<void> _saveProjectChecksumsWithApiData(
+    List<ProjectModel> projects, 
+    Map<String, String> apiChecksums
+  ) async {
+    if (projects.isNotEmpty) {
+      // ✅ UTILISER les checksums de l'API directement
+      await LocalStorageService.saveProjectChecksumsWithOrder(projects, apiChecksums);
+      
+      // Sauvegarder les projets complets en cache
+      await LocalStorageService.saveCachedProjects(projects);
+    }
+  }
+
+  /// Sauvegarde les checksums des projets ET les projets complets (méthode legacy - recalcule)
   static Future<void> _saveProjectChecksums(List<ProjectModel> projects) async {
     final checksums = <String, String>{};
     
-    for (final project in projects) {
+    for (int i = 0; i < projects.length; i++) {
+      final project = projects[i];
       final projectJson = project.toJson();
       final checksum = ChecksumService.calculateProjectChecksum(projectJson);
       checksums[project.id] = checksum;
     }
 
     if (checksums.isNotEmpty) {
-      // Sauvegarder les checksums
-      await LocalStorageService.saveProjectChecksums(checksums);
+      // Sauvegarder les checksums AVEC l'ordre de réception
+      await LocalStorageService.saveProjectChecksumsWithOrder(projects, checksums);
       
       // Sauvegarder les projets complets en cache
       await LocalStorageService.saveCachedProjects(projects);

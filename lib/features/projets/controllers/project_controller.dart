@@ -558,6 +558,14 @@ class ProjectController extends ChangeNotifier {
       message ?? 'Données synchronisées avec succès'
     );
   }
+  
+  /// Affiche la notification de données déjà à jour
+  void showUpToDateNotification([String? message]) {
+    _setNotificationType(
+      SyncNotificationType.upToDate, 
+      message ?? 'Données à jour • Aucune synchronisation nécessaire'
+    );
+  }
 
   // ============ MÉTHODES DE FILTRAGE LOCAL (WhatsApp Style) ============
   
@@ -634,9 +642,14 @@ class ProjectController extends ChangeNotifier {
       _setSyncMessage(result.message);
       _setSyncStatus(SyncStatus.success);
       
-      // Afficher notification de succès si demandé
+      // Afficher notification appropriée selon le résultat
       if (showNotifications) {
-        showSyncCompleteNotification(result.message);
+        if (result.hasChanges) {
+          showSyncCompleteNotification(result.message);
+        } else {
+          // Données déjà à jour - pas de sync nécessaire
+          showUpToDateNotification(result.message);
+        }
       }
       
     } catch (e) {
@@ -686,12 +699,15 @@ class ProjectController extends ChangeNotifier {
     bool append = false,
     bool useSync = true, // Nouveau paramètre pour activer/désactiver la sync
     bool showNotifications = false, // Afficher les notifications durant la sync
+    bool forceFreshData = false, // Forcer un full sync pour migration
   }) async {
     print('📲 [FETCH] fetchProjects appelée - useSync: $useSync, status: $status, search: $search');
     
     if (useSync) {
-      // 1. Charger d'abord les données du cache si disponibles
-      await _loadFromCacheIfNeeded();
+      // 1. Charger d'abord les données du cache si disponibles (sauf si forceFreshData)
+      if (!forceFreshData) {
+        await _loadFromCacheIfNeeded();
+      }
       
       // 2. Utiliser la synchronisation intelligente
       print('🔄 [FETCH] Utilisation de la synchronisation intelligente');
@@ -706,6 +722,7 @@ class ProjectController extends ChangeNotifier {
         await syncProjects(
           filters: filters.isEmpty ? null : filters,
           showNotifications: showNotifications,
+          forceFullSync: forceFreshData, // Force full sync si migration
         );
       } catch (e) {
         // En cas d'erreur réseau, on garde les données du cache

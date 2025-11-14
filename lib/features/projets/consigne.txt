@@ -512,3 +512,65 @@ voici le data que l api renvoie
     "timestamp": "2025-11-12T12:50:15+00:00"
   }
 }
+
+
+
+
+
+
+
+--------------------regarde ici---------------------------
+
+ regarde aussi un peu en haut tu verra cette fonction public function syncProjects(Request $request) cherche a savoir comment elle 
+ utilise la methode de Calculer
+ de checksum global qui est en bas dans le helper et l ordre dans lequel les donnees sont mis dans la fonction car c cette fonction qui envoie les donnees depuis la pi,
+ donc pour faire la synchronisation il faut que nos checksum generer soit de la meme maniere eux il le font pour que ce soit juste 
+ sinon il aura beaucoup de duplocation erreur, donc compare a celle que nous avons faire dans notre app pour voir prend ton temps analyse
+
+<?php
+
+use App\Helpers\ChecksumHelper;
+
+if (!function_exists('calculate_checksum')) {
+    /**
+     * Calculate checksum for given data
+     *
+     * @param mixed $data
+     * @param string $algorithm
+     * @return string
+     */
+    function calculate_checksum($data, string $algorithm = 'sha256'): string
+    {
+        return ChecksumHelper::calculate($data, $algorithm);
+    }
+}
+
+if (!function_exists('verify_checksum')) {
+    /**
+     * Verify if data matches a given checksum
+     *
+     * @param mixed $data
+     * @param string $checksum
+     * @param string $algorithm
+     * @return bool
+     */
+    function verify_checksum($data, string $checksum, string $algorithm = 'sha256'): bool
+    {
+        return ChecksumHelper::verify($data, $checksum, $algorithm);
+    }
+}
+
+if (!function_exists('model_checksum')) {
+    /**
+     * Calculate checksum for a model's attributes
+     *
+     * @param \Illuminate\Database\Eloquent\Model $model
+     * @param array|null $attributes
+     * @param string $algorithm
+     * @return string
+     */
+    function model_checksum($model, ?array $attributes = null, string $algorithm = 'sha256'): string
+    {
+        return ChecksumHelper::forModel($model, $attributes, $algorithm);
+    }
+}

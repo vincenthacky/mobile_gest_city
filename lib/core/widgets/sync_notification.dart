@@ -4,6 +4,7 @@ enum SyncNotificationType {
   offline,       // Pas de connexion - données du cache
   syncing,       // Synchronisation en cours
   syncComplete,  // Synchronisation terminée
+  upToDate,      // Données déjà à jour (pas de sync nécessaire)
   none,          // Aucune notification
 }
 
@@ -56,8 +57,16 @@ class _SyncNotificationState extends State<SyncNotification>
     if (widget.type != SyncNotificationType.none) {
       _animationController.forward();
 
-      // Auto-dismiss pour certains types après 3 secondes
-      if (widget.type == SyncNotificationType.syncComplete) {
+      // Auto-dismiss pour tous les types après 15 secondes
+      Future.delayed(const Duration(seconds: 15), () {
+        if (mounted) {
+          _dismiss();
+        }
+      });
+      
+      // Auto-dismiss rapide pour syncComplete et upToDate après 3 secondes
+      if (widget.type == SyncNotificationType.syncComplete || 
+          widget.type == SyncNotificationType.upToDate) {
         Future.delayed(const Duration(seconds: 3), () {
           if (mounted) {
             _dismiss();
@@ -160,7 +169,8 @@ class _SyncNotificationState extends State<SyncNotification>
 
                   // Bouton fermer pour certains types
                   if (widget.type == SyncNotificationType.offline ||
-                      widget.type == SyncNotificationType.syncComplete)
+                      widget.type == SyncNotificationType.syncComplete ||
+                      widget.type == SyncNotificationType.upToDate)
                     GestureDetector(
                       onTap: _dismiss,
                       child: Container(
@@ -209,6 +219,9 @@ class _SyncNotificationState extends State<SyncNotification>
       case SyncNotificationType.syncComplete:
         iconData = Icons.check_circle;
         break;
+      case SyncNotificationType.upToDate:
+        iconData = Icons.verified;
+        break;
       case SyncNotificationType.none:
         iconData = Icons.info;
         break;
@@ -229,6 +242,8 @@ class _SyncNotificationState extends State<SyncNotification>
         return const Color(0xFFDCFDF7); // Vert très clair
       case SyncNotificationType.syncComplete:
         return const Color(0xFFDCFDF7); // Vert très clair
+      case SyncNotificationType.upToDate:
+        return const Color(0xFFEBF8FF); // Bleu très clair
       case SyncNotificationType.none:
         return const Color(0xFFF3F4F6);
     }
@@ -242,6 +257,8 @@ class _SyncNotificationState extends State<SyncNotification>
         return const Color(0xFF10B981); // Vert
       case SyncNotificationType.syncComplete:
         return const Color(0xFF10B981); // Vert
+      case SyncNotificationType.upToDate:
+        return const Color(0xFF3B82F6); // Bleu
       case SyncNotificationType.none:
         return const Color(0xFFE5E7EB);
     }
@@ -255,6 +272,8 @@ class _SyncNotificationState extends State<SyncNotification>
         return const Color(0xFF10B981); // Vert (comme WiFi connecté)
       case SyncNotificationType.syncComplete:
         return const Color(0xFF10B981); // Vert
+      case SyncNotificationType.upToDate:
+        return const Color(0xFF3B82F6); // Bleu
       case SyncNotificationType.none:
         return const Color(0xFF6B7280);
     }
@@ -272,6 +291,8 @@ class _SyncNotificationState extends State<SyncNotification>
         return const Color(0xFF047857); // Vert foncé
       case SyncNotificationType.syncComplete:
         return const Color(0xFF047857); // Vert foncé
+      case SyncNotificationType.upToDate:
+        return const Color(0xFF1E40AF); // Bleu foncé
       case SyncNotificationType.none:
         return const Color(0xFF374151);
     }
@@ -285,6 +306,8 @@ class _SyncNotificationState extends State<SyncNotification>
         return 'Synchronisation en cours • Mise à jour des données...';
       case SyncNotificationType.syncComplete:
         return 'Données synchronisées avec succès';
+      case SyncNotificationType.upToDate:
+        return 'Données à jour • Aucune synchronisation nécessaire';
       case SyncNotificationType.none:
         return '';
     }

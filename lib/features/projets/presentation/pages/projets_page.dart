@@ -102,10 +102,12 @@ class _ProjetsPageState extends State<ProjetsPage> {
       _projectController.showOfflineNotification();
     }
     
-    // Charger TOUS les projets sans filtre (cache complet)
+    // 🧹 MIGRATION: Force fresh data pour récupérer avec nouveau format
+    // MIGRATION TERMINÉE - Test correction checksums validé
     await _projectController.fetchProjects(
       useSync: true, // Activer la synchronisation intelligente
       showNotifications: _connectivityService.isConnected, // Afficher notifications si en ligne
+      // forceFreshData: true, // COMMENTÉ - Test correction checksums terminé
     );
     // Appliquer les filtres après chargement
     _projectController.applyStatusFilter(_statusFilter);

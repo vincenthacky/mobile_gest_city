@@ -13,6 +13,9 @@ class ProjectChecksum extends HiveObject {
   
   @HiveField(2)
   late DateTime lastUpdated;
+  
+  @HiveField(3)
+  late int receptionOrder; // Ordre de réception depuis l'API
 
   ProjectChecksum();
 
@@ -20,6 +23,7 @@ class ProjectChecksum extends HiveObject {
     required this.projectId,
     required this.checksum,
     required this.lastUpdated,
+    required this.receptionOrder,
   });
 
   Map<String, dynamic> toJson() {

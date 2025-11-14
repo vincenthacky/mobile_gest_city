@@ -207,6 +207,22 @@ class ProjectModel {
     }
   }
 
+  /// Convertit un ProjectStatus vers le format API (snake_case)
+  static String _statusToApiFormat(ProjectStatus status) {
+    switch (status) {
+      case ProjectStatus.voteOpen:
+        return 'vote_open';
+      case ProjectStatus.voteNotOpen:
+        return 'vote_not_open';
+      case ProjectStatus.voteClosed:
+        return 'vote_closed';
+      case ProjectStatus.accepted:
+        return 'project_accepted';
+      case ProjectStatus.rejected:
+        return 'project_rejected';
+    }
+  }
+
   factory ProjectModel.fromJson(Map<String, dynamic> json) {
     final votes = json['votes'] as Map<String, dynamic>? ?? {};
     final user = json['user'] as Map<String, dynamic>? ?? {};
@@ -331,7 +347,7 @@ class ProjectModel {
       'service_provider_name': providerName,
       'service_provider_budget': providerAmount?.toString(),
       'images': attachments.map((url) => {'url': url}).toList(),
-      'status': status.toString().split('.').last,
+      'status': _statusToApiFormat(status),
       'votes': {
         'positive_votes': votesYes,
         'negative_votes': votesNo,

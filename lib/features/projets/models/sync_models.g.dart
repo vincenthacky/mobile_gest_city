@@ -19,19 +19,22 @@ class ProjectChecksumAdapter extends TypeAdapter<ProjectChecksum> {
     return ProjectChecksum()
       ..projectId = fields[0] as String
       ..checksum = fields[1] as String
-      ..lastUpdated = fields[2] as DateTime;
+      ..lastUpdated = fields[2] as DateTime
+      ..receptionOrder = fields[3] as int;
   }
 
   @override
   void write(BinaryWriter writer, ProjectChecksum obj) {
     writer
-      ..writeByte(3)
+      ..writeByte(4)
       ..writeByte(0)
       ..write(obj.projectId)
       ..writeByte(1)
       ..write(obj.checksum)
       ..writeByte(2)
-      ..write(obj.lastUpdated);
+      ..write(obj.lastUpdated)
+      ..writeByte(3)
+      ..write(obj.receptionOrder);
   }
 
   @override
