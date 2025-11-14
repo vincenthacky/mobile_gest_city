@@ -17,13 +17,13 @@ class LocalStorageService {
     
     // 🧹 MIGRATION: Supprimer complètement les anciennes boxes pour corriger statuts
     // MIGRATION TERMINÉE - Correction sérialisation statuts validée
-    // try {
-    //   await Hive.deleteBoxFromDisk(_checksumBoxName);
-    //   await Hive.deleteBoxFromDisk(_projectsBoxName);
-    //   print('🧹 [MIGRATION] Anciennes boxes supprimées du disque - Correction sérialisation statuts');
-    // } catch (e) {
-    //   print('ℹ️ [MIGRATION] Pas d\'anciennes boxes à supprimer: $e');
-    // }
+    try {
+      await Hive.deleteBoxFromDisk(_checksumBoxName);
+      await Hive.deleteBoxFromDisk(_projectsBoxName);
+      print('🧹 [MIGRATION] Anciennes boxes supprimées du disque - Correction sérialisation statuts');
+    } catch (e) {
+      print('ℹ️ [MIGRATION] Pas d\'anciennes boxes à supprimer: $e');
+    }
     
     if (!Hive.isAdapterRegistered(0)) {
       Hive.registerAdapter(ProjectChecksumAdapter());
