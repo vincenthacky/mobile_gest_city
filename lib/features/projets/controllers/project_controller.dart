@@ -648,7 +648,7 @@ class ProjectController extends ChangeNotifier {
           showSyncCompleteNotification(result.message);
         } else {
           // Données déjà à jour - pas de sync nécessaire
-          showUpToDateNotification(result.message);
+          showUpToDateNotification();
         }
       }
       
