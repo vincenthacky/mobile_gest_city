@@ -1,0 +1,92 @@
+en mode GET /information/sync
+
+
+
+
+
+{
+  "success": true,
+  "status_code": 200,
+  "message": "Synchronization completed",
+  "data": {
+    "sync_type": "differential",
+    "global_checksum": "2afb966cb565029eb613da2e2748d7c6bd24a3070034e07ee24ed6625894f34f",
+    "changes": {
+      "added": [
+   
+        [
+          {
+            "id": "907ea86f-f228-406a-a187-80bdfec7ae01",
+            "checksum": "e4b0e9be7800cc1b06c559b226e8bed43167e93123178962006a3ae4aa4f7b98",
+            "title": "Late Night Patrol Schedule",
+            "description": "Security patrols will be increased during late night hours (11 PM - 5 AM) for enhanced safety.",
+            "report_type": "security",
+            "status": "pending",
+            "place": "All Community Areas",
+            "priority": "high",
+            "reported_by": "dc13ecd4-f898-4e24-811c-54051800fdfd",
+            "created_at": "2025-11-12 09:28:41",
+            "updated_at": "2025-11-12 09:28:41",
+            "new": true,
+            "images": [],
+            "user": {
+              "anonymity": false,
+              "id": "dc13ecd4-f898-4e24-811c-54051800fdfd",
+              "full_name": "Trisha Dibbert DVM",
+              "email": "jermaine.stark@example.com",
+              "phone": "401-949-4103",
+              "villa_id": "daca4e59-aecc-430f-8ddf-323852130e19",
+              "image_url": null,
+              "role": "USER",
+              "villa": {
+                "id": "daca4e59-aecc-430f-8ddf-323852130e19",
+                "number": "Villa-878",
+                "code": ""
+              }
+            }
+          }
+        ],
+        [
+          {
+            "id": "c362a699-318e-4fa7-bc3a-3050ee7a5c4f",
+            "checksum": "42f833f7a7b93894cff55eda2a63b07530955504c4200cdec4c4bb50f4fc2c73",
+            "title": "Recycling Program Information",
+            "description": "New recycling bins have been installed. Please separate recyclables from general waste. Collection schedule available online.",
+            "report_type": "other",
+            "status": "pending",
+            "place": "Waste Collection Points",
+            "priority": "low",
+            "reported_by": "78cf2b22-431a-465f-8603-246e2df7bf4e",
+            "created_at": "2025-11-12 09:28:41",
+            "updated_at": "2025-11-12 09:28:41",
+            "new": true,
+            "images": [],
+            "user": {
+              "anonymity": false,
+              "id": "78cf2b22-431a-465f-8603-246e2df7bf4e",
+              "full_name": "Ryley Carter",
+              "email": "joany.yost@example.net",
+              "phone": "323-357-2199",
+              "villa_id": "53c84d99-fee3-4a00-964d-c80907212ea2",
+              "image_url": null,
+              "role": "USER",
+              "villa": {
+                "id": "53c84d99-fee3-4a00-964d-c80907212ea2",
+                "number": "Villa-369",
+                "code": ""
+              }
+            }
+          }
+        ]
+      ],
+      "updated": [],
+      "deleted": []
+    },
+    "stats": {
+      "added_count": 20,
+      "updated_count": 0,
+      "deleted_count": 0
+    },
+    "timestamp": "2025-11-16T21:58:36+00:00"
+  }
+}

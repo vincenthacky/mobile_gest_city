@@ -11,9 +11,11 @@ import 'features/authentication/controller/register_controller.dart';
 import 'features/projets/controllers/project_controller.dart';
 import 'features/signalement/controllers/signalement_controller.dart';
 import 'features/signalement/controllers/report_controller.dart';
+import 'features/signalement/controllers/sync_report_controller.dart';
 import 'features/finance/controllers/finance_controller.dart';
 import 'features/cadre_de_vie/controllers/information_controller.dart';
 import 'features/cadre_de_vie/controllers/information_submission_controller.dart';
+import 'features/cadre_de_vie/controllers/sync_information_controller.dart';
 import 'features/finance/controllers/contribution_controller.dart';
 import 'features/finance/controllers/cash_movements_controller.dart';
 import 'features/finance/controllers/payment_breakdown_controller.dart';
@@ -89,10 +91,16 @@ class _GestCityAppState extends State<GestCityApp> {
           create: (_) => ReportController(),
         ),
         ChangeNotifierProvider(
+          create: (_) => SyncReportController(),
+        ),
+        ChangeNotifierProvider(
           create: (_) => FinanceController(),
         ),
         ChangeNotifierProvider(
           create: (_) => InformationController(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => SyncInformationController(),
         ),
         ChangeNotifierProvider(
           create: (_) => InformationSubmissionController(),

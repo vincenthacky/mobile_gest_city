@@ -216,4 +216,66 @@ class InformationModel {
 
   bool get hasImages => images.isNotEmpty;
   int get imageCount => images.length;
+
+  /// Convertit le modèle en JSON pour la sérialisation
+  Map<String, dynamic> toJson() {
+    // Mapper les enums vers leurs valeurs string pour l'API
+    String typeToString(InformationType type) {
+      switch (type) {
+        case InformationType.security:
+          return 'security';
+        case InformationType.drugs:
+          return 'drugs';
+        case InformationType.suspect:
+          return 'suspect';
+        case InformationType.nuisance:
+          return 'nuisance';
+        case InformationType.infrastructure:
+          return 'infrastructure';
+        case InformationType.other:
+          return 'other';
+      }
+    }
+
+    String statusToString(InformationStatus status) {
+      switch (status) {
+        case InformationStatus.pending:
+          return 'pending';
+        case InformationStatus.inProgress:
+          return 'in_progress';
+        case InformationStatus.resolved:
+          return 'resolved';
+      }
+    }
+
+    String priorityToString(PriorityLevel priority) {
+      switch (priority) {
+        case PriorityLevel.low:
+          return 'low';
+        case PriorityLevel.medium:
+          return 'medium';
+        case PriorityLevel.high:
+          return 'high';
+        case PriorityLevel.urgent:
+          return 'urgent';
+      }
+    }
+
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'report_type': typeToString(reportType),
+      'status': statusToString(status),
+      'place': place,
+      'priority': priorityToString(priority),
+      'anonymous': anonymous,
+      'reported_by': reportedBy,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+      'new': isNew,
+      'images': images.map((url) => {'url': url}).toList(),
+      'user': userName != null ? {'full_name': userName} : null,
+    };
+  }
 }

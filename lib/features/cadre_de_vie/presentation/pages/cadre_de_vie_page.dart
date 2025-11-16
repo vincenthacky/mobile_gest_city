@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'ajouter_information_page.dart';
 import '../../../../core/widgets/app_header.dart';
-import '../../controllers/information_controller.dart';
+import '../../../../core/widgets/sync_notification.dart';
+import '../../../../core/services/connectivity_service.dart';
+import '../../controllers/sync_information_controller.dart';
 import '../../models/information_model.dart';
 
 enum InformationFilter { tous, recents, security, drugs, suspect, nuisance, infrastructure, autres }
@@ -18,17 +20,54 @@ class CadreDeViePage extends StatefulWidget {
 class _CadreDeViePageState extends State<CadreDeViePage> {
   final TextEditingController _searchController = TextEditingController();
   InformationFilter _selectedFilter = InformationFilter.tous;
-  late InformationController _informationController;
+  late SyncInformationController _informationController;
+  late ConnectivityService _connectivityService;
 
   @override
   void initState() {
     super.initState();
-    _informationController = context.read<InformationController>();
+    _informationController = Provider.of<SyncInformationController>(context, listen: false);
+    _connectivityService = ConnectivityService();
+    
+    _setupConnectivityListener();
+    
+    // Démarrer le monitoring de connectivité
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _connectivityService.startMonitoring();
+    });
     
     // Charger les informations après que le widget soit complètement initialisé
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _informationController.fetchInformations();
+      _loadInformations();
     });
+  }
+
+  void _setupConnectivityListener() {
+    _connectivityService.addListener(() {
+      if (_connectivityService.isConnected) {
+        // Quand la connexion revient, déclencher une synchronisation
+        debugPrint('🌐 [CADRE DE VIE] Connexion détectée - synchronisation automatique');
+        // Synchronisation avec notification
+        _informationController.syncInformations(showNotifications: true);
+      } else {
+        // Afficher notification hors ligne si on a des données en cache
+        if (_informationController.allInformations.isNotEmpty) {
+          _informationController.showOfflineNotification();
+        }
+      }
+    });
+  }
+
+  Future<void> _loadInformations() async {
+    // Si pas de connexion et qu'on a du cache, afficher notification
+    if (!_connectivityService.isConnected && _informationController.allInformations.isNotEmpty) {
+      _informationController.showOfflineNotification();
+    }
+    
+    await _informationController.fetchInformations(
+      useSync: true, // Activer la synchronisation intelligente
+      showNotifications: _connectivityService.isConnected, // Afficher notifications si en ligne
+    );
   }
 
 
@@ -76,6 +115,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
   @override
   void dispose() {
     _searchController.dispose();
+    _connectivityService.stopMonitoring();
     super.dispose();
   }
 
@@ -101,6 +141,19 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
               child: const AppHeader(
                 title: 'Cadre de vie',
               ),
+            ),
+            
+            // Notification de synchronisation
+            Consumer<SyncInformationController>(
+              builder: (context, informationController, child) {
+                return SyncNotification(
+                  type: informationController.notificationType,
+                  customMessage: informationController.notificationMessage,
+                  onDismiss: () {
+                    informationController.clearNotification();
+                  },
+                );
+              },
             ),
             
             Expanded(
@@ -220,7 +273,7 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                       const SizedBox(height: 12),
                       
                       // Liste des informations
-                      Consumer<InformationController>(
+                      Consumer<SyncInformationController>(
                         builder: (context, controller, child) {
                           if (controller.isLoadingInformations) {
                             return const Center(

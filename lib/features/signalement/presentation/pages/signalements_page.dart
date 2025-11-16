@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/widgets/app_header.dart';
+import '../../../../core/widgets/sync_notification.dart';
+import '../../../../core/services/connectivity_service.dart';
 import '../../models/report_model.dart';
-import '../../controllers/report_controller.dart';
+import '../../controllers/sync_report_controller.dart';
 
 enum SignalementFilter { tous, nouveaux, enCours, resolus, urgents }
 
@@ -20,7 +22,8 @@ class _SignalementsPageState extends State<SignalementsPage> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   SignalementFilter _selectedFilter = SignalementFilter.tous;
-  late ReportController _reportController;
+  late SyncReportController _reportController;
+  late ConnectivityService _connectivityService;
   Timer? _searchTimer;
   int _currentPage = 1;
   bool _isLoadingMore = false;
@@ -29,9 +32,17 @@ class _SignalementsPageState extends State<SignalementsPage> {
   @override
   void initState() {
     super.initState();
-    _reportController = Provider.of<ReportController>(context, listen: false);
+    _reportController = Provider.of<SyncReportController>(context, listen: false);
+    _connectivityService = ConnectivityService();
+    
     _setupScrollListener();
     _setupSearchListener();
+    _setupConnectivityListener();
+    
+    // Démarrer le monitoring de connectivité
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _connectivityService.startMonitoring();
+    });
     
     // Charger les signalements après que le widget soit complètement initialisé
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -62,13 +73,39 @@ class _SignalementsPageState extends State<SignalementsPage> {
     });
   }
 
+  void _setupConnectivityListener() {
+    _connectivityService.addListener(() {
+      if (_connectivityService.isConnected) {
+        // Quand la connexion revient, déclencher une synchronisation
+        debugPrint('🌐 [SIGNALEMENTS] Connexion détectée - synchronisation automatique');
+        // Synchronisation avec notification
+        _reportController.syncReports(showNotifications: true);
+      } else {
+        // Afficher notification hors ligne si on a des données en cache
+        if (_reportController.allReports.isNotEmpty) {
+          _reportController.showOfflineNotification();
+        }
+      }
+    });
+  }
+
   Future<void> _loadReports() async {
     _currentPage = 1;
+    
+    // Si pas de connexion et qu'on a du cache, afficher notification
+    if (!_connectivityService.isConnected && _reportController.allReports.isNotEmpty) {
+      _reportController.showOfflineNotification();
+    }
+    
     await _reportController.fetchReports(
       status: _mapFilterToStatus(_selectedFilter),
       priority: _mapFilterToPriority(_selectedFilter),
-      page: _currentPage,
+      useSync: true, // Activer la synchronisation intelligente
+      showNotifications: _connectivityService.isConnected, // Afficher notifications si en ligne
     );
+    
+    // Appliquer les filtres après chargement
+    _reportController.applySearchFilter(_searchQuery.length >= 2 ? _searchQuery : null);
   }
 
   Future<void> _loadMoreReports() async {
@@ -136,6 +173,7 @@ class _SignalementsPageState extends State<SignalementsPage> {
     _searchController.dispose();
     _scrollController.dispose();
     _searchTimer?.cancel();
+    _connectivityService.stopMonitoring();
     super.dispose();
   }
 
@@ -170,10 +208,23 @@ class _SignalementsPageState extends State<SignalementsPage> {
               ),
             ),
             
+            // Notification de synchronisation
+            Consumer<SyncReportController>(
+              builder: (context, reportController, child) {
+                return SyncNotification(
+                  type: reportController.notificationType,
+                  customMessage: reportController.notificationMessage,
+                  onDismiss: () {
+                    reportController.clearNotification();
+                  },
+                );
+              },
+            ),
+            
             Expanded(
               child: RefreshIndicator(
                 onRefresh: _loadReports,
-                child: Consumer<ReportController>(
+                child: Consumer<SyncReportController>(
                   builder: (context, reportController, child) {
                     if (reportController.isLoadingReports && reportController.reports.isEmpty) {
                       return const Center(

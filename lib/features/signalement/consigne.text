@@ -1,87 +1,99 @@
+en mode GET /reports/sync
 
-lien: api get reports/
-reponse api {
+{
   "success": true,
   "status_code": 200,
-  "message": "Reports retrieved successfully.",
-  "data": [
-    {
-      "id": 7,
-      "title": "Des enfants entrain de se droguer sur le terrain",
-      "description": "J'ai vu ...",
-      "report_type": "drugs",
-      "status": "pending",
-      "place": "Sur le terrain de sport",
-      "priority": "high",
-      "anonymous": false,
-      "reported_by": 9,
-      "created_at": "2025-11-03 10:02:54",
-      "updated_at": "2025-11-03 10:02:54",
-      "new": true,
-      "images": [],
-      "user": {
-        "id": 9,
-        "full_name": "John Doe",
-        "email": "john@example.com",
-        "phone": "+33123456789",
-        "image_url": null
-      }
-    },
-    {
-      "id": 5,
-      "title": "volle chez moi",
-      "description": "ygidu iouhiof oiujpro ioujpo iuu oiu oioui iu ui;op iuhoi khhli uihioj uklihij khoij. uyuylioiu",
-      "report_type": "security",
-      "status": "pending",
-      "place": "parking central",
-      "priority": "medium",
-      "anonymous": true,
-      "reported_by": null,
-      "created_at": "2025-11-03 09:27:47",
-      "updated_at": "2025-11-03 09:27:47",
-      "new": true,
-      "images": [
-        {
-          "id": 6,
-          "url": "http://community-handler-ebd193422452.herokuapp.com/storage/reports/BB9GpmqhGZdtMYgDbFeB8FHiyB6YfK4l9fbuPyJc.jpg"
-        }
+  "message": "Differential synchronization completed",
+  "data": {
+    "sync_type": "differential",
+    "global_checksum": "71ac48a5982dc12193d059363df613848d60ffe93dcedf22b1338ea92b12b236",
+    "changes": {
+      "added": [
+        [
+          {
+            "id": "1fd32b08-3a93-40b4-9b20-81c4351601dc",
+            "checksum": "8328600e835bab8c0533a79e79c42010fd55c51ca6374f415b095a37630a0e0a",
+            "title": "Speed bump needed",
+            "description": "Vehicles speeding on residential street, safety hazard for children.",
+            "report_type": "infrastructure",
+            "status": "in_review",
+            "place": "Third Street",
+            "priority": "medium",
+            "anonymous": true,
+            "reported_by": "a1e97306-01aa-4cce-a5b9-e1102e0cdb33",
+            "created_at": "2025-11-12 01:06:39",
+            "updated_at": "2025-11-12 01:06:39",
+            "new": true,
+            "images": [],
+            "user": null
+          }
+        ],
+        [
+          {
+            "id": "5bd44d0e-3620-4ad0-b1d0-ebd1070bd642",
+            "checksum": "b5d762bac0352abf3b90dd2c575ea4244dbc1e4a6e23ca548d404bd2017d7ba1",
+            "title": "Unknown person attempting entry",
+            "description": "Individual tried to enter community without proper authorization.",
+            "report_type": "suspicious_person",
+            "status": "resolved",
+            "place": "South Gate",
+            "priority": "high",
+            "anonymous": false,
+            "reported_by": "855caa99-ea84-4a14-a4b4-bb6ebf33babc",
+            "created_at": "2025-11-12 01:06:40",
+            "updated_at": "2025-11-12 01:06:40",
+            "new": true,
+            "images": [],
+            "user": {
+              "anonymity": false,
+              "id": "855caa99-ea84-4a14-a4b4-bb6ebf33babc",
+              "full_name": "Prof. Grayce Hand I",
+              "email": "freddy88@example.net",
+              "phone": "508.972.9064",
+              "villa_id": "ebb6592d-6adb-4f8f-b455-c863516d31d2",
+              "image_url": null,
+              "role": "USER",
+              "villa": {
+                "id": "ebb6592d-6adb-4f8f-b455-c863516d31d2",
+                "number": "Villa-522",
+                "code": ""
+              }
+            }
+          }
+        ]
       ],
-      "user": null
-    }
-  ],
-  "pagination": {
-    "total": 2,
-    "per_page": 15,
-    "current_page": 1,
-    "last_page": 1,
-    "from": 1,
-    "to": 2
+      "updated": [],
+      "deleted": []
+    },
+    "stats": {
+      "added_count": 20,
+      "updated_count": 0,
+      "deleted_count": 0,
+      "total_server": 20
+    },
+    "timestamp": "2025-11-16T21:20:41+00:00"
   }
 }
 
 
 
- public function getReports(Request $request)
+
+voici le genre de donnee a envoyer a l api
+
+{
+  "global_checksum": "2b71d863e00ad5d722bd715f75d3a6c74a8ed3d97fa8cbdf2d0f412791712ea8",
+  "items_checksums": [
     {
-        try {
-            $query = Report::query();
-
-            if ($request->has('status')) {
-                $query->where('status', $request->query('status'));
-            }
-            if ($request->has('priority')) {
-                $query->where('priority', $request->query('priority'));
-            }
-            if ($request->has('report_type')) {
-                $query->where('report_type', $request->query('report_type'));
-            }
-
-            $query->where('report_scope', 'incident');
-
-            $perPage = (int)$request->query('per_page', 15);
-            $reports = $query->with(['images', 'user'])->orderBy('created_at', 'desc')->paginate($perPage);
-
-            return $this->responseSuccessPaginate(ReportResource::collection($reports), 'Reports retrieved successfully.');
-        } catch (Throwable $e) {
-            return $this->responseError($e->getMessage(), 500);
-        
+      "id": "11f4e32b-6728-4a76-b2e6-0ced6cc4f67f",
+      "checksum": "e120c7f731f6d7a944c5ff04f3ae96095dd5181764718a4ef288af0a055b5716"
+    },
+    {
+      "id": "19734119-36d4-4047-a7af-13321cadf5b5",
+      "checksum": "6ab9fd76744ab8d4325de4f9a89b2fc3bf2a9e69a04f540c8ddc6060d7ee7e14"
+    },
+    {
+      "id": "e2447a04-ee0e-405a-8a47-0558b3369ad2",
+      "checksum": "fa96d7e8039df83f7d2cbdffe872fa0d80c3839507deee2101e037bf1bdadc20"
+    }
+  ],
+  }
