@@ -149,6 +149,7 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
     // Synchroniser les transactions avec logique conditionnelle pour le solde
     await _syncTransactionController.syncTransactions(
       showNotifications: _connectivityService.isConnected,
+      forceFullSync: false, // La détection automatique se fait dans le controller
     );
     
     // Charger les mouvements de caisse traditionnels

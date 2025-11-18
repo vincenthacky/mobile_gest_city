@@ -75,13 +75,19 @@ class SyncTransactionController extends ChangeNotifier {
     }
 
     try {
-      // 1. Préparer la requête de synchronisation
+      // 1. Détecter si c'est vraiment un premier lancement (cache complètement vide)
+      final checksums = TransactionLocalStorageService.getAllChecksums();
+      final isFirstLaunch = checksums.isEmpty && _allTransactions.isEmpty;
+      
+      debugPrint('🔍 [SYNC TRANSACTION] Détection: checksums=${checksums.length}, transactions=${_allTransactions.length}, isFirstLaunch=$isFirstLaunch, forceFullSync=$forceFullSync');
+      
+      // 2. Préparer la requête de synchronisation
       final request = TransactionSyncService.createSyncRequest(
         filters: filters ?? _currentFilters,
-        isInitializing: forceFullSync || _allTransactions.isEmpty,
+        isInitializing: forceFullSync || isFirstLaunch,
       );
 
-      print('🔄 [SYNC TRANSACTION] Début de la synchronisation');
+      debugPrint('🔄 [SYNC TRANSACTION] Début de la synchronisation (isInitializing=${forceFullSync || isFirstLaunch})');
 
       // 2. Appeler l'API de synchronisation des transactions
       final response = await _dataSource.syncTransactions(request);
