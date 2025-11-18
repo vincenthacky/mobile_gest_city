@@ -30,6 +30,61 @@ import 'core/services/connectivity_service.dart';
 // import 'features/cotisations/controller/cotisations_controller.dart';
 // import 'features/cotisations/controller/payment_proof_controller.dart';
 
+/// 🚨 FONCTION DE VIDAGE COMPLET DU CACHE FINANCE (pour debug uniquement)
+/// À commenter après les tests
+Future<void> _clearAllFinanceCache() async {
+  try {
+    debugPrint('🗑️ [DEBUG] Vidage complet du cache finance...');
+    
+    // Vider tous les caches de finance (avec try-catch pour chaque service)
+    try {
+      await TransactionLocalStorageService.clearCache();
+      debugPrint('✅ TransactionLocalStorageService cache vidé');
+    } catch (e) {
+      debugPrint('❌ Erreur TransactionLocalStorageService: $e');
+    }
+    
+    try {
+      await FinanceTotalsLocalStorageService.clearCachedTotals();
+      debugPrint('✅ FinanceTotalsLocalStorageService cache vidé');
+    } catch (e) {
+      debugPrint('❌ Erreur FinanceTotalsLocalStorageService: $e');
+    }
+    
+    try {
+      await PaymentStatisticsLocalStorageService.clearCache();
+      debugPrint('✅ PaymentStatisticsLocalStorageService cache vidé');
+    } catch (e) {
+      debugPrint('❌ Erreur PaymentStatisticsLocalStorageService: $e');
+    }
+    
+    try {
+      await PaymentOverviewLocalStorageService.clearCache();
+      debugPrint('✅ PaymentOverviewLocalStorageService cache vidé');
+    } catch (e) {
+      debugPrint('❌ Erreur PaymentOverviewLocalStorageService: $e');
+    }
+    
+    try {
+      await ContributionLocalStorageService.clearAllCaches();
+      debugPrint('✅ ContributionLocalStorageService cache vidé');
+    } catch (e) {
+      debugPrint('❌ Erreur ContributionLocalStorageService: $e');
+    }
+    
+    try {
+      await CashMovementsLocalStorageService.clearAllCache();
+      debugPrint('✅ CashMovementsLocalStorageService cache vidé');
+    } catch (e) {
+      debugPrint('❌ Erreur CashMovementsLocalStorageService: $e');
+    }
+    
+    debugPrint('✅ [DEBUG] Cache finance vidé complètement - simulation nouveau téléphone');
+  } catch (e) {
+    debugPrint('❌ [DEBUG] Erreur lors du vidage du cache: $e');
+  }
+}
+
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -37,6 +92,10 @@ Future<void> bootstrap() async {
   
   // Initialiser la base de données Hive
   await DatabaseInitializer.initialize();
+  
+  // 🚨 VIDAGE COMPLET DU CACHE FINANCE (pour debug - à commenter après test)
+  // ⚠️  COMMENTER/DÉCOMMENTER LA LIGNE CI-DESSOUS POUR TESTER NOUVEAU TÉLÉPHONE
+  await _clearAllFinanceCache();
   
   // Initialiser le stockage local des transactions
   await TransactionLocalStorageService.initialize();
