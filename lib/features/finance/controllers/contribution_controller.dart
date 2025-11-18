@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../data_source/contribution_data_source.dart';
 import '../models/contribution_model.dart';
 import '../models/unpaid_months_model.dart';
 import '../models/payment_proofs_model.dart';
 import '../models/payment_list_model.dart';
 import '../models/payment_periods_model.dart';
+import '../services/contribution_local_storage_service.dart';
+import '../services/payment_sync_listener_service.dart';
+import '../../../core/services/connectivity_service.dart';
 
 enum ContributionStatus { initial, loading, loaded, error }
 
 class ContributionController extends ChangeNotifier {
   final ContributionDataSource _dataSource = ContributionDataSource();
+  final ConnectivityService _connectivityService = ConnectivityService();
 
   ContributionStatus _status = ContributionStatus.initial;
   ContributionData? _contributionData;
@@ -23,6 +28,9 @@ class ContributionController extends ChangeNotifier {
   List<PaymentItem> _allPayments = [];
   PaymentPagination? _allPaymentsPagination;
   String? _errorMessage;
+
+  // Subscription pour écouter les changements de Transaction sync
+  StreamSubscription<bool>? _syncSubscription;
 
   ContributionStatus get status => _status;
   ContributionData? get contributionData => _contributionData;
@@ -39,84 +47,100 @@ class ContributionController extends ChangeNotifier {
   bool get isLoading => _status == ContributionStatus.loading;
   bool get hasData => _contributionData != null;
 
+  // Initialise le controller et configure l'écoute de sync
+  void initialize() {
+    _setupSyncListener();
+    ContributionLocalStorageService.initialize();
+  }
+
+  // Configure l'écoute des changements de Transaction sync
+  void _setupSyncListener() {
+    _syncSubscription = PaymentSyncListenerService.instance.paymentSyncTriggerStream.listen(
+      (shouldSync) {
+        if (shouldSync) {
+          debugPrint('🔄 [CONTRIBUTION] Synchronisation déclenchée par Transaction sync');
+          _syncContributionData();
+        }
+      },
+    );
+  }
+
+  // Synchronisation des données de cotisation (déclenchée par Transaction sync)
+  Future<void> _syncContributionData() async {
+    if (!_connectivityService.isConnected) {
+      debugPrint('📱 [CONTRIBUTION] Pas de connexion, pas de sync');
+      return;
+    }
+
+    try {
+      debugPrint('🔄 [CONTRIBUTION] Début synchronisation...');
+      
+      // Synchroniser les données de contribution
+      final contributionResponse = await _dataSource.getContribution();
+      if (contributionResponse.success) {
+        _contributionData = contributionResponse.data;
+        await ContributionLocalStorageService.saveContributionData(_contributionData!);
+        debugPrint('✅ [CONTRIBUTION] Données contribution synchronisées');
+      }
+
+      // Synchroniser les mois impayés
+      final unpaidMonthsResponse = await _dataSource.getUnpaidMonths();
+      if (unpaidMonthsResponse.success) {
+        _unpaidMonths = unpaidMonthsResponse.data;
+        await ContributionLocalStorageService.saveUnpaidMonths(_unpaidMonths);
+        debugPrint('✅ [CONTRIBUTION] Mois impayés synchronisés');
+      }
+
+      notifyListeners();
+      debugPrint('✅ [CONTRIBUTION] Synchronisation terminée');
+    } catch (e) {
+      debugPrint('❌ [CONTRIBUTION] Erreur synchronisation: $e');
+    }
+  }
+
   Future<void> loadContribution({String? userId}) async {
     _setStatus(ContributionStatus.loading);
     _clearError();
 
     try {
-      // Charger d'abord les données de contribution (prioritaire)
-      final contributionResponse = await _dataSource.getContribution();
-
-      if (contributionResponse.success) {
-        _contributionData = contributionResponse.data;
-        _setStatus(ContributionStatus.loaded);
-      } else {
-        _setError(contributionResponse.message);
-        _setStatus(ContributionStatus.error);
-        return;
-      }
-
-      // Charger les autres données en arrière-plan sans bloquer l'affichage
-      _loadAdditionalData(userId);
-
-      // Charger la nouvelle liste unifiée des paiements
-      if (userId != null) {
-        _loadAllPayments(userId);
-      }
+      // TOUJOURS charger depuis le cache (affichage uniquement)
+      await _loadFromCache(userId);
     } catch (e) {
       _setError(e.toString());
       _setStatus(ContributionStatus.error);
     }
   }
 
-  Future<void> _loadAdditionalData(String? userId) async {
-    try {
-      // Charger les mois impayés
-      try {
-        final unpaidMonthsResponse = await _dataSource.getUnpaidMonths();
-        if (unpaidMonthsResponse.success) {
-          _unpaidMonths = unpaidMonthsResponse.data;
-          notifyListeners();
-        }
-      } catch (e) {
-        debugPrint('Erreur lors du chargement des mois impayés: $e');
-        _unpaidMonths = [];
-      }
 
-      // Charger les paiements si userId fourni
-      if (userId != null) {
-        try {
-          final validatedResponse = await _dataSource.getValidatedPayments(
-            userId: userId,
-          );
-          if (validatedResponse.success) {
-            _validatedPayments = validatedResponse.data;
-            _validatedPagination = validatedResponse.pagination;
-            notifyListeners();
-          }
-        } catch (e) {
-          debugPrint('Erreur lors du chargement des paiements validés: $e');
-          _validatedPayments = [];
-        }
-
-        try {
-          final pendingResponse = await _dataSource.getPendingPayments(
-            userId: userId,
-          );
-          if (pendingResponse.success) {
-            _pendingPayments = pendingResponse.data;
-            _pendingPagination = pendingResponse.pagination;
-            notifyListeners();
-          }
-        } catch (e) {
-          debugPrint('Erreur lors du chargement des paiements en attente: $e');
-          _pendingPayments = [];
-        }
-      }
-    } catch (e) {
-      debugPrint('Erreur lors du chargement des données additionnelles: $e');
+  // Chargement depuis le cache SEULEMENT
+  Future<void> _loadFromCache(String? userId) async {
+    final cachedContribution = ContributionLocalStorageService.getContributionData();
+    final cachedUnpaidMonths = ContributionLocalStorageService.getUnpaidMonths();
+    
+    // Charger les données de base du cache ou utiliser des données par défaut
+    _contributionData = cachedContribution;
+    _unpaidMonths = cachedUnpaidMonths ?? [];
+    
+    // Charger les paiements depuis le cache si userId fourni
+    if (userId != null) {
+      final cachedValidated = ContributionLocalStorageService.getPaymentProofs(userId, 'validated');
+      final cachedPending = ContributionLocalStorageService.getPaymentProofs(userId, 'pending');
+      final cachedAllPayments = ContributionLocalStorageService.getAllPayments(userId);
+      
+      _validatedPayments = cachedValidated ?? [];
+      _pendingPayments = cachedPending ?? [];
+      _allPayments = cachedAllPayments ?? [];
+    }
+    
+    _setStatus(ContributionStatus.loaded);
+    
+    if (cachedContribution != null) {
+      debugPrint('✅ [CONTRIBUTION] Données chargées depuis le cache');
+    } else {
+      debugPrint('📱 [CONTRIBUTION] Pas de cache, données vides affichées');
     }
   }
+
 
   Future<void> refreshContribution() async {
     _setStatus(ContributionStatus.loading);
@@ -214,21 +238,6 @@ class ContributionController extends ChangeNotifier {
     }
   }
 
-  // Charger tous les paiements (nouvelle approche)
-  Future<void> _loadAllPayments(String userId) async {
-    try {
-      final response = await _dataSource.getAllPayments(userId: userId);
-      if (response.success) {
-        _allPayments = response.data;
-        _allPaymentsPagination = response.pagination;
-        notifyListeners();
-      }
-    } catch (e) {
-      debugPrint('Erreur lors du chargement de tous les paiements: $e');
-      debugPrint('Détail de l\'erreur: $e');
-      _allPayments = [];
-    }
-  }
 
   // Charger plus de paiements (pagination unifiée)
   Future<void> loadMoreAllPayments(String userId) async {
@@ -285,5 +294,11 @@ class ContributionController extends ChangeNotifier {
     _errorMessage = null;
     _status = ContributionStatus.initial;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _syncSubscription?.cancel();
+    super.dispose();
   }
 }

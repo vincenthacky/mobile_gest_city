@@ -1,5 +1,9 @@
 import 'package:flutter/foundation.dart';
+import 'package:hive/hive.dart';
 import '../../features/projets/services/local_storage_service.dart';
+import '../../features/finance/models/payment_cache_models.dart';
+import '../../features/finance/models/contribution_cache_models.dart';
+import '../../features/finance/models/cash_movements_cache_models.dart';
 
 class DatabaseInitializer {
   static bool _isInitialized = false;
@@ -9,6 +13,36 @@ class DatabaseInitializer {
     if (_isInitialized) return;
 
     try {
+      // Enregistrer les adapters pour le cache des paiements
+      if (!Hive.isAdapterRegistered(8)) {
+        Hive.registerAdapter(PaymentStatisticsCacheAdapter());
+      }
+      if (!Hive.isAdapterRegistered(9)) {
+        Hive.registerAdapter(PaymentOverviewCacheAdapter());
+      }
+      
+      // Enregistrer les adapters pour le cache des cotisations
+      if (!Hive.isAdapterRegistered(10)) {
+        Hive.registerAdapter(ContributionDataCacheAdapter());
+      }
+      if (!Hive.isAdapterRegistered(11)) {
+        Hive.registerAdapter(UnpaidMonthsCacheAdapter());
+      }
+      if (!Hive.isAdapterRegistered(12)) {
+        Hive.registerAdapter(PaymentProofsCacheAdapter());
+      }
+      if (!Hive.isAdapterRegistered(13)) {
+        Hive.registerAdapter(AllPaymentsCacheAdapter());
+      }
+      if (!Hive.isAdapterRegistered(14)) {
+        Hive.registerAdapter(PaymentPeriodsCacheAdapter());
+      }
+      
+      // Enregistrer l'adapter pour le cache des mouvements de caisse
+      if (!Hive.isAdapterRegistered(15)) {
+        Hive.registerAdapter(CashMovementsCacheAdapter());
+      }
+      
       // Initialiser Hive via LocalStorageService
       await LocalStorageService.instance;
       

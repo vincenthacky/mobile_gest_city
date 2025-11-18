@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/sync_models.dart';
 import '../models/project_model.dart';
+import '../../finance/models/transaction_sync_models.dart';
 
 class LocalStorageService {
   static const String _checksumBoxName = 'project_checksums';
@@ -30,6 +31,13 @@ class LocalStorageService {
     }
     if (!Hive.isAdapterRegistered(1)) {
       Hive.registerAdapter(CachedProjectAdapter());
+    }
+    // Adapters pour les transactions (TypeId 6, 7)
+    if (!Hive.isAdapterRegistered(6)) {
+      Hive.registerAdapter(TransactionChecksumAdapter());
+    }
+    if (!Hive.isAdapterRegistered(7)) {
+      Hive.registerAdapter(CachedTransactionAdapter());
     }
     
     _checksumBox = await Hive.openBox<ProjectChecksum>(_checksumBoxName);

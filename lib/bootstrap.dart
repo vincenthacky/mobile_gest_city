@@ -6,6 +6,12 @@ import 'core/network/dio_client.dart';
 import 'core/utils/app_router.dart';
 import 'core/controller/home_controller.dart';
 import 'core/database/database_initializer.dart';
+import 'features/finance/services/transaction_local_storage_service.dart';
+import 'features/finance/services/finance_totals_local_storage_service.dart';
+import 'features/finance/services/payment_statistics_local_storage_service.dart';
+import 'features/finance/services/payment_overview_local_storage_service.dart';
+import 'features/finance/services/contribution_local_storage_service.dart';
+import 'features/finance/services/cash_movements_local_storage_service.dart';
 import 'features/authentication/controller/auth_controller.dart';
 import 'features/authentication/controller/register_controller.dart';
 import 'features/projets/controllers/project_controller.dart';
@@ -13,6 +19,7 @@ import 'features/signalement/controllers/signalement_controller.dart';
 import 'features/signalement/controllers/report_controller.dart';
 import 'features/signalement/controllers/sync_report_controller.dart';
 import 'features/finance/controllers/finance_controller.dart';
+import 'features/finance/controllers/sync_transaction_controller.dart';
 import 'features/cadre_de_vie/controllers/information_controller.dart';
 import 'features/cadre_de_vie/controllers/information_submission_controller.dart';
 import 'features/cadre_de_vie/controllers/sync_information_controller.dart';
@@ -30,6 +37,22 @@ Future<void> bootstrap() async {
   
   // Initialiser la base de données Hive
   await DatabaseInitializer.initialize();
+  
+  // Initialiser le stockage local des transactions
+  await TransactionLocalStorageService.initialize();
+  
+  // Initialiser le stockage local des totaux financiers
+  await FinanceTotalsLocalStorageService.initialize();
+  
+  // Initialiser les services de cache des paiements
+  await PaymentStatisticsLocalStorageService.initialize();
+  await PaymentOverviewLocalStorageService.initialize();
+  
+  // Initialiser les services de cache des cotisations
+  await ContributionLocalStorageService.initialize();
+  
+  // Initialiser le service de cache des mouvements de caisse
+  await CashMovementsLocalStorageService.initialize();
   
   final router = AppRouter.createRouter();
   DioClient.setRouter(router);
@@ -95,6 +118,9 @@ class _GestCityAppState extends State<GestCityApp> {
         ),
         ChangeNotifierProvider(
           create: (_) => FinanceController(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => SyncTransactionController(),
         ),
         ChangeNotifierProvider(
           create: (_) => InformationController(),

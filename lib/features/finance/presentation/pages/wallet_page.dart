@@ -3,7 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'caisse/transaction_detail_page.dart';
 import '../../controllers/cash_movements_controller.dart';
+import '../../controllers/sync_transaction_controller.dart';
 import '../../models/cash_movement_model.dart';
+import '../../../../core/widgets/sync_notification.dart';
+import '../../../../core/services/connectivity_service.dart';
 
 class WalletPage extends StatefulWidget {
   const WalletPage({super.key});
@@ -25,6 +28,10 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
 
+  // Controllers
+  late SyncTransactionController _syncTransactionController;
+  late ConnectivityService _connectivityService;
+
   final List<String> _viewTypes = ['Compte en T', 'Liste'];
 
   List<CashMovement> get _transactions {
@@ -43,8 +50,21 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    _syncTransactionController = Provider.of<SyncTransactionController>(context, listen: false);
+    _connectivityService = ConnectivityService();
+    
     _initializeAnimations();
-    _loadInitialData();
+    _setupConnectivityListener();
+    
+    // Démarrer le monitoring de connectivité
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _connectivityService.startMonitoring();
+    });
+    
+    // Charger les données après que le widget soit complètement initialisé
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInitialData();
+    });
   }
 
   void _initializeAnimations() {
@@ -104,20 +124,38 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
     });
   }
 
+  void _setupConnectivityListener() {
+    _connectivityService.addListener(() {
+      if (_connectivityService.isConnected) {
+        // Quand la connexion revient, déclencher une synchronisation
+        debugPrint('🌐 [FINANCE] Connexion détectée - synchronisation automatique');
+        // Synchronisation avec notification
+        _syncTransactionController.syncTransactions(showNotifications: true);
+      } else {
+        // Afficher notification hors ligne si on a des données en cache
+        if (_syncTransactionController.allTransactions.isNotEmpty) {
+          _syncTransactionController.showOfflineNotification();
+        }
+      }
+    });
+  }
+
   Future<void> _loadInitialData() async {
+    // Si pas de connexion et qu'on a du cache, afficher notification
+    if (!_connectivityService.isConnected && _syncTransactionController.allTransactions.isNotEmpty) {
+      _syncTransactionController.showOfflineNotification();
+    }
+    
+    // Synchroniser les transactions avec logique conditionnelle pour le solde
+    await _syncTransactionController.syncTransactions(
+      showNotifications: _connectivityService.isConnected,
+    );
+    
+    // Charger les mouvements de caisse traditionnels
+    if (!mounted) return;
     final controller = context.read<CashMovementsController>();
-    
-    debugPrint('=== DÉMARRAGE CHARGEMENT ===');
-    debugPrint('Chargement des totaux...');
-    
-    // Charger les totaux une seule fois au démarrage
     await controller.loadCashTotals();
-    
-    debugPrint('Chargement des mouvements...');
-    // Charger les mouvements selon le filtre
-    await _loadCashMovements();
-    
-    debugPrint('Chargement terminé');
+    await controller.loadCashMovements();
     
     if (mounted) {
       _startAnimations();
@@ -150,6 +188,7 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
     _slideController.dispose();
     _fadeController.dispose();
     _scaleController.dispose();
+    _connectivityService.stopMonitoring();
     super.dispose();
   }
 
@@ -160,6 +199,16 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
       body: SafeArea(
         child: Column(
           children: [
+            // Notification de synchronisation
+            Consumer<SyncTransactionController>(
+              builder: (context, syncController, child) {
+                return SyncNotification(
+                  type: syncController.notificationType,
+                  customMessage: syncController.notificationMessage,
+                  onDismiss: () => syncController.clearNotification(),
+                );
+              },
+            ),
             Expanded(
               child: RefreshIndicator(
                 color: const Color(0xFF4F46E5),

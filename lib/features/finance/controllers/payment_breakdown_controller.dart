@@ -2,11 +2,17 @@ import 'package:flutter/material.dart';
 import '../data_source/contribution_data_source.dart';
 import '../models/payment_overview_model.dart';
 import '../models/payment_statistics_model.dart';
+import '../services/payment_statistics_local_storage_service.dart';
+import '../services/payment_overview_local_storage_service.dart';
+import '../services/payment_sync_listener_service.dart';
+import '../../../core/services/connectivity_service.dart';
+import 'dart:async';
 
 enum PaymentBreakdownStatus { initial, loading, loaded, error }
 
 class PaymentBreakdownController extends ChangeNotifier {
   final ContributionDataSource _dataSource = ContributionDataSource();
+  final ConnectivityService _connectivityService = ConnectivityService();
   
   PaymentBreakdownStatus _status = PaymentBreakdownStatus.initial;
   List<PaymentOverviewUser> _paymentOverview = [];
@@ -17,6 +23,9 @@ class PaymentBreakdownController extends ChangeNotifier {
   // État pour la sélection
   String _selectedSegment = '1-6';
   int? _selectedMonth;
+
+  // Subscription pour écouter les changements de Transaction sync
+  StreamSubscription<bool>? _syncSubscription;
 
   // Getters
   PaymentBreakdownStatus get status => _status;
@@ -134,32 +143,92 @@ class PaymentBreakdownController extends ChangeNotifier {
     }
   }
 
-  // Charger les données
+  // Initialise le controller et configure l'écoute de sync
+  void initialize() {
+    _setupSyncListener();
+    PaymentStatisticsLocalStorageService.initialize();
+    PaymentOverviewLocalStorageService.initialize();
+  }
+
+  // Configure l'écoute des changements de Transaction sync
+  void _setupSyncListener() {
+    _syncSubscription = PaymentSyncListenerService.instance.paymentSyncTriggerStream.listen(
+      (shouldSync) {
+        if (shouldSync) {
+          debugPrint('🔄 [PAYMENT BREAKDOWN] Synchronisation déclenchée par Transaction sync');
+          _syncPaymentData();
+        }
+      },
+    );
+  }
+
+  // Charger les données UNIQUEMENT depuis le cache (affichage)
   Future<void> loadPaymentBreakdownData() async {
     _setStatus(PaymentBreakdownStatus.loading);
     _clearError();
     
     try {
-      // Charger l'aperçu des paiements
-      final overviewResponse = await _dataSource.getPaymentOverview();
-      
-      if (overviewResponse.success) {
-        _paymentOverview = overviewResponse.data;
-        _setStatus(PaymentBreakdownStatus.loaded);
-        
-        // Charger les statistiques pour tous les mois de l'année
-        final now = DateTime.now();
-        await _loadAnnualStatistics(now.year);
-        
-        // Charger les statistiques pour le mois actuel par défaut
-        await _loadPaymentStatistics(now.year, now.month);
-      } else {
-        _setError(overviewResponse.message);
-        _setStatus(PaymentBreakdownStatus.error);
-      }
+      // TOUJOURS charger depuis le cache d'abord
+      await _loadFromCache();
     } catch (e) {
       _setError(e.toString());
       _setStatus(PaymentBreakdownStatus.error);
+    }
+  }
+
+
+  // Chargement depuis le cache SEULEMENT
+  Future<void> _loadFromCache() async {
+    final cachedOverview = PaymentOverviewLocalStorageService.getPaymentOverview();
+    final currentYear = DateTime.now().year;
+    final cachedStats = PaymentStatisticsLocalStorageService.getYearStatistics(currentYear);
+    
+    if (cachedOverview != null || cachedStats.isNotEmpty) {
+      _paymentOverview = cachedOverview ?? [];
+      _annualStatistics = cachedStats;
+      _setStatus(PaymentBreakdownStatus.loaded);
+      debugPrint('✅ [PAYMENT BREAKDOWN] Données chargées depuis le cache');
+      
+      // Charger les statistiques pour le mois actuel si disponibles
+      final now = DateTime.now();
+      if (cachedStats.containsKey(now.month)) {
+        _paymentStatistics = cachedStats[now.month];
+      }
+    } else {
+      // Données par défaut si pas de cache
+      _paymentOverview = [];
+      _annualStatistics = {};
+      _setStatus(PaymentBreakdownStatus.loaded);
+      debugPrint('📱 [PAYMENT BREAKDOWN] Pas de cache, données vides affichées');
+    }
+  }
+
+  // Synchronisation des données de paiement (déclenchée par Transaction sync)
+  Future<void> _syncPaymentData() async {
+    if (!_connectivityService.isConnected) {
+      debugPrint('📱 [PAYMENT BREAKDOWN] Pas de connexion, pas de sync');
+      return;
+    }
+
+    try {
+      debugPrint('🔄 [PAYMENT BREAKDOWN] Début synchronisation...');
+      
+      // Synchroniser l'aperçu des paiements
+      final overviewResponse = await _dataSource.getPaymentOverview();
+      if (overviewResponse.success) {
+        _paymentOverview = overviewResponse.data;
+        await PaymentOverviewLocalStorageService.savePaymentOverview(_paymentOverview);
+        debugPrint('✅ [PAYMENT BREAKDOWN] Aperçu synchronisé');
+      }
+
+      // Synchroniser les statistiques pour l'année courante
+      final currentYear = DateTime.now().year;
+      await _loadAndCacheAnnualStatistics(currentYear);
+      
+      notifyListeners();
+      debugPrint('✅ [PAYMENT BREAKDOWN] Synchronisation terminée');
+    } catch (e) {
+      debugPrint('❌ [PAYMENT BREAKDOWN] Erreur synchronisation: $e');
     }
   }
 
@@ -209,10 +278,33 @@ class PaymentBreakdownController extends ChangeNotifier {
     _selectedMonth = null;
     notifyListeners();
   }
+
+  @override
+  void dispose() {
+    _syncSubscription?.cancel();
+    super.dispose();
+  }
   
   Future<void> _loadAnnualStatistics(int year) async {
+    // Vérifier d'abord le cache local
+    final cachedStats = PaymentStatisticsLocalStorageService.getYearStatistics(year);
+    
+    if (cachedStats.isNotEmpty && cachedStats.length == 12) {
+      _annualStatistics = cachedStats;
+      debugPrint('✅ [PAYMENT BREAKDOWN] Statistiques $year chargées depuis cache (${cachedStats.length}/12)');
+      notifyListeners();
+      return;
+    }
+    
+    // Si cache incomplet, charger depuis API
+    await _loadAndCacheAnnualStatistics(year);
+  }
+
+  Future<void> _loadAndCacheAnnualStatistics(int year) async {
     try {
-      debugPrint('DEBUG: Chargement des statistiques annuelles pour $year');
+      debugPrint('🔄 [PAYMENT BREAKDOWN] Chargement des statistiques $year depuis API');
+      final newStats = <int, PaymentStatisticsData>{};
+      
       // Charger les statistiques pour tous les mois de l'année
       for (int month = 1; month <= 12; month++) {
         final statsResponse = await _dataSource.getPaymentStatistics(
@@ -220,19 +312,20 @@ class PaymentBreakdownController extends ChangeNotifier {
           month: month,
         );
         
-        debugPrint('DEBUG: Mois $month - Success: ${statsResponse.success}, Data: ${statsResponse.data}');
-        
         if (statsResponse.success) {
-          _annualStatistics[month] = statsResponse.data;
-          debugPrint('DEBUG: Statistiques mois $month chargées - Montant réel: ${statsResponse.data.montantReel}');
-        } else {
-          debugPrint('DEBUG: Échec du chargement pour le mois $month');
+          newStats[month] = statsResponse.data;
+          // Sauvegarder chaque mois individuellement en cache
+          await PaymentStatisticsLocalStorageService.saveMonthStatistics(
+            year, month, statsResponse.data
+          );
         }
       }
-      debugPrint('DEBUG: Statistiques annuelles chargées: ${_annualStatistics.length} mois');
+      
+      _annualStatistics = newStats;
+      debugPrint('✅ [PAYMENT BREAKDOWN] Statistiques $year: ${newStats.length}/12 mois chargés et mis en cache');
       notifyListeners();
     } catch (e) {
-      debugPrint('Erreur lors du chargement des statistiques annuelles: $e');
+      debugPrint('❌ [PAYMENT BREAKDOWN] Erreur chargement statistiques $year: $e');
     }
   }
   
