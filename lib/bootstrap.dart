@@ -95,7 +95,7 @@ Future<void> bootstrap() async {
   
   // 🚨 VIDAGE COMPLET DU CACHE FINANCE (pour debug - à commenter après test)
   // ⚠️  COMMENTER/DÉCOMMENTER LA LIGNE CI-DESSOUS POUR TESTER NOUVEAU TÉLÉPHONE
-  await _clearAllFinanceCache();
+  // await _clearAllFinanceCache(); // ❌ COMMENTÉ - vidage désactivé
   
   // Initialiser le stockage local des transactions
   await TransactionLocalStorageService.initialize();
