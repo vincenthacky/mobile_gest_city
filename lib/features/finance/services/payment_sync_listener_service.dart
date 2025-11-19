@@ -26,7 +26,9 @@ class PaymentSyncListenerService {
     // Si il y a des mises à jour, déclencher la sync des paiements
     if (hasUpdates) {
       debugPrint('🚀 [PAYMENT SYNC LISTENER] Déclenchement sync paiements');
+      debugPrint('📊 [PAYMENT SYNC LISTENER] Nombre d\'écouteurs actifs: ${_paymentSyncTriggerController.hasListener ? 'Oui' : 'Non'}');
       _paymentSyncTriggerController.add(true);
+      debugPrint('✅ [PAYMENT SYNC LISTENER] Signal envoyé aux écouteurs');
     }
   }
 

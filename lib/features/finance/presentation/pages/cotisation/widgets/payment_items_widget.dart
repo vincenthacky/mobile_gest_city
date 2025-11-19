@@ -246,7 +246,7 @@ class PaymentItemsWidget extends StatelessWidget {
     bool isPaid,
     bool isLast, {
     String? paymentMethod,
-    PaymentProof? paymentProof,
+    dynamic paymentProof, // Accepte PaymentProof ET PaymentItem
     required BuildContext context,
   }) {
     Widget buildContent() {

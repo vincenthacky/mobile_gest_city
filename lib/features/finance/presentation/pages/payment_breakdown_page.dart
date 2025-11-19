@@ -31,7 +31,10 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
 
   void _loadData() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<PaymentBreakdownController>().loadPaymentBreakdownData();
+      final controller = context.read<PaymentBreakdownController>();
+      // ✅ Controller déjà initialisé dans bootstrap.dart
+      // ✅ PUIS charger les données
+      controller.loadPaymentBreakdownData();
     });
   }
 

@@ -177,7 +177,7 @@ class ContributionDataSource {
   }) async {
     try {
       final response = await _dio.get(
-        '/payments/proofs/contributions',
+        '/payments',
         queryParameters: {
           'status': 'VALIDATED',
           'user_id': userId,
@@ -221,7 +221,7 @@ class ContributionDataSource {
   }) async {
     try {
       final response = await _dio.get(
-        '/payments/proofs/contributions',
+        '/payments',
         queryParameters: {'status': 'PENDING', 'user_id': userId, 'page': page},
       );
 

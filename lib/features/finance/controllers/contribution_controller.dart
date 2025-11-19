@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:convert';
 import '../data_source/contribution_data_source.dart';
 import '../models/contribution_model.dart';
 import '../models/unpaid_months_model.dart';
@@ -9,6 +10,8 @@ import '../models/payment_periods_model.dart';
 import '../services/contribution_local_storage_service.dart';
 import '../services/payment_sync_listener_service.dart';
 import '../../../core/services/connectivity_service.dart';
+import '../../../core/storage/secure_storage.dart';
+import '../../authentication/model/user_model.dart';
 
 enum ContributionStatus { initial, loading, loaded, error }
 
@@ -19,8 +22,8 @@ class ContributionController extends ChangeNotifier {
   ContributionStatus _status = ContributionStatus.initial;
   ContributionData? _contributionData;
   List<UnpaidMonth> _unpaidMonths = [];
-  List<PaymentProof> _validatedPayments = [];
-  List<PaymentProof> _pendingPayments = [];
+  List<PaymentItem> _validatedPayments = [];
+  List<PaymentItem> _pendingPayments = [];
   PaginationInfo? _validatedPagination;
   PaginationInfo? _pendingPagination;
 
@@ -35,8 +38,8 @@ class ContributionController extends ChangeNotifier {
   ContributionStatus get status => _status;
   ContributionData? get contributionData => _contributionData;
   List<UnpaidMonth> get unpaidMonths => _unpaidMonths;
-  List<PaymentProof> get validatedPayments => _validatedPayments;
-  List<PaymentProof> get pendingPayments => _pendingPayments;
+  List<PaymentItem> get validatedPayments => _validatedPayments;
+  List<PaymentItem> get pendingPayments => _pendingPayments;
   PaginationInfo? get validatedPagination => _validatedPagination;
   PaginationInfo? get pendingPagination => _pendingPagination;
 
@@ -49,20 +52,44 @@ class ContributionController extends ChangeNotifier {
 
   // Initialise le controller et configure l'écoute de sync
   void initialize() {
-    _setupSyncListener();
-    ContributionLocalStorageService.initialize();
+    try {
+      debugPrint('🎯 [CONTRIBUTION] Initialisation du controller - configuration écoute maître');
+      debugPrint('🔧 [CONTRIBUTION] Configuration du listener...');
+      _setupSyncListener();
+      debugPrint('✅ [CONTRIBUTION] Listener configuré avec succès');
+      
+      debugPrint('🔧 [CONTRIBUTION] Initialisation du service local storage...');
+      ContributionLocalStorageService.initialize();
+      debugPrint('✅ [CONTRIBUTION] Service local storage initialisé');
+      
+      debugPrint('✅ [CONTRIBUTION] Initialisation complète terminée');
+    } catch (e) {
+      debugPrint('❌ [CONTRIBUTION] Erreur lors de l\'initialisation: $e');
+      rethrow;
+    }
   }
 
   // Configure l'écoute des changements de Transaction sync
   void _setupSyncListener() {
-    _syncSubscription = PaymentSyncListenerService.instance.paymentSyncTriggerStream.listen(
-      (shouldSync) {
-        if (shouldSync) {
-          debugPrint('🔄 [CONTRIBUTION] Synchronisation déclenchée par Transaction sync');
-          _syncContributionData();
-        }
-      },
-    );
+    try {
+      debugPrint('🔗 [CONTRIBUTION] Création du listener PaymentSyncListenerService...');
+      _syncSubscription = PaymentSyncListenerService.instance.paymentSyncTriggerStream.listen(
+        (shouldSync) {
+          debugPrint('📡 [CONTRIBUTION] Signal reçu du maître: shouldSync=$shouldSync');
+          if (shouldSync) {
+            debugPrint('🔄 [CONTRIBUTION] Synchronisation déclenchée par Transaction sync');
+            _syncContributionData();
+          }
+        },
+        onError: (error) {
+          debugPrint('❌ [CONTRIBUTION] Erreur dans le listener: $error');
+        },
+      );
+      debugPrint('✅ [CONTRIBUTION] Listener PaymentSyncListenerService créé avec succès');
+    } catch (e) {
+      debugPrint('❌ [CONTRIBUTION] Erreur création listener: $e');
+      rethrow;
+    }
   }
 
   // Synchronisation des données de cotisation (déclenchée par Transaction sync)
@@ -91,10 +118,78 @@ class ContributionController extends ChangeNotifier {
         debugPrint('✅ [CONTRIBUTION] Mois impayés synchronisés');
       }
 
+      // 🎯 SYNCHRONISATION INTELLIGENTE DES PAIEMENTS (comme les autres modules fils)
+      debugPrint('🚀 [CONTRIBUTION] Appel de _syncPaymentsData()...');
+      await _syncPaymentsData();
+      debugPrint('✅ [CONTRIBUTION] _syncPaymentsData() terminée');
+
       notifyListeners();
       debugPrint('✅ [CONTRIBUTION] Synchronisation terminée');
     } catch (e) {
       debugPrint('❌ [CONTRIBUTION] Erreur synchronisation: $e');
+    }
+  }
+
+  // 🎯 SYNCHRONISATION INTELLIGENTE DES PAIEMENTS (pattern fils dépendant du maître)
+  Future<void> _syncPaymentsData() async {
+    try {
+      // Obtenir l'utilisateur connecté
+      final userId = await _getCurrentUserId();
+      if (userId == null) {
+        debugPrint('❌ [CONTRIBUTION] Pas d\'utilisateur connecté pour sync paiements');
+        return;
+      }
+
+      debugPrint('🔄 [CONTRIBUTION] Synchronisation paiements utilisateur $userId...');
+      
+      // 🎯 UNE SEULE API CALL - getAllPayments (synchronisation intelligente)
+      final allPaymentsResponse = await _dataSource.getAllPayments(userId: userId, page: 1);
+      
+      if (allPaymentsResponse.success) {
+        // Sauvegarder TOUS les paiements en cache local
+        _allPayments = allPaymentsResponse.data;
+        _allPaymentsPagination = allPaymentsResponse.pagination;
+        await ContributionLocalStorageService.saveAllPayments(userId, _allPayments);
+        
+        // 🎯 FILTRAGE LOCAL (comme WhatsApp) - pas d'API séparées
+        _applyPaymentsLocalFilters();
+        
+        debugPrint('✅ [CONTRIBUTION] ${_allPayments.length} paiements synchronisés et filtrés localement');
+        debugPrint('   📊 Validés: ${_validatedPayments.length}, En attente: ${_pendingPayments.length}');
+      }
+    } catch (e) {
+      debugPrint('❌ [CONTRIBUTION] Erreur synchronisation paiements: $e');
+    }
+  }
+
+  // 🎯 FILTRAGE LOCAL DES PAIEMENTS (pattern intelligent)
+  void _applyPaymentsLocalFilters() {
+    // Filtrer les paiements validés
+    _validatedPayments = _allPayments
+        .where((payment) => payment.status.toUpperCase() == 'VALIDATED')
+        .toList();
+    
+    // Filtrer les paiements en attente
+    _pendingPayments = _allPayments
+        .where((payment) => payment.status.toUpperCase() == 'PENDING')
+        .toList();
+    
+    debugPrint('🔍 [CONTRIBUTION] Filtrage local: ${_validatedPayments.length} validés, ${_pendingPayments.length} en attente');
+  }
+
+  // Obtenir l'ID de l'utilisateur connecté depuis SecureStorage
+  Future<String?> _getCurrentUserId() async {
+    try {
+      final userData = await SecureStorage.getUserData();
+      if (userData != null) {
+        final userJson = jsonDecode(userData);
+        final user = UserModel.fromJson(userJson);
+        return user.id;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('❌ [CONTRIBUTION] Erreur récupération userId: $e');
+      return null;
     }
   }
 
@@ -123,13 +218,11 @@ class ContributionController extends ChangeNotifier {
     
     // Charger les paiements depuis le cache si userId fourni
     if (userId != null) {
-      final cachedValidated = ContributionLocalStorageService.getPaymentProofs(userId, 'validated');
-      final cachedPending = ContributionLocalStorageService.getPaymentProofs(userId, 'pending');
       final cachedAllPayments = ContributionLocalStorageService.getAllPayments(userId);
-      
-      _validatedPayments = cachedValidated ?? [];
-      _pendingPayments = cachedPending ?? [];
       _allPayments = cachedAllPayments ?? [];
+      
+      // 🎯 FILTRAGE LOCAL depuis le cache (pattern intelligent)
+      _applyPaymentsLocalFilters();
     }
     
     _setStatus(ContributionStatus.loaded);
@@ -208,8 +301,9 @@ class ContributionController extends ChangeNotifier {
       );
 
       if (response.success) {
-        _validatedPayments.addAll(response.data);
-        _validatedPagination = response.pagination;
+        // TODO: Adapter pour PaymentItem
+        // _validatedPayments.addAll(response.data);
+        // _validatedPagination = response.pagination;
         notifyListeners();
       }
     } catch (e) {
@@ -229,8 +323,9 @@ class ContributionController extends ChangeNotifier {
       );
 
       if (response.success) {
-        _pendingPayments.addAll(response.data);
-        _pendingPagination = response.pagination;
+        // TODO: Adapter pour PaymentItem
+        // _pendingPayments.addAll(response.data);
+        // _pendingPagination = response.pagination;
         notifyListeners();
       }
     } catch (e) {

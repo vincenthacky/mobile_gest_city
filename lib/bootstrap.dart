@@ -30,6 +30,31 @@ import 'core/services/connectivity_service.dart';
 // import 'features/cotisations/controller/cotisations_controller.dart';
 // import 'features/cotisations/controller/payment_proof_controller.dart';
 
+/// 🎯 FONCTION DE VIDAGE DU MAÎTRE UNIQUEMENT (force resynchronisation)
+Future<void> _clearMasterCacheOnly() async {
+  try {
+    debugPrint('🎯 [DEBUG] Vidage du cache MAÎTRE uniquement...');
+    
+    // Obtenir stats avant vidage
+    final statsBefore = TransactionLocalStorageService.getCacheStats();
+    debugPrint('📊 Stats AVANT vidage: ${statsBefore['checksums_count']} checksums, ${statsBefore['transactions_count']} transactions');
+    
+    // Vider seulement le cache du maître (TransactionLocalStorageService)
+    await TransactionLocalStorageService.clearCache();
+    debugPrint('✅ Cache du MAÎTRE vidé - resynchronisation forcée');
+    
+    // Vérifier que le vidage a fonctionné
+    final statsAfter = TransactionLocalStorageService.getCacheStats();
+    debugPrint('📊 Stats APRÈS vidage: ${statsAfter['checksums_count']} checksums, ${statsAfter['transactions_count']} transactions');
+    
+    debugPrint('ℹ️ [INFO] Les esclaves gardent leur cache - sync en cascade déclenchée');
+  } catch (e) {
+    debugPrint('❌ [DEBUG] Erreur lors du vidage du cache maître: $e');
+    // Afficher plus de détails sur l'erreur
+    debugPrint('🔍 [DEBUG] Détails erreur: $e');
+  }
+}
+
 /// 🚨 FONCTION DE VIDAGE COMPLET DU CACHE FINANCE (pour debug uniquement)
 /// À commenter après les tests
 Future<void> _clearAllFinanceCache() async {
@@ -93,12 +118,15 @@ Future<void> bootstrap() async {
   // Initialiser la base de données Hive
   await DatabaseInitializer.initialize();
   
+  // Initialiser le stockage local des transactions (nécessaire avant le vidage)
+  await TransactionLocalStorageService.initialize();
+  
   // 🚨 VIDAGE COMPLET DU CACHE FINANCE (pour debug - à commenter après test)
   // ⚠️  COMMENTER/DÉCOMMENTER LA LIGNE CI-DESSOUS POUR TESTER NOUVEAU TÉLÉPHONE
   // await _clearAllFinanceCache(); // ❌ COMMENTÉ - vidage désactivé
   
-  // Initialiser le stockage local des transactions
-  await TransactionLocalStorageService.initialize();
+  // 🎯 VIDAGE DU MAÎTRE UNIQUEMENT (force resynchronisation complète)
+  await _clearMasterCacheOnly();
   
   // Initialiser le stockage local des totaux financiers
   await FinanceTotalsLocalStorageService.initialize();
@@ -131,12 +159,22 @@ class GestCityApp extends StatefulWidget {
 class _GestCityAppState extends State<GestCityApp> {
   late AuthController _authController;
   late ConnectivityService _connectivityService;
+  late ContributionController _contributionController;
+  late CashMovementsController _cashMovementsController;
+  late PaymentBreakdownController _paymentBreakdownController;
 
   @override
   void initState() {
     super.initState();
     _authController = AuthController();
     _connectivityService = ConnectivityService();
+    
+    // 🎯 Initialiser les contrôleurs finance IMMÉDIATEMENT pour écouter le maître
+    _contributionController = ContributionController()..initialize();
+    _cashMovementsController = CashMovementsController()..initialize();
+    _paymentBreakdownController = PaymentBreakdownController()..initialize();
+    
+    debugPrint('🎯 [BOOTSTRAP] Contrôleurs finance initialisés - écoute du maître active');
     
     // Démarrer le monitoring de la connexion
     _connectivityService.startMonitoring();
@@ -190,14 +228,14 @@ class _GestCityAppState extends State<GestCityApp> {
         ChangeNotifierProvider(
           create: (_) => InformationSubmissionController(),
         ),
-        ChangeNotifierProvider(
-          create: (_) => ContributionController(),
+        ChangeNotifierProvider.value(
+          value: _contributionController,
         ),
-        ChangeNotifierProvider(
-          create: (_) => CashMovementsController(),
+        ChangeNotifierProvider.value(
+          value: _cashMovementsController,
         ),
-        ChangeNotifierProvider(
-          create: (_) => PaymentBreakdownController(),
+        ChangeNotifierProvider.value(
+          value: _paymentBreakdownController,
         ),
         // ChangeNotifierProvider(
         //   create: (_) => CotisationsController(),
@@ -241,6 +279,9 @@ class _GestCityAppState extends State<GestCityApp> {
   @override
   void dispose() {
     _connectivityService.stopMonitoring();
+    _contributionController.dispose();
+    _cashMovementsController.dispose();
+    _paymentBreakdownController.dispose();
     super.dispose();
   }
 }

@@ -36,6 +36,7 @@ class CashMovementsController extends ChangeNotifier {
 
   // Initialise le controller et configure l'écoute de sync
   void initialize() {
+    debugPrint('🎯 [CASH MOVEMENTS] Initialisation du controller - configuration écoute maître');
     _setupSyncListener();
     CashMovementsLocalStorageService.initialize();
   }

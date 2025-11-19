@@ -145,6 +145,7 @@ class PaymentBreakdownController extends ChangeNotifier {
 
   // Initialise le controller et configure l'écoute de sync
   void initialize() {
+    debugPrint('🎯 [PAYMENT BREAKDOWN] Initialisation du controller - configuration écoute maître');
     _setupSyncListener();
     PaymentStatisticsLocalStorageService.initialize();
     PaymentOverviewLocalStorageService.initialize();

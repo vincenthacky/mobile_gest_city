@@ -92,7 +92,11 @@ class _MonthlyContributionsPageState extends State<MonthlyContributionsPage> wit
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authController = context.read<AuthController>();
       final userId = authController.user?.id;
-      context.read<ContributionController>().loadContribution(userId: userId);
+      final controller = context.read<ContributionController>();
+      
+      // ✅ Controller déjà initialisé dans bootstrap.dart
+      // ✅ PUIS charger les données
+      controller.loadContribution(userId: userId);
     });
   }
 

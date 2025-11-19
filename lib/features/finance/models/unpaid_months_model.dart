@@ -13,10 +13,33 @@ class UnpaidMonthsResponse {
     return UnpaidMonthsResponse(
       success: json['success'] ?? false,
       message: json['message'] ?? '',
-      data: (json['data'] as List<dynamic>? ?? [])
-          .map((item) => UnpaidMonth.fromJson(item))
-          .toList(),
+      data: _parseUnpaidMonths(json['data']),
     );
+  }
+
+  static List<UnpaidMonth> _parseUnpaidMonths(dynamic data) {
+    if (data == null) return [];
+    
+    // Si data est un Map (nouveau format API)
+    if (data is Map<String, dynamic>) {
+      final unpaidMonths = (data['unpaid-months'] as List<dynamic>? ?? [])
+          .map((item) => UnpaidMonth.fromJson(item))
+          .toList();
+      
+      final upcomingMonths = (data['upcoming-months'] as List<dynamic>? ?? [])
+          .map((item) => UnpaidMonth.fromJson(item))
+          .toList();
+      
+      // Combiner les deux listes
+      return [...unpaidMonths, ...upcomingMonths];
+    }
+    
+    // Si data est une List (ancien format API) - fallback
+    if (data is List<dynamic>) {
+      return data.map((item) => UnpaidMonth.fromJson(item)).toList();
+    }
+    
+    return [];
   }
 }
 

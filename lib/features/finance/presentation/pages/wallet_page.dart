@@ -155,6 +155,9 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
     // Charger les mouvements de caisse traditionnels
     if (!mounted) return;
     final controller = context.read<CashMovementsController>();
+    
+    // ✅ Controller déjà initialisé dans bootstrap.dart
+    
     await controller.loadCashTotals();
     await controller.loadCashMovements();
     

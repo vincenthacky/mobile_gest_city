@@ -1,23 +1,36 @@
 class PaymentUser {
-  final String id;
+  final String? id;
   final String name;
   final String phone;
   final String email;
+  final bool anonymity;
+  final String villaNumber;
 
   PaymentUser({
-    required this.id,
+    this.id,
     required this.name,
     required this.phone,
     required this.email,
+    required this.anonymity,
+    required this.villaNumber,
   });
 
   factory PaymentUser.fromJson(Map<String, dynamic> json) {
     return PaymentUser(
-      id: json['id'] ?? 0,
+      id: json['id']?.toString(),
       name: json['name'] ?? '',
       phone: json['phone'] ?? '',
       email: json['email'] ?? '',
+      anonymity: json['anonymity'] ?? false,
+      villaNumber: json['villa']?['number'] ?? 'Villa non spécifiée',
     );
+  }
+
+  String get displayName {
+    if (anonymity) {
+      return villaNumber;
+    }
+    return name.isNotEmpty ? name : villaNumber;
   }
 }
 
@@ -130,6 +143,13 @@ class PaymentItem {
 
   String get displayTitle {
     return 'Cotisation $period';
+  }
+
+  String get formattedPaymentMethod {
+    if (paymentMethod != null && paymentMethod!.isNotEmpty) {
+      return paymentMethod!;
+    }
+    return 'Méthode non spécifiée';
   }
 }
 
