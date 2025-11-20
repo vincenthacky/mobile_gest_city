@@ -88,7 +88,7 @@ class AuthDataSource {
     try {
       final response = await _dio.get(
         '/auth/verify-villa',
-        data: {
+        queryParameters: {
           'code': code,
         },
       );

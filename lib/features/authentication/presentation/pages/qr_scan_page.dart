@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -78,13 +79,25 @@ class _QrScanPageState extends State<QrScanPage>
     final authController = Provider.of<AuthController>(context, listen: false);
     
     try {
-      // Appeler l'API pour vérifier le QR code
-      final response = await authController.verifyVilla(code);
+      // Parser le QR code au nouveau format {"villa_code":"","villa_number":"Villa-360"}
+      String villaNumber = code;
+      try {
+        final qrData = json.decode(code);
+        if (qrData is Map<String, dynamic> && qrData.containsKey('villa_number')) {
+          villaNumber = qrData['villa_number'];
+        }
+      } catch (e) {
+        // Si ce n'est pas du JSON, utiliser le code tel quel
+        villaNumber = code;
+      }
+      
+      // Appeler l'API pour vérifier le code villa avec le nouveau format
+      final response = await authController.verifyVilla(villaNumber);
       
       if (!mounted) return;
       
       if (response != null && response['success'] == true) {
-        // Succès - naviguer vers register avec villa_id
+        // Succès - naviguer vers register avec villa_id de la réponse API
         final villaId = response['data']['villa_id'];
         
         ScaffoldMessenger.of(context).showSnackBar(

@@ -7,7 +7,7 @@ import '../../controller/register_controller.dart';
 class RegisterPage extends StatefulWidget {
   final String? villaId;
   
-  const RegisterPage({super.key, this.villaId});
+  const RegisterPage({super.key, required this.villaId});
 
   @override
   State<RegisterPage> createState() => _RegisterPageState();
@@ -21,14 +21,13 @@ class _RegisterPageState extends State<RegisterPage> {
   final _motDePasseController = TextEditingController();
   final _villaIdController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isAnonymous = false;
 
   @override
   void initState() {
     super.initState();
-    // Si un villaId est fourni, le mettre dans le contrôleur
-    if (widget.villaId != null) {
-      _villaIdController.text = widget.villaId!;
-    }
+    // Villa ID toujours fourni maintenant
+    _villaIdController.text = widget.villaId ?? '';
   }
 
   @override
@@ -364,67 +363,39 @@ class _RegisterPageState extends State<RegisterPage> {
                               ),
                             ],
                           ),
-                          // Villa ID - masqué si fourni par QR scan
-                          if (widget.villaId == null) ...[
-                            SizedBox(height: isVerySmallScreen ? 16 : (isSmallScreen ? 20 : 24)),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'ID de la villa',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: Color(0xFF374151),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                TextFormField(
-                                  controller: _villaIdController,
-                                  decoration: InputDecoration(
-                                    hintText: '1',
-                                    filled: true,
-                                    fillColor: Colors.white,
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                      borderSide: const BorderSide(
-                                        color: Color(0xFFE5E7EB),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                      borderSide: const BorderSide(
-                                        color: Color(0xFFE5E7EB),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                      borderSide: const BorderSide(
-                                        color: Color(0xFF3B82F6),
-                                        width: 2,
-                                      ),
-                                    ),
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
-                                    ),
-                                  ),
-                                  keyboardType: TextInputType.number,
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
-                                      return 'Veuillez entrer l\'ID de votre villa';
-                                    }
-                                    if (int.tryParse(value) == null) {
-                                      return 'Veuillez entrer un ID valide';
-                                    }
-                                    return null;
+                          
+                          // Checkbox Anonyme
+                          SizedBox(height: isVerySmallScreen ? 16 : (isSmallScreen ? 20 : 24)),
+                          Row(
+                            children: [
+                              Checkbox(
+                                value: _isAnonymous,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _isAnonymous = value ?? false;
+                                  });
+                                },
+                                activeColor: const Color(0xFF3B82F6),
+                              ),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _isAnonymous = !_isAnonymous;
+                                    });
                                   },
+                                  child: const Text(
+                                    'M\'inscrire de manière anonyme',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Color(0xFF374151),
+                                    ),
+                                  ),
                                 ),
-                              ],
-                            ),
-                          ],
+                              ),
+                            ],
+                          ),
+                          
                           SizedBox(height: isVerySmallScreen ? 20 : (isSmallScreen ? 24 : 32)),
                           // Bouton inscription
                           SizedBox(
@@ -522,6 +493,7 @@ class _RegisterPageState extends State<RegisterPage> {
         password: _motDePasseController.text.trim(),
         phone: _telephoneController.text.trim(),
         villaId: _villaIdController.text.trim(),
+        isAnonymous: _isAnonymous,
       );
 
       if (!mounted) return;

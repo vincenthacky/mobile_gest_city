@@ -375,45 +375,6 @@ class _LoginPageState extends State<LoginPage> {
                           ],
                         ),
                       ),
-                      if (!keyboardVisible || !isSmallScreen)
-                        Padding(
-                          padding: EdgeInsets.only(
-                            top: isVerySmallScreen ? 16 : 24,
-                            bottom: 16,
-                          ),
-                          child: Wrap(
-                            alignment: WrapAlignment.center,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [
-                              Text(
-                                'Pas encore de compte ? ',
-                                style: GoogleFonts.nunito(
-                                  fontSize: isVerySmallScreen ? 12 : 14,
-                                  color: const Color(0xFF6B7280),
-                                  fontWeight: FontWeight.w400,
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  context.go('/register');
-                                },
-                                style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  minimumSize: Size.zero,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                ),
-                                child: Text(
-                                  'S\'inscrire',
-                                  style: GoogleFonts.poppins(
-                                    fontSize: isVerySmallScreen ? 12 : 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: const Color(0xFF3B82F6),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                     ],
                   ),
                 ),

@@ -83,6 +83,12 @@ dependencies:
   # Cryptography for checksums
   crypto: ^3.0.3
   
+  # RSA Cryptography
+  pointycastle: ^3.9.1
+  
+  # Biometric authentication
+  local_auth: ^2.3.0
+  
   # Local database
   hive: ^2.2.3
   hive_flutter: ^1.1.0
