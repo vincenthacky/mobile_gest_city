@@ -15,7 +15,7 @@ class DeviceAuthInterceptor extends Interceptor {
       final biometricSetup = await secureStorage.read('biometric_setup');
 
       // Si l'auth device n'est pas configurée, passer sans modification
-      if (deviceToken == null || deviceId == null || privateKeyPem == null || biometricSetup != 'true') {
+      if (deviceToken == null || deviceId == null || privateKeyPem == null) {
         handler.next(options);
         return;
       }
