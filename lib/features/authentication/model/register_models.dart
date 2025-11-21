@@ -110,4 +110,16 @@ class UserData {
       role: json['role'] ?? '',
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'full_name': fullName,
+      'email': email,
+      'phone': phone,
+      'villa_id': villaId,
+      'image_url': imageUrl,
+      'role': role,
+    };
+  }
 }

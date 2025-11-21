@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 import '../../../core/services/crypto_service.dart';
+import '../../../core/services/biometric_auth_service.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../data_source/register_data_source.dart';
 import '../model/register_models.dart';
@@ -62,7 +64,19 @@ class RegisterController extends ChangeNotifier {
       final publicKeyPem = CryptoService.publicKeyToPem(keyPair.publicKey);
       final privateKeyPem = CryptoService.privateKeyToPem(keyPair.privateKey);
 
-      // 4. Obtenir les informations de l'appareil
+      // 4. ÉTAPE CRITIQUE : Demander l'authentification biométrique
+      // Ceci lie la clé privée au secret local (Touch ID/Face ID/PIN)
+      final biometricResult = await BiometricAuthService.authenticateWithFallback(
+        localizedReason: 'Configurez votre authentification biométrique pour sécuriser votre appareil',
+      );
+
+      if (!biometricResult.isSuccess) {
+        _errorMessage = 'Authentification biométrique requise pour finaliser l\'inscription: ${biometricResult.message}';
+        _setStatus(RegisterStatus.error);
+        return false;
+      }
+
+      // 5. Obtenir les informations de l'appareil
       final deviceInfo = DeviceInfoPlugin();
       String deviceId = '';
       String deviceName = '';
@@ -82,7 +96,7 @@ class RegisterController extends ChangeNotifier {
         deviceName = 'Device ${DateTime.now().day}/${DateTime.now().month}';
       }
 
-      // 5. Appeler l'API d'enregistrement d'appareil
+      // 6. Appeler l'API d'enregistrement d'appareil
       final deviceResponse = await _dataSource.registerDevice(
         phoneOrEmail: email,
         deviceId: deviceId,
@@ -96,13 +110,18 @@ class RegisterController extends ChangeNotifier {
         return false;
       }
 
-      // 6. Stocker les clés et le token dans le stockage sécurisé
+      // 7. Stocker les clés et le token dans le stockage sécurisé
       final secureStorage = SecureStorage();
       await secureStorage.write('private_key', privateKeyPem);
       await secureStorage.write('public_key', publicKeyPem);
       await secureStorage.write('device_token', deviceResponse.data?['token'] ?? '');
       await secureStorage.write('device_id', deviceId);
       await secureStorage.write('user_id', response.data?.id ?? '');
+      
+      // IMPORTANT : Stocker les données utilisateur comme l'ancien système
+      if (response.data != null) {
+        await SecureStorage.saveUserData(jsonEncode(response.data!.toJson()));
+      }
       
       // Marquer que l'utilisateur a configuré l'auth biométrique
       await secureStorage.write('biometric_setup', 'true');

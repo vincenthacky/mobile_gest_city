@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../../core/storage/secure_storage.dart';
+import '../../../core/services/biometric_auth_service.dart';
 import '../data_source/auth_data_source.dart';
 import '../model/user_model.dart';
 
-enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
+enum AuthStatus { initial, loading, authenticated, unauthenticated, error, biometricRequired }
 
 class AuthController extends ChangeNotifier {
   final AuthDataSource _authDataSource = AuthDataSource();
@@ -19,21 +20,163 @@ class AuthController extends ChangeNotifier {
   bool get isAuthenticated => _status == AuthStatus.authenticated;
   bool get isLoading => _status == AuthStatus.loading;
 
+  /// 👑 MÉTHODE SUPRÊME - Point d'entrée unique pour l'authentification
+  /// Cette méthode détermine le statut final de l'app et où rediriger
+  Future<void> initializeAppAuthentication() async {
+    debugPrint('👑 [AUTH SUPREME] Début initialisation app...');
+    _setStatus(AuthStatus.loading);
+    
+    try {
+      final secureStorage = SecureStorage();
+      
+      // 1. Vérifier d'abord les secrets device (priorité)
+      final deviceToken = await secureStorage.read('device_token');
+      final biometricSetup = await secureStorage.read('biometric_setup');
+      final userId = await secureStorage.read('user_id');
+      final publicKey = await secureStorage.read('public_key');
+      
+      debugPrint('👑 [AUTH SUPREME] Device secrets - token:${deviceToken != null}, biometric:$biometricSetup, user:${userId != null}, key:${publicKey != null}');
+      
+      if (deviceToken != null && biometricSetup == 'true' && userId != null && publicKey != null) {
+        // Vérifier format des clés
+        if (!_isNewKeyFormat(publicKey)) {
+          debugPrint('👑 [AUTH SUPREME] Ancien format détecté - reset complet');
+          await _resetAllSecrets();
+          _setStatus(AuthStatus.unauthenticated);
+          return;
+        }
+        
+        // Device auth présent - vérifier les données utilisateur
+        final userData = await SecureStorage.getUserData();
+        if (userData != null) {
+          try {
+            final userJson = jsonDecode(userData);
+            _user = UserModel.fromJson(userJson);
+            
+            // Device auth complet trouvé → biométrie requise
+            debugPrint('👑 [AUTH SUPREME] Device auth complet trouvé → BIOMETRIC REQUIRED');
+            _setStatus(AuthStatus.biometricRequired);
+            return;
+            
+          } catch (e) {
+            debugPrint('👑 [AUTH SUPREME] Erreur userData: $e');
+            await _resetAllSecrets();
+            _setStatus(AuthStatus.unauthenticated);
+            return;
+          }
+        }
+      }
+      
+      // 2. FALLBACK : vérifier ancien système Bearer
+      debugPrint('👑 [AUTH SUPREME] Pas de device auth - vérification Bearer...');
+      final bearerToken = await SecureStorage.getToken();
+      final bearerUserData = await SecureStorage.getUserData();
+      
+      if (bearerToken != null && bearerUserData != null) {
+        try {
+          final userJson = jsonDecode(bearerUserData);
+          _user = UserModel.fromJson(userJson);
+          _setStatus(AuthStatus.authenticated);
+          debugPrint('👑 [AUTH SUPREME] Bearer auth trouvé → AUTHENTICATED');
+          return;
+        } catch (e) {
+          debugPrint('👑 [AUTH SUPREME] Erreur Bearer: $e');
+          await SecureStorage.deleteToken();
+          await SecureStorage.deleteUserData();
+        }
+      }
+      
+      // 3. Aucun système d'auth trouvé
+      debugPrint('👑 [AUTH SUPREME] Aucune auth trouvée → UNAUTHENTICATED');
+      _setStatus(AuthStatus.unauthenticated);
+      
+    } catch (e) {
+      debugPrint('👑 [AUTH SUPREME] Erreur critique: $e');
+      _setStatus(AuthStatus.error);
+    }
+    
+    debugPrint('👑 [AUTH SUPREME] Fin initialisation - statut: $_status');
+  }
+
+  /// 🔐 Traiter la biométrie (appelé depuis biometric_auth_page)
+  Future<bool> processBiometricAuthentication() async {
+    debugPrint('🔐 [AUTH BIOMETRIC] Début authentification biométrique...');
+    
+    try {
+      _setStatus(AuthStatus.loading);
+      
+      final biometricResult = await BiometricAuthService.authenticateWithFallback(
+        localizedReason: 'Authentifiez-vous pour accéder à votre compte',
+      );
+      
+      if (biometricResult.isSuccess) {
+        _setStatus(AuthStatus.authenticated);
+        debugPrint('🔐 [AUTH BIOMETRIC] ✅ Succès');
+        return true;
+      } else {
+        debugPrint('🔐 [AUTH BIOMETRIC] ❌ Échec: ${biometricResult.name}');
+        await _resetAllSecrets();
+        _user = null;
+        _setStatus(AuthStatus.unauthenticated);
+        return false;
+      }
+    } catch (e) {
+      debugPrint('🔐 [AUTH BIOMETRIC] ❌ Erreur: $e');
+      await _resetAllSecrets();
+      _user = null;
+      _setStatus(AuthStatus.error);
+      return false;
+    }
+  }
+
   Future<void> checkAuthStatus() async {
     _setStatus(AuthStatus.loading);
     
     try {
+      final secureStorage = SecureStorage();
+      
+      // NOUVEAU : Vérifier d'abord le device auth
+      final deviceToken = await secureStorage.read('device_token');
+      final biometricSetup = await secureStorage.read('biometric_setup');
+      final userId = await secureStorage.read('user_id');
+      final publicKey = await secureStorage.read('public_key');
+      
+      if (deviceToken != null && biometricSetup == 'true' && userId != null && publicKey != null) {
+        // Vérifier si les clés sont au nouveau format (compatibles OpenSSL)
+        if (!_isNewKeyFormat(publicKey)) {
+          debugPrint('🔄 Ancien format de clés détecté - reset nécessaire');
+          await _resetAllSecrets();
+          _setStatus(AuthStatus.unauthenticated);
+          return;
+        }
+        
+        // Device auth configuré - récupérer les vraies données utilisateur stockées
+        final userData = await SecureStorage.getUserData();
+        if (userData != null) {
+          try {
+            final userJson = jsonDecode(userData);
+            _user = UserModel.fromJson(userJson);
+            _setStatus(AuthStatus.authenticated);
+            return;
+          } catch (e) {
+            // Si erreur de parsing des données, reset device auth
+            await _resetAllSecrets();
+            _setStatus(AuthStatus.unauthenticated);
+            return;
+          }
+        }
+      }
+      
+      // FALLBACK : Vérifier l'ancien système Bearer token
       final token = await SecureStorage.getToken();
       final userData = await SecureStorage.getUserData();
       
       if (token != null && userData != null) {
         try {
-          // Récupérer les données utilisateur depuis le stockage
           final userJson = jsonDecode(userData);
           _user = UserModel.fromJson(userJson);
           _setStatus(AuthStatus.authenticated);
         } catch (e) {
-          // Si erreur de parsing, nettoyer et rediriger vers login
           await SecureStorage.deleteToken();
           await SecureStorage.deleteUserData();
           _user = null;
@@ -80,17 +223,58 @@ class AuthController extends ChangeNotifier {
     } catch (e) {
       debugPrint('Erreur lors de la déconnexion: $e');
     } finally {
-      await SecureStorage.deleteToken();
-      await SecureStorage.deleteUserData();
+      // Nettoyer TOUS les secrets (device + classique)
+      await _resetAllSecrets();
       _user = null;
       _clearError();
       _setStatus(AuthStatus.unauthenticated);
     }
   }
 
+  /// Reset complet de tous les secrets selon le flow spécifié
+  Future<void> _resetAllSecrets() async {
+    final secureStorage = SecureStorage();
+    
+    // 1. Device auth secrets
+    await secureStorage.delete('device_token');
+    await secureStorage.delete('private_key');
+    await secureStorage.delete('public_key');
+    await secureStorage.delete('device_id');
+    await secureStorage.delete('user_id');
+    await secureStorage.delete('biometric_setup');
+    
+    // 2. Classic auth secrets (backward compatibility)
+    await SecureStorage.deleteToken();
+    await SecureStorage.deleteUserData();
+  }
+
+  /// Vérifie si la clé publique est au nouveau format X.509 (compatible OpenSSL)
+  bool _isNewKeyFormat(String publicKey) {
+    try {
+      final stripped = publicKey
+          .replaceAll('-----BEGIN PUBLIC KEY-----', '')
+          .replaceAll('-----END PUBLIC KEY-----', '')
+          .replaceAll('\n', '')
+          .replaceAll('\r', '');
+      
+      final decoded = base64.decode(stripped);
+      
+      // Nouveau format : commence par 0x30 (SEQUENCE ASN.1)
+      // Ancien format : commence par '{' en JSON
+      return decoded.isNotEmpty && decoded[0] == 0x30;
+    } catch (e) {
+      return false;
+    }
+  }
+
   void _setStatus(AuthStatus status) {
     _status = status;
     notifyListeners();
+  }
+
+  /// Méthode publique pour changer le statut (pour usage externe)
+  void setStatus(AuthStatus status) {
+    _setStatus(status);
   }
 
   void _setError(String error) {
@@ -127,5 +311,122 @@ class AuthController extends ChangeNotifier {
       _setStatus(AuthStatus.error);
       return null;
     }
+  }
+
+  /// Vérifie s'il y a des secrets device stockés
+  Future<bool> hasStoredDeviceSecrets() async {
+    final secureStorage = SecureStorage();
+    final deviceToken = await secureStorage.read('device_token');
+    final biometricSetup = await secureStorage.read('biometric_setup');
+    final privateKey = await secureStorage.read('private_key');
+    
+    return deviceToken != null && 
+           biometricSetup == 'true' && 
+           privateKey != null;
+  }
+
+  /// Force une réauthentification biométrique (comme WhatsApp)
+  /// Redirige vers la page biométrique dédiée
+  void requireBiometricReauth() {
+    // Marquer temporairement comme en attente de biométrie
+    _setStatus(AuthStatus.loading);
+    debugPrint('🔐 Biométrie requise - redirection vers page d\'authentification');
+    
+    // La redirection sera gérée par l'AppRouter selon le statut
+    // Le routeur détectera que l'utilisateur n'est plus authenticated et redirigera
+  }
+
+  /// Modifie checkAuthStatus pour inclure la vérification biométrique
+  Future<void> checkAuthStatusWithBiometric() async {
+    debugPrint('🔍 [AUTH] Début checkAuthStatusWithBiometric');
+    _setStatus(AuthStatus.loading);
+    
+    try {
+      final secureStorage = SecureStorage();
+      
+      // Vérifier d'abord le device auth
+      final deviceToken = await secureStorage.read('device_token');
+      final biometricSetup = await secureStorage.read('biometric_setup');
+      final userId = await secureStorage.read('user_id');
+      final publicKey = await secureStorage.read('public_key');
+      
+      debugPrint('🔍 [AUTH] Secrets trouvés: deviceToken=${deviceToken != null}, biometric=$biometricSetup, userId=${userId != null}, publicKey=${publicKey != null}');
+      
+      if (deviceToken != null && biometricSetup == 'true' && userId != null && publicKey != null) {
+        // Vérifier si les clés sont au nouveau format
+        if (!_isNewKeyFormat(publicKey)) {
+          debugPrint('🔄 Ancien format de clés détecté - reset nécessaire');
+          await _resetAllSecrets();
+          _setStatus(AuthStatus.unauthenticated);
+          return;
+        }
+        
+        // NOUVEAU: Demander la biométrie AVANT d'authentifier
+        debugPrint('🔐 [AUTH] Secrets trouvés - demande de biométrie obligatoire...');
+        final biometricResult = await BiometricAuthService.authenticateWithFallback(
+          localizedReason: 'Authentifiez-vous pour accéder à votre compte',
+        );
+        
+        if (!biometricResult.isSuccess) {
+          debugPrint('❌ [AUTH] Biométrie échouée au démarrage: ${biometricResult.name} - reset des secrets');
+          await _resetAllSecrets();
+          _setStatus(AuthStatus.unauthenticated);
+          return;
+        }
+        
+        debugPrint('✅ [AUTH] Biométrie réussie - récupération données utilisateur...');
+        // Biométrie OK - récupérer les vraies données utilisateur
+        final userData = await SecureStorage.getUserData();
+        if (userData != null) {
+          try {
+            final userJson = jsonDecode(userData);
+            _user = UserModel.fromJson(userJson);
+            _setStatus(AuthStatus.authenticated);
+            debugPrint('✅ [AUTH] Authentification complète réussie - utilisateur: ${_user?.fullName}');
+            return;
+          } catch (e) {
+            debugPrint('❌ [AUTH] Erreur parsing userData: $e');
+            await _resetAllSecrets();
+            _setStatus(AuthStatus.unauthenticated);
+            return;
+          }
+        } else {
+          debugPrint('❌ [AUTH] Pas de userData trouvé malgré les secrets');
+          await _resetAllSecrets();
+          _setStatus(AuthStatus.unauthenticated);
+          return;
+        }
+      }
+      
+      // FALLBACK : Vérifier l'ancien système Bearer token (sans biométrie)
+      debugPrint('🔍 [AUTH] Pas de secrets device - vérification ancien système Bearer...');
+      final token = await SecureStorage.getToken();
+      final userData = await SecureStorage.getUserData();
+      
+      debugPrint('🔍 [AUTH] Bearer token présent: ${token != null}, userData présent: ${userData != null}');
+      
+      if (token != null && userData != null) {
+        try {
+          final userJson = jsonDecode(userData);
+          _user = UserModel.fromJson(userJson);
+          _setStatus(AuthStatus.authenticated);
+          debugPrint('✅ [AUTH] Authentification Bearer réussie - utilisateur: ${_user?.fullName}');
+        } catch (e) {
+          debugPrint('❌ [AUTH] Erreur parsing Bearer userData: $e');
+          await SecureStorage.deleteToken();
+          await SecureStorage.deleteUserData();
+          _user = null;
+          _setStatus(AuthStatus.unauthenticated);
+        }
+      } else {
+        debugPrint('🔍 [AUTH] Aucun système d\'auth trouvé - statut unauthenticated');
+        _setStatus(AuthStatus.unauthenticated);
+      }
+    } catch (e) {
+      debugPrint('❌ [AUTH] Erreur checkAuthStatusWithBiometric: $e');
+      _setStatus(AuthStatus.unauthenticated);
+    }
+    
+    debugPrint('🔍 [AUTH] Fin checkAuthStatusWithBiometric - statut final: $_status');
   }
 }

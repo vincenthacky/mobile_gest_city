@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:go_router/go_router.dart';
 import '../storage/secure_storage.dart';
+import 'device_auth_interceptor.dart';
 
 class DioClient {
   static Dio? _dio;
@@ -33,38 +34,32 @@ class DioClient {
       'Accept': 'application/json',
     };
 
+    // Device Auth Interceptor - remplace l'ancien Bearer token
+    _dio!.interceptors.add(DeviceAuthInterceptor());
+
+    // Error Interceptor pour gérer les erreurs de sécurité
     _dio!.interceptors.add(
       InterceptorsWrapper(
-        onRequest: (options, handler) async {
-          final token = await SecureStorage.getToken();
-          if (token != null) {
-            options.headers['Authorization'] = 'Bearer $token';
-          }
-          handler.next(options);
-        },
         onError: (DioException error, handler) async {
           print('DioClient onError: ${error.response?.statusCode} - ${error.message}');
           
-          if (error.response?.statusCode == 401) {
-            print('401 Unauthorized detected - clearing token and redirecting to login');
+          if (error.response?.statusCode == 401 || error.response?.statusCode == 403) {
+            print('${error.response?.statusCode} detected - security session expired');
             
-            // Nettoyer toutes les données d'authentification
-            await SecureStorage.deleteToken();
-            await SecureStorage.deleteUserData();
+            // NOUVEAU : Reset complet de la sécurité device
+            await _resetDeviceSecurity();
             
             // Appeler le callback pour notifier l'AuthController
             if (_onUnauthorized != null) {
               _onUnauthorized!();
             }
             
-            // Rediriger vers la page de login
-            _router.go('/login');
+            // Rediriger vers la page d'introduction
+            _router.go('/onboarding');
             
-            // Ne pas continuer avec l'erreur pour éviter d'afficher des messages d'erreur
             return;
           }
           
-          // Pour toutes les autres erreurs, continuer normalement
           handler.next(error);
         },
       ),
@@ -82,5 +77,24 @@ class DioClient {
   static void resetClient() {
     _dio?.close();
     _dio = null;
+  }
+
+  /// Reset complet de la sécurité device selon le flow spécifié
+  static Future<void> _resetDeviceSecurity() async {
+    final secureStorage = SecureStorage();
+    
+    // 1. Supprimer TOUS les secrets locaux
+    await secureStorage.delete('device_token');
+    await secureStorage.delete('private_key');
+    await secureStorage.delete('public_key');
+    await secureStorage.delete('device_id');
+    await secureStorage.delete('user_id');
+    await secureStorage.delete('biometric_setup');
+    
+    // 2. Nettoyer aussi l'ancien système (si présent)
+    await SecureStorage.deleteToken();
+    await SecureStorage.deleteUserData();
+    
+    print('Device security reset completed - all secrets cleared');
   }
 }

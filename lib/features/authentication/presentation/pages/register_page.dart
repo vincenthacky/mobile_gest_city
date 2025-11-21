@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../controller/register_controller.dart';
+import '../../controller/auth_controller.dart';
 
 class RegisterPage extends StatefulWidget {
   final String? villaId;
@@ -503,12 +504,18 @@ class _RegisterPageState extends State<RegisterPage> {
           SnackBar(
             content: Text(registerController.successMessage ?? 'Inscription réussie !'),
             backgroundColor: const Color(0xFF10B981),
-            duration: const Duration(seconds: 3),
+            duration: const Duration(seconds: 2),
           ),
         );
         
-        // Rediriger vers la page de connexion
-        context.go('/login');
+        // NOUVEAU : Notifier l'AuthController pour vérifier le statut
+        final authController = Provider.of<AuthController>(context, listen: false);
+        await authController.checkAuthStatus();
+        
+        // Rediriger explicitement vers /home après auth
+        if (mounted && authController.isAuthenticated) {
+          context.go('/home');
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

@@ -156,18 +156,24 @@ class GestCityApp extends StatefulWidget {
   State<GestCityApp> createState() => _GestCityAppState();
 }
 
-class _GestCityAppState extends State<GestCityApp> {
+class _GestCityAppState extends State<GestCityApp> with WidgetsBindingObserver {
   late AuthController _authController;
   late ConnectivityService _connectivityService;
   late ContributionController _contributionController;
   late CashMovementsController _cashMovementsController;
   late PaymentBreakdownController _paymentBreakdownController;
+  
+  bool _appWasPaused = false;
+  bool _isBiometricInProgress = false;
 
   @override
   void initState() {
     super.initState();
     _authController = AuthController();
     _connectivityService = ConnectivityService();
+    
+    // Ajouter l'observer pour le cycle de vie de l'app
+    WidgetsBinding.instance.addObserver(this);
     
     // 🎯 Initialiser les contrôleurs finance IMMÉDIATEMENT pour écouter le maître
     _contributionController = ContributionController()..initialize();
@@ -277,7 +283,73 @@ class _GestCityAppState extends State<GestCityApp> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+        // App mise en arrière-plan (sauf si biométrie en cours)
+        if (!_isBiometricInProgress) {
+          _appWasPaused = true;
+          debugPrint('📱 App mise en arrière-plan - biométrie requise au retour');
+        } else {
+          debugPrint('📱 App pause ignorée - biométrie en cours');
+        }
+        break;
+        
+      case AppLifecycleState.resumed:
+        // App revenue en premier plan (seulement si vraiment mise en pause)
+        if (_appWasPaused && !_isBiometricInProgress) {
+          _appWasPaused = false;
+          debugPrint('📱 App revenue en premier plan - vérification biométrique...');
+          _handleAppResume();
+        } else if (_isBiometricInProgress) {
+          debugPrint('📱 App resume ignorée - biométrie en cours');
+        }
+        break;
+        
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        break;
+    }
+  }
+
+  /// Gère le retour de l'app en premier plan (comme WhatsApp)
+  Future<void> _handleAppResume() async {
+    // Vérifier si l'utilisateur était authentifié avant la pause
+    if (_authController.isAuthenticated) {
+      
+      try {
+        // Marquer la biométrie comme en cours pour éviter la boucle
+        _isBiometricInProgress = true;
+        
+        debugPrint('🔐 [LIFECYCLE] App revenue - demande biométrie immédiate...');
+        
+        // Déclencher la biométrie directement (comme WhatsApp)
+        final success = await _authController.processBiometricAuthentication();
+        
+        if (!success) {
+          debugPrint('❌ [LIFECYCLE] Biométrie échec - logout');
+          // Le routeur gèrera la redirection automatiquement
+        } else {
+          debugPrint('✅ [LIFECYCLE] Biométrie réussie');
+        }
+        
+      } catch (e) {
+        debugPrint('❌ [LIFECYCLE] Erreur biométrie: $e');
+        await _authController.logout();
+      } finally {
+        // Toujours remettre les flags à false à la fin
+        _isBiometricInProgress = false;
+        _appWasPaused = false;
+      }
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _connectivityService.stopMonitoring();
     _contributionController.dispose();
     _cashMovementsController.dispose();

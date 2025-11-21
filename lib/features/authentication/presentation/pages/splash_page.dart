@@ -14,18 +14,45 @@ class _SplashPageState extends State<SplashPage> {
   @override
   void initState() {
     super.initState();
-    _checkAuth();
+    // Décaler l'appel après la construction pour éviter setState pendant build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAuth();
+    });
   }
 
   Future<void> _checkAuth() async {
+    debugPrint('🚀 [SPLASH] Appel méthode suprême...');
     final authController = context.read<AuthController>();
-    await authController.checkAuthStatus();
+    
+    // Appeler la méthode suprême unique
+    await authController.initializeAppAuthentication();
     
     if (mounted) {
-      if (authController.isAuthenticated) {
-        context.go('/home');
-      } else {
-        context.go('/login');
+      debugPrint('🚀 [SPLASH] Initialisation terminée - statut: ${authController.status}');
+      
+      // Redirection manuelle selon le statut final
+      switch (authController.status) {
+        case AuthStatus.authenticated:
+          debugPrint('🚀 [SPLASH] Redirection vers /home');
+          context.go('/home');
+          break;
+          
+        case AuthStatus.biometricRequired:
+          debugPrint('🚀 [SPLASH] Redirection vers /biometric-auth');
+          context.go('/biometric-auth');
+          break;
+          
+        case AuthStatus.unauthenticated:
+        case AuthStatus.error:
+          debugPrint('🚀 [SPLASH] Redirection vers /onboarding');
+          context.go('/onboarding');
+          break;
+          
+        case AuthStatus.initial:
+        case AuthStatus.loading:
+          // Rester sur splash
+          debugPrint('🚀 [SPLASH] Statut en attente - reste sur splash');
+          break;
       }
     }
   }

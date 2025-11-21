@@ -9,6 +9,7 @@ import '../../features/authentication/presentation/pages/forgot_password_page.da
 import '../../features/authentication/presentation/pages/onboarding_page.dart';
 import '../../features/authentication/presentation/pages/onboarding_choice_page.dart';
 import '../../features/authentication/presentation/pages/qr_scan_page.dart';
+import '../../features/authentication/presentation/pages/biometric_auth_page.dart';
 import '../pages/home_page.dart';
 import '../../features/finance/presentation/pages/finance_page.dart';
 import '../../features/projets/presentation/pages/projets_page.dart';
@@ -22,40 +23,59 @@ import '../widgets/main_layout.dart';
 class AppRouter {
   static GoRouter createRouter() {
     return GoRouter(
-      initialLocation: '/onboarding',
+      initialLocation: '/',
       redirect: (context, state) {
         final authController = context.read<AuthController>();
-        final isAuthenticated = authController.isAuthenticated;
-        final isLoading = authController.status == AuthStatus.initial || 
-                         authController.status == AuthStatus.loading;
-
-        // Pendant le chargement, ne pas rediriger
-        if (isLoading) {
+        final currentPath = state.matchedLocation;
+        final status = authController.status;
+        
+        debugPrint('🌐 [ROUTER] Path: $currentPath, Status: $status');
+        
+        // Ne pas rediriger pendant le chargement ou depuis splash
+        if (status == AuthStatus.loading || status == AuthStatus.initial || currentPath == '/') {
           return null;
         }
-
-        final currentPath = state.matchedLocation;
+        
         final isOnAuthPages = currentPath == '/login' || 
                              currentPath == '/register' || 
                              currentPath == '/forgot-password' ||
                              currentPath == '/qr-scan';
         final isOnOnboardingPages = currentPath == '/onboarding' || 
                                    currentPath == '/onboarding/choice';
-        final isOnSplash = currentPath == '/';
-
-        // Si utilisateur authentifié et sur les pages d'auth/onboarding/splash, rediriger vers home
-        if (isAuthenticated && (isOnAuthPages || isOnOnboardingPages || isOnSplash)) {
-          return '/home';
+        final isOnBiometricAuth = currentPath == '/biometric-auth';
+        
+        // Redirection selon le statut déterminé par la méthode suprême
+        switch (status) {
+          case AuthStatus.authenticated:
+            // User completement authentifié → home (sauf s'il y est déjà)
+            if (currentPath != '/home' && !currentPath.startsWith('/home')) {
+              return '/home';
+            }
+            break;
+            
+          case AuthStatus.biometricRequired:
+            // Device auth trouvé, biométrie requise
+            if (!isOnBiometricAuth) {
+              return '/biometric-auth';
+            }
+            break;
+            
+          case AuthStatus.unauthenticated:
+          case AuthStatus.error:
+            // Aucune auth → onboarding (sauf si sur pages d'auth)
+            if (!isOnOnboardingPages && !isOnAuthPages) {
+              return '/onboarding';
+            }
+            break;
+            
+          case AuthStatus.initial:
+          case AuthStatus.loading:
+            // Ne pas rediriger
+            break;
         }
-
-        // Si pas authentifié et pas sur les pages d'auth/onboarding, rediriger vers onboarding
-        if (!isAuthenticated && !isOnAuthPages && !isOnOnboardingPages) {
-          return '/onboarding';
-        }
-
+        
         return null;
       },
-      refreshListenable: RouterRefreshNotifier(),
       routes: [
         GoRoute(
           path: '/onboarding',
@@ -89,6 +109,11 @@ class AppRouter {
           path: '/forgot-password',
           name: 'forgot-password',
           builder: (context, state) => const ForgotPasswordPage(),
+        ),
+        GoRoute(
+          path: '/biometric-auth',
+          name: 'biometric-auth',
+          builder: (context, state) => const BiometricAuthPage(),
         ),
         ShellRoute(
           builder: (context, state, child) => MainLayout(
