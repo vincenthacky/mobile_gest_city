@@ -12,7 +12,6 @@ class DeviceAuthInterceptor extends Interceptor {
       final deviceToken = await secureStorage.read('device_token');
       final deviceId = await secureStorage.read('device_id');
       final privateKeyPem = await secureStorage.read('private_key');
-      final biometricSetup = await secureStorage.read('biometric_setup');
 
       // Si l'auth device n'est pas configurée, passer sans modification
       if (deviceToken == null || deviceId == null || privateKeyPem == null) {

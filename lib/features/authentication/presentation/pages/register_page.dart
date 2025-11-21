@@ -508,14 +508,12 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         );
         
-        // NOUVEAU : Notifier l'AuthController pour vérifier le statut
+        // NOUVEAU : Notifier l'AuthController pour initialiser l'authentification
         final authController = Provider.of<AuthController>(context, listen: false);
-        await authController.checkAuthStatus();
+        await authController.initializeAppAuthentication();
         
-        // Rediriger explicitement vers /home après auth
-        if (mounted && authController.isAuthenticated) {
-          context.go('/home');
-        }
+        // La redirection est maintenant gérée automatiquement par l'AppRouter
+        // selon le statut retourné par initializeAppAuthentication
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
