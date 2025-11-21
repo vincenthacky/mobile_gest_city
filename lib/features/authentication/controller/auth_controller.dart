@@ -4,6 +4,7 @@ import '../../../core/storage/secure_storage.dart';
 import '../../../core/services/biometric_auth_service.dart';
 import '../../../core/services/crypto_service.dart';
 import '../../../core/services/security_settings_service.dart';
+import '../../../core/services/app_lock_service.dart';
 import '../data_source/auth_data_source.dart';
 import '../model/user_model.dart';
 
@@ -57,12 +58,32 @@ class AuthController extends ChangeNotifier {
             
             // NOUVELLE LOGIQUE WHATSAPP : Respecter les préférences utilisateur
             final securityPrefs = await SecuritySettingsService.getPreferences();
+            final shouldLock = await SecuritySettingsService.shouldActivateAppLock();
             debugPrint('👑 [AUTH SUPREME] Device auth trouvé - préférences: $securityPrefs');
+            debugPrint('👑 [AUTH SUPREME] Should activate lock: $shouldLock');
             
-            if (securityPrefs.biometricEnabled || securityPrefs.pinEnabled) {
-              // Utilisateur a choisi une sécurité → biométrie/PIN requis
-              debugPrint('👑 [AUTH SUPREME] Sécurité activée par utilisateur → BIOMETRIC REQUIRED');
-              _setStatus(AuthStatus.biometricRequired);
+            if (shouldLock) {
+              // Utilisateur a choisi une sécurité → vérifier le type
+              final lockType = await SecuritySettingsService.getPreferredLockType();
+              debugPrint('👑 [AUTH SUPREME] Sécurité activée par utilisateur → Type: $lockType');
+              
+              if (lockType == LockType.biometric) {
+                // BIOMÉTRIQUE → Aller à la page biometric-auth
+                debugPrint('👑 [AUTH SUPREME] → BIOMETRIC REQUIRED (page biometric-auth)');
+                _setStatus(AuthStatus.biometricRequired);
+              } else if (lockType == LockType.pin) {
+                // PIN → Aller directement à home mais déclencher l'overlay
+                debugPrint('👑 [AUTH SUPREME] → PIN REQUIRED (home + overlay)');
+                _setStatus(AuthStatus.authenticated); // On va à home
+                // Déclencher l'overlay PIN
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  AppLockService.lock(); // Force l'overlay
+                });
+              } else {
+                // Pas de sécurité → home direct
+                debugPrint('👑 [AUTH SUPREME] → NO SECURITY');
+                _setStatus(AuthStatus.authenticated);
+              }
               return;
             } else {
               // Utilisateur n'a pas activé la sécurité → connexion directe (comme WhatsApp)
@@ -464,18 +485,30 @@ class AuthController extends ChangeNotifier {
         // NOUVELLE LOGIQUE WHATSAPP : Vérifier les préférences utilisateur
         debugPrint('🔐 [AUTH] Secrets trouvés - vérification préférences sécurité...');
         final securityPrefs = await SecuritySettingsService.getPreferences();
+        final shouldLock = await SecuritySettingsService.shouldActivateAppLock();
+        final lockType = await SecuritySettingsService.getPreferredLockType();
         
-        if (securityPrefs.biometricEnabled || securityPrefs.pinEnabled) {
-          // Utilisateur a activé la sécurité → biométrie requise
-          debugPrint('🔐 [AUTH] Sécurité activée → BIOMETRIC REQUIRED');
-          final biometricResult = await BiometricAuthService.authenticateWithFallback(
-            localizedReason: 'Authentifiez-vous pour accéder à votre compte',
-          );
-          
-          if (!biometricResult.isSuccess) {
-            debugPrint('❌ [AUTH] Biométrie échouée: ${biometricResult.name} - reset des secrets');
-            await _resetAllSecrets();
-            _setStatus(AuthStatus.unauthenticated);
+        debugPrint('🔐 [AUTH] Préférences: $securityPrefs');
+        debugPrint('🔐 [AUTH] Should lock: $shouldLock, Lock type: $lockType');
+        
+        if (shouldLock) {
+          // Utilisateur a activé la sécurité → authentication requise selon le type
+          if (lockType == LockType.biometric) {
+            debugPrint('🔐 [AUTH] Sécurité biométrique activée → BIOMETRIC AUTH');
+            final biometricResult = await BiometricAuthService.authenticateWithFallback(
+              localizedReason: 'Authentifiez-vous pour accéder à votre compte',
+            );
+            
+            if (!biometricResult.isSuccess) {
+              debugPrint('❌ [AUTH] Biométrie échouée: ${biometricResult.name} - reset des secrets');
+              await _resetAllSecrets();
+              _setStatus(AuthStatus.unauthenticated);
+              return;
+            }
+          } else {
+            // PIN ou autre type → on laisse l'overlay s'en charger
+            debugPrint('🔐 [AUTH] Sécurité PIN activée → BIOMETRIC REQUIRED (overlay gérera le PIN)');
+            _setStatus(AuthStatus.biometricRequired);
             return;
           }
         } else {

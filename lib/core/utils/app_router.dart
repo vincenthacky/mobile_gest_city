@@ -25,6 +25,7 @@ class AppRouter {
   
   static GoRouter createRouter() {
     return GoRouter(
+      navigatorKey: navigatorKey,
       initialLocation: '/',
       redirect: (context, state) {
         final authController = context.read<AuthController>();

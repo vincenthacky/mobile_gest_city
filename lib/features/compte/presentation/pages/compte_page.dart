@@ -597,6 +597,7 @@ class _ComptePageState extends State<ComptePage> {
       String currentPin = '';
 
       // Demander le PIN actuel
+      if (!mounted) return;
       final enteredCurrentPin = await showDialog<String>(
         context: context,
         barrierDismissible: false,
