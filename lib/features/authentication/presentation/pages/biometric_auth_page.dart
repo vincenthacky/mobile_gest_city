@@ -40,8 +40,14 @@ class _BiometricAuthPageState extends State<BiometricAuthPage> {
       if (!mounted) return;
 
       if (success) {
-        // Authentification réussie → le routeur redirigera automatiquement
-        debugPrint('🔐 [BIOMETRIC PAGE] Authentification réussie');
+        // Authentification réussie → redirection manuelle immédiate
+        debugPrint('🔐 [BIOMETRIC PAGE] Authentification réussie - fin session sécurité');
+        
+        // ANCIEN SYSTÈME: Communiquer avec Bootstrap - plus nécessaire avec overlay system
+        
+        if (mounted) {
+          context.go('/home');
+        }
       } else {
         // Authentification échouée
         _showAuthFailedDialog(BiometricAuthResult.failed);

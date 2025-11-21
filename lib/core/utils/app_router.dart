@@ -21,6 +21,8 @@ import '../../features/compte/presentation/pages/compte_page.dart';
 import '../widgets/main_layout.dart';
 
 class AppRouter {
+  static final _routerRefreshNotifier = RouterRefreshNotifier();
+  
   static GoRouter createRouter() {
     return GoRouter(
       initialLocation: '/',
@@ -28,6 +30,9 @@ class AppRouter {
         final authController = context.read<AuthController>();
         final currentPath = state.matchedLocation;
         final status = authController.status;
+        
+        // Initialiser le notifier pour qu'il écoute les changements
+        _routerRefreshNotifier.ensureInitialized(context);
         
         debugPrint('🌐 [ROUTER] Path: $currentPath, Status: $status');
         
@@ -47,14 +52,17 @@ class AppRouter {
         // Redirection selon le statut déterminé par la méthode suprême
         switch (status) {
           case AuthStatus.authenticated:
-            // User completement authentifié → home (sauf s'il y est déjà)
-            if (currentPath != '/home' && !currentPath.startsWith('/home')) {
+            // User authentifié → home SEULEMENT depuis pages d'auth/onboarding
+            if (isOnAuthPages || isOnOnboardingPages || isOnBiometricAuth) {
               return '/home';
             }
+            // Si déjà dans l'app (home, signalements, etc.) → laisser naviguer
             break;
             
           case AuthStatus.biometricRequired:
             // Device auth trouvé, biométrie requise
+            // ANCIEN: Navigation vers /biometric-auth
+            // NOUVEAU: L'overlay biométrique gère cela directement
             if (!isOnBiometricAuth) {
               return '/biometric-auth';
             }
@@ -76,6 +84,7 @@ class AppRouter {
         
         return null;
       },
+      refreshListenable: _routerRefreshNotifier,
       routes: [
         GoRoute(
           path: '/onboarding',
@@ -203,27 +212,26 @@ class AppRouter {
 }
 
 class RouterRefreshNotifier extends ChangeNotifier {
-  RouterRefreshNotifier() {
-    _init();
+  AuthController? _authController;
+  bool _isInitialized = false;
+
+  void _initialize(BuildContext context) {
+    if (!_isInitialized) {
+      _authController = Provider.of<AuthController>(context, listen: false);
+      _authController!.addListener(notifyListeners);
+      _isInitialized = true;
+      debugPrint('🌐 [ROUTER NOTIFIER] Initialisé et écoute AuthController');
+    }
   }
 
-  late AuthController _authController;
-
-  void _init() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (navigatorKey.currentContext != null) {
-        _authController = Provider.of<AuthController>(
-          navigatorKey.currentContext!,
-          listen: false,
-        );
-        _authController.addListener(notifyListeners);
-      }
-    });
+  /// Méthode appelée par AppRouter pour s'initialiser si besoin
+  void ensureInitialized(BuildContext context) {
+    _initialize(context);
   }
 
   @override
   void dispose() {
-    _authController.removeListener(notifyListeners);
+    _authController?.removeListener(notifyListeners);
     super.dispose();
   }
 }

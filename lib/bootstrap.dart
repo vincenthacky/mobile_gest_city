@@ -14,6 +14,8 @@ import 'features/finance/services/contribution_local_storage_service.dart';
 import 'features/finance/services/cash_movements_local_storage_service.dart';
 import 'features/authentication/controller/auth_controller.dart';
 import 'features/authentication/controller/register_controller.dart';
+import 'core/services/app_lock_service.dart';
+import 'core/widgets/biometric_lock_overlay.dart';
 import 'features/projets/controllers/project_controller.dart';
 import 'features/signalement/controllers/signalement_controller.dart';
 import 'features/signalement/controllers/report_controller.dart';
@@ -153,18 +155,18 @@ class GestCityApp extends StatefulWidget {
   const GestCityApp({super.key, required this.router});
 
   @override
-  State<GestCityApp> createState() => _GestCityAppState();
+  State<GestCityApp> createState() => GestCityAppState();
 }
 
-class _GestCityAppState extends State<GestCityApp> with WidgetsBindingObserver {
+class GestCityAppState extends State<GestCityApp> with WidgetsBindingObserver {
   late AuthController _authController;
   late ConnectivityService _connectivityService;
   late ContributionController _contributionController;
   late CashMovementsController _cashMovementsController;
   late PaymentBreakdownController _paymentBreakdownController;
   
-  bool _appWasPaused = false;
-  bool _isBiometricInProgress = false;
+  // Variables pour la gestion du lifecycle simplifié
+  bool _appWasInBackground = false;
 
   @override
   void initState() {
@@ -278,6 +280,23 @@ class _GestCityAppState extends State<GestCityApp> with WidgetsBindingObserver {
           ),
         ),
         routerConfig: widget.router,
+        builder: (context, child) {
+          return ValueListenableBuilder<bool>(
+            valueListenable: AppLockService.isLocked,
+            builder: (context, isLocked, routerChild) {
+              return Stack(
+                children: [
+                  // Application principale
+                  child ?? const SizedBox.shrink(),
+                  
+                  // Overlay biométrique (comme WhatsApp)
+                  if (isLocked)
+                    const BiometricLockOverlay(),
+                ],
+              );
+            },
+          );
+        },
       ),
     );
   }
@@ -289,23 +308,20 @@ class _GestCityAppState extends State<GestCityApp> with WidgetsBindingObserver {
     switch (state) {
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
-        // App mise en arrière-plan (sauf si biométrie en cours)
-        if (!_isBiometricInProgress) {
-          _appWasPaused = true;
-          debugPrint('📱 App mise en arrière-plan - biométrie requise au retour');
-        } else {
-          debugPrint('📱 App pause ignorée - biométrie en cours');
+        // App mise en arrière-plan → activer le lock si biométrie configurée
+        _appWasInBackground = true;
+        
+        if (_shouldActivateBiometricLock()) {
+          AppLockService.lock();
+          debugPrint('🔒 [LIFECYCLE] App en arrière-plan - lock overlay activé');
         }
         break;
         
       case AppLifecycleState.resumed:
-        // App revenue en premier plan (seulement si vraiment mise en pause)
-        if (_appWasPaused && !_isBiometricInProgress) {
-          _appWasPaused = false;
-          debugPrint('📱 App revenue en premier plan - vérification biométrique...');
-          _handleAppResume();
-        } else if (_isBiometricInProgress) {
-          debugPrint('📱 App resume ignorée - biométrie en cours');
+        // App revenue en premier plan → le lock overlay gère automatiquement l'authentification
+        if (_appWasInBackground) {
+          _appWasInBackground = false;
+          debugPrint('🔓 [LIFECYCLE] App revenue - overlay biométrique actif si nécessaire');
         }
         break;
         
@@ -315,37 +331,15 @@ class _GestCityAppState extends State<GestCityApp> with WidgetsBindingObserver {
     }
   }
 
-  /// Gère le retour de l'app en premier plan (comme WhatsApp)
-  Future<void> _handleAppResume() async {
-    // Vérifier si l'utilisateur était authentifié avant la pause
-    if (_authController.isAuthenticated) {
-      
-      try {
-        // Marquer la biométrie comme en cours pour éviter la boucle
-        _isBiometricInProgress = true;
-        
-        debugPrint('🔐 [LIFECYCLE] App revenue - demande biométrie immédiate...');
-        
-        // Déclencher la biométrie directement (comme WhatsApp)
-        final success = await _authController.processBiometricAuthentication();
-        
-        if (!success) {
-          debugPrint('❌ [LIFECYCLE] Biométrie échec - logout');
-          // Le routeur gèrera la redirection automatiquement
-        } else {
-          debugPrint('✅ [LIFECYCLE] Biométrie réussie');
-        }
-        
-      } catch (e) {
-        debugPrint('❌ [LIFECYCLE] Erreur biométrie: $e');
-        await _authController.logout();
-      } finally {
-        // Toujours remettre les flags à false à la fin
-        _isBiometricInProgress = false;
-        _appWasPaused = false;
-      }
-    }
+  /// Détermine si le lock biométrique doit être activé
+  bool _shouldActivateBiometricLock() {
+    // Vérifier si l'utilisateur est authentifié
+    final isAuthenticated = _authController.status == AuthStatus.authenticated;
+    
+    // TODO: Ajouter la vérification biométrique setup - pour l'instant activer pour tous les authentifiés
+    return isAuthenticated;
   }
+
 
   @override
   void dispose() {

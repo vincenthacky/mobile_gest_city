@@ -6,6 +6,56 @@ import '../model/user_model.dart';
 class AuthDataSource {
   final Dio _dio = DioClient.instance;
 
+  /// Login avec nouveau système device auth + clés cryptographiques
+  Future<Map<String, dynamic>> loginWithDeviceAuth({
+    required String phoneOrEmail, 
+    required String password,
+    required String deviceId,
+    required String deviceName,
+    required String publicKey,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/auth/login',
+        data: {
+          'phone_or_email': phoneOrEmail,
+          'password': password,
+          'device_id': deviceId,
+          'device_name': deviceName,
+          'public_key': publicKey,
+        },
+      );
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data;
+      } else {
+        final errorMessage = response.data['message'] ?? 'Erreur de connexion';
+        throw DioException(
+          requestOptions: response.requestOptions,
+          response: response,
+          message: errorMessage,
+        );
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final errorMessage = e.response?.data['message'] ?? 'Invalid credentials';
+        throw DioException(
+          requestOptions: e.requestOptions,
+          response: e.response,
+          message: errorMessage,
+        );
+      } else {
+        throw DioException(
+          requestOptions: e.requestOptions,
+          message: 'Erreur de réseau. Vérifiez votre connexion internet.',
+        );
+      }
+    } catch (e) {
+      throw Exception('Erreur inattendue: $e');
+    }
+  }
+
+  /// FALLBACK: Ancien login pour rétrocompatibilité
   Future<LoginResponse> login(String phoneOrEmail, String password) async {
     try {
       final response = await _dio.post(

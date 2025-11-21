@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/services/biometric_auth_service.dart';
+import '../../../core/services/crypto_service.dart';
 import '../data_source/auth_data_source.dart';
 import '../model/user_model.dart';
 
@@ -190,7 +191,104 @@ class AuthController extends ChangeNotifier {
     }
   }
 
+  /// 🔐 Nouveau login avec device auth + biométrie (comme register)
+  Future<bool> loginWithDeviceAuth(String phoneOrEmail, String password) async {
+    debugPrint('🔐 [LOGIN] Début login avec device auth...');
+    _setStatus(AuthStatus.loading);
+    _clearError();
+
+    try {
+      // 1. Générer device ID unique
+      final secureStorage = SecureStorage();
+      String deviceId = await secureStorage.read('device_id') ?? 
+                       DateTime.now().millisecondsSinceEpoch.toString();
+      
+      // 2. Générer clés RSA
+      final keyPair = await CryptoService.generateRSAKeyPair();
+      final publicKeyPem = CryptoService.publicKeyToPem(keyPair.publicKey);
+      final privateKeyPem = CryptoService.privateKeyToPem(keyPair.privateKey);
+      
+      debugPrint('🔐 [LOGIN] Clés générées, device_id: $deviceId');
+
+      // 3. ÉTAPE CRITIQUE : Demander l'authentification biométrique
+      final biometricResult = await BiometricAuthService.authenticateWithFallback(
+        localizedReason: 'Configurez votre authentification biométrique pour vous connecter',
+      );
+
+      if (!biometricResult.isSuccess) {
+        debugPrint('❌ [LOGIN] Biométrie refusée: ${biometricResult.name}');
+        _setError('Authentification biométrique requise pour la sécurité');
+        _setStatus(AuthStatus.unauthenticated);
+        return false;
+      }
+
+      debugPrint('✅ [LOGIN] Biométrie acceptée, appel API login...');
+
+      // 4. Appel API login avec clés
+      final response = await _authDataSource.loginWithDeviceAuth(
+        phoneOrEmail: phoneOrEmail,
+        password: password,
+        deviceId: deviceId,
+        deviceName: 'Flutter Device', // Peut être amélioré avec device_info
+        publicKey: publicKeyPem,
+      );
+
+      debugPrint('🔐 [LOGIN] Réponse API: ${response['success']}');
+
+      if (response['success'] == true && response['data'] != null) {
+        final data = response['data'];
+        
+        // 5. Extraire les informations
+        final deviceToken = data['tokens'] as String;
+        final userMap = data['user'] as Map<String, dynamic>;
+        
+        // Créer l'objet utilisateur
+        final user = UserModel.fromJson(userMap);
+        
+        debugPrint('🔐 [LOGIN] Device token reçu, stockage sécurisé...');
+
+        // 6. Stocker les secrets selon le pattern du register
+        await secureStorage.write('device_token', deviceToken);
+        await secureStorage.write('private_key', privateKeyPem);
+        await secureStorage.write('public_key', publicKeyPem);
+        await secureStorage.write('device_id', deviceId);
+        await secureStorage.write('user_id', user.id);
+        await secureStorage.write('biometric_setup', 'true');
+        
+        // 7. Stocker les données utilisateur (compatibilité)
+        await SecureStorage.saveUserData(jsonEncode(user.toJson()));
+        
+        // 8. Mettre à jour l'état
+        _user = user;
+        _setStatus(AuthStatus.authenticated);
+        
+        debugPrint('✅ [LOGIN] Login complet réussi pour: ${user.fullName}');
+        return true;
+        
+      } else {
+        final errorMessage = response['message'] ?? 'Erreur de connexion';
+        debugPrint('❌ [LOGIN] Erreur API: $errorMessage');
+        _setError(errorMessage);
+        _setStatus(AuthStatus.unauthenticated);
+        return false;
+      }
+      
+    } catch (e) {
+      debugPrint('❌ [LOGIN] Exception: $e');
+      _setError('Erreur lors de la connexion: $e');
+      _setStatus(AuthStatus.unauthenticated);
+      return false;
+    }
+  }
+
+  /// FALLBACK: Ancien login pour rétrocompatibilité
   Future<bool> login(String phoneOrEmail, String password) async {
+    // Essayer d'abord le nouveau système
+    final deviceAuthSuccess = await loginWithDeviceAuth(phoneOrEmail, password);
+    if (deviceAuthSuccess) return true;
+    
+    // Fallback vers ancien système si échec
+    debugPrint('🔄 [LOGIN] Fallback vers ancien système Bearer...');
     _setStatus(AuthStatus.loading);
     _clearError();
 
@@ -209,7 +307,7 @@ class AuthController extends ChangeNotifier {
         return false;
       }
     } catch (e) {
-      _setError(e.toString());
+      _setError('Erreur lors de la connexion');
       _setStatus(AuthStatus.unauthenticated);
       return false;
     }

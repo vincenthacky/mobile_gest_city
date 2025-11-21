@@ -394,13 +394,15 @@ class _LoginPageState extends State<LoginPage> {
       final authController = context.read<AuthController>();
       authController.clearError();
       
+      // Utilise la nouvelle méthode avec device auth + fallback intégré
       final success = await authController.login(
         _phoneOrEmailController.text.trim(),
         _passwordController.text,
       );
 
       if (success && mounted) {
-        context.go('/home');
+        // Le routeur gère automatiquement la redirection
+        debugPrint('🔐 [LOGIN PAGE] Login réussi');
       }
     }
   }
