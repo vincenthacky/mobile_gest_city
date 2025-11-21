@@ -336,6 +336,38 @@ class CryptoService {
     final regex = RegExp(r'.{1,64}');
     return regex.allMatches(base64).map((match) => match.group(0)).join('\n');
   }
+
+  /// 🔐 SÉCURITÉ: Hache un PIN avec salt pour stockage sécurisé
+  static String hashPin(String pin, String salt) {
+    final digest = SHA256Digest();
+    final saltedPin = pin + salt;
+    final bytes = Uint8List.fromList(utf8.encode(saltedPin));
+    final hash = digest.process(bytes);
+    return base64.encode(hash);
+  }
+
+  /// 🔐 SÉCURITÉ: Génère un salt aléatoire pour le hachage PIN
+  static String generateSalt() {
+    final secureRandom = FortunaRandom();
+    final seedSource = Random.secure();
+    final seeds = <int>[];
+    for (int i = 0; i < 32; i++) {
+      seeds.add(seedSource.nextInt(255));
+    }
+    secureRandom.seed(KeyParameter(Uint8List.fromList(seeds)));
+    
+    final saltBytes = Uint8List(16); // 16 bytes = 128 bits
+    for (int i = 0; i < saltBytes.length; i++) {
+      saltBytes[i] = secureRandom.nextUint8();
+    }
+    return base64.encode(saltBytes);
+  }
+
+  /// 🔐 SÉCURITÉ: Vérifie un PIN contre son hash stocké
+  static bool verifyPin(String enteredPin, String storedHash, String salt) {
+    final computedHash = hashPin(enteredPin, salt);
+    return computedHash == storedHash;
+  }
 }
 
 /// Classe pour stocker une paire de clés

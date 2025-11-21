@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
 import '../services/app_lock_service.dart';
 import '../services/biometric_auth_service.dart';
 import '../services/security_settings_service.dart';
@@ -57,54 +58,16 @@ class _BiometricLockOverlayState extends State<BiometricLockOverlay> {
     });
     
     AppLockService.startAuthentication();
+    
+    // 🚀 OPTIMISÉ: Timeout pour éviter les blocages
+    final timeout = Duration(seconds: 30);
+    final timeoutFuture = Future.delayed(timeout, () => throw TimeoutException('Authentification timeout', timeout));
 
     try {
-      bool success = false;
-
-      if (_lockType == LockType.biometric) {
-        // Authentification biométrique
-        final result = await BiometricAuthService.authenticate(
-          localizedReason: 'Déverrouiller Gest City pour accéder à vos données',
-          useErrorDialogs: false,
-          stickyAuth: true,
-        );
-        success = result.isSuccess;
-        if (!success) {
-          _errorMessage = result.message;
-        }
-      } else if (_lockType == LockType.pin) {
-        // Authentification PIN via champ de saisie sur l'overlay
-        final pin = _pinController.text.trim();
-        debugPrint('🔐 [OVERLAY] Tentative authentification PIN - longueur: ${pin.length}');
-        
-        if (pin.isEmpty) {
-          _errorMessage = 'Veuillez entrer votre code PIN';
-          setState(() {
-            _hasError = true;
-          });
-          AppLockService.isAuthenticating.value = false;
-          return;
-        }
-        
-        if (pin.length != 4) {
-          _errorMessage = 'Le code PIN doit contenir 4 chiffres';
-          setState(() {
-            _hasError = true;
-          });
-          AppLockService.isAuthenticating.value = false;
-          return;
-        }
-        
-        success = await _verifyPin(pin);
-        debugPrint('🔐 [OVERLAY] Vérification PIN résultat: $success');
-        if (!success) {
-          _errorMessage = 'Code PIN incorrect';
-          _pinController.clear(); // Effacer le champ en cas d'erreur
-        }
-      } else {
-        // Aucun lock défini → débloquer directement
-        success = true;
-      }
+      // 🚀 OPTIMISÉ: Utiliser Future.any pour gérer le timeout
+      final authFuture = _performAuthentication();
+      final result = await Future.any([authFuture, timeoutFuture]);
+      final success = result;
 
       if (success) {
         // Succès → Retirer l'overlay ET changer le statut auth
@@ -132,6 +95,13 @@ class _BiometricLockOverlayState extends State<BiometricLockOverlay> {
         });
         AppLockService.isAuthenticating.value = false;
       }
+    } on TimeoutException catch (e) {
+      setState(() {
+        _hasError = true;
+        _errorMessage = 'Délai d\'authentification dépassé. Veuillez réessayer.';
+      });
+      AppLockService.isAuthenticating.value = false;
+      debugPrint('⏰ [OVERLAY] Timeout authentification: ${e.message}');
     } catch (e) {
       setState(() {
         _hasError = true;
@@ -142,26 +112,60 @@ class _BiometricLockOverlayState extends State<BiometricLockOverlay> {
     }
   }
 
-
-  Future<bool> _verifyPin(String enteredPin) async {
+  /// 🚀 OPTIMISÉ: Logique d'authentification séparée avec gestion d'erreurs améliorée
+  Future<bool> _performAuthentication() async {
     try {
-      final prefs = await SecuritySettingsService.getPreferences();
-      debugPrint('🔐 [OVERLAY] PIN stocké existe: ${prefs.appPin != null}');
-      debugPrint('🔐 [OVERLAY] PIN enabled: ${prefs.pinEnabled}');
-      
-      if (!prefs.pinEnabled || prefs.appPin == null) {
-        debugPrint('❌ [OVERLAY] Erreur: PIN non configuré dans les préférences');
-        return false;
+      if (_lockType == LockType.biometric) {
+        // Authentification biométrique
+        final result = await BiometricAuthService.authenticate(
+          localizedReason: 'Déverrouiller Gest City pour accéder à vos données',
+          useErrorDialogs: false,
+          stickyAuth: true,
+        );
+        if (!result.isSuccess) {
+          _errorMessage = result.message;
+        }
+        return result.isSuccess;
+      } else if (_lockType == LockType.pin) {
+        // Authentification PIN via champ de saisie sur l'overlay
+        final pin = _pinController.text.trim();
+        debugPrint('🔐 [OVERLAY] Tentative authentification PIN - longueur: ${pin.length}');
+        
+        if (pin.isEmpty) {
+          _errorMessage = 'Veuillez entrer votre code PIN';
+          setState(() {
+            _hasError = true;
+          });
+          return false;
+        }
+        
+        if (pin.length != 4) {
+          _errorMessage = 'Le code PIN doit contenir 4 chiffres';
+          setState(() {
+            _hasError = true;
+          });
+          return false;
+        }
+        
+        final isValid = await SecuritySettingsService.verifyPin(pin);
+        debugPrint('🔐 [OVERLAY] Vérification PIN résultat: $isValid');
+        if (!isValid) {
+          _errorMessage = 'Code PIN incorrect';
+          _pinController.clear(); // Effacer le champ en cas d'erreur
+        }
+        return isValid;
+      } else {
+        // Aucun lock défini → débloquer directement
+        return true;
       }
-      
-      final isValid = prefs.appPin == enteredPin;
-      debugPrint('🔐 [OVERLAY] Comparaison PIN - Résultat: $isValid');
-      return isValid;
     } catch (e) {
-      debugPrint('❌ [OVERLAY] Erreur vérification PIN: $e');
+      debugPrint('❌ [OVERLAY] Erreur _performAuthentication: $e');
+      _errorMessage = 'Erreur lors de l\'authentification';
       return false;
     }
   }
+
+
 
   String _getInstructionText() {
     switch (_lockType) {
@@ -249,8 +253,17 @@ class _BiometricLockOverlayState extends State<BiometricLockOverlay> {
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
-              // TODO: Implémenter la déconnexion complète si nécessaire
-              // authController.forceLogout();
+              // Déconnexion complète en cas de problème persistant
+              final mainContext = navigatorKey.currentContext;
+              if (mainContext != null && mainContext.mounted) {
+                try {
+                  final authController = Provider.of<AuthController>(mainContext, listen: false);
+                  authController.forceLogout();
+                  debugPrint('🔐 [OVERLAY] Déconnexion forcée suite à problème auth');
+                } catch (e) {
+                  debugPrint('❌ [OVERLAY] Erreur déconnexion forcée: $e');
+                }
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,

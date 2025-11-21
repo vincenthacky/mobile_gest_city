@@ -11,13 +11,19 @@ class OnboardingPage extends StatefulWidget {
 
 class _OnboardingPageState extends State<OnboardingPage>
     with TickerProviderStateMixin {
-  final PageController _pageController = PageController();
+  final PageController _pageController = PageController(
+    // 🚀 OPTIMISÉ: Configurations pour fluidité
+    viewportFraction: 1.0,
+    keepPage: true,
+  );
   int _currentPage = 0;
+  bool _isAnimating = false; // Éviter les conflits d'animations
   
   late AnimationController _fadeController;
-  late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
+  
+  // 🚀 OPTIMISÉ: Pre-cache des images pour fluidité
+  final List<AssetImage> _preloadedImages = [];
 
   final List<OnboardingSlide> _slides = [
     OnboardingSlide(
@@ -45,44 +51,58 @@ class _OnboardingPageState extends State<OnboardingPage>
   @override
   void initState() {
     super.initState();
+    
+    // Animation simple et fluide
     _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-    _slideController = AnimationController(
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 500),
       vsync: this,
     );
     
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeOut),
     );
     
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(1.0, 0.0),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOut));
-    
     _fadeController.forward();
-    _slideController.forward();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    
+    // 🚀 OPTIMISÉ: Pre-charger les images quand le context est disponible
+    if (_preloadedImages.isEmpty) {
+      _preloadImages();
+    }
+  }
+
+  /// 🚀 OPTIMISÉ: Pre-charge les images pour éviter les lag au swipe
+  void _preloadImages() {
+    for (final slide in _slides) {
+      final assetImage = AssetImage(slide.image);
+      _preloadedImages.add(assetImage);
+      // Pre-cache l'image avec le context maintenant disponible
+      precacheImage(assetImage, context);
+    }
   }
 
   @override
   void dispose() {
     _fadeController.dispose();
-    _slideController.dispose();
     _pageController.dispose();
     super.dispose();
   }
 
   void _nextPage() {
+    if (_isAnimating) return; // 🚀 OPTIMISÉ: Éviter les animations multiples
+    
     if (_currentPage < _slides.length - 1) {
-      _slideController.reset();
-      _slideController.forward();
+      _isAnimating = true;
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+        duration: const Duration(milliseconds: 250), // 🚀 Plus rapide et fluide
+        curve: Curves.easeOut,
+      ).then((_) {
+        _isAnimating = false;
+      });
     } else {
       context.go('/onboarding/choice');
     }
@@ -124,42 +144,58 @@ class _OnboardingPageState extends State<OnboardingPage>
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
+                // 🚀 OPTIMISÉ: Configuration pour fluidité maximale
+                physics: const ClampingScrollPhysics(), // Meilleur contrôle
+                pageSnapping: true,
+                allowImplicitScrolling: false,
                 onPageChanged: (index) {
+                  if (!mounted) return;
                   setState(() {
                     _currentPage = index;
+                    _isAnimating = false; // Reset du flag animation
                   });
-                  _slideController.reset();
-                  _slideController.forward();
                 },
                 itemCount: _slides.length,
                 itemBuilder: (context, index) {
-                  return FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: SlideTransition(
-                      position: _slideAnimation,
-                      child: OnboardingSlideWidget(slide: _slides[index]),
+                  // 🚀 OPTIMISÉ: Widget simple et performant avec image pre-cachée
+                  return AnimatedOpacity(
+                    opacity: 1.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: OnboardingSlideWidget(
+                      slide: _slides[index],
+                      preloadedImage: _preloadedImages.length > index ? _preloadedImages[index] : null,
                     ),
                   );
                 },
               ),
             ),
             
-            // Page indicator
+            // 🚀 OPTIMISÉ: Page indicator plus fluide
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
                 _slides.length,
-                (index) => AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  margin: const EdgeInsets.symmetric(horizontal: 4.0),
-                  height: 8.0,
-                  width: _currentPage == index ? 24.0 : 8.0,
-                  decoration: BoxDecoration(
-                    color: _currentPage == index
-                        ? const Color(0xFF3B82F6)
-                        : Colors.grey[300],
-                    borderRadius: BorderRadius.circular(4.0),
+                (index) => TweenAnimationBuilder<double>(
+                  duration: const Duration(milliseconds: 200),
+                  tween: Tween<double>(
+                    begin: 0.0,
+                    end: _currentPage == index ? 1.0 : 0.0,
                   ),
+                  builder: (context, value, child) {
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                      height: 8.0,
+                      width: 8.0 + (16.0 * value), // Interpolation fluide
+                      decoration: BoxDecoration(
+                        color: Color.lerp(
+                          Colors.grey[300],
+                          const Color(0xFF3B82F6),
+                          value,
+                        ),
+                        borderRadius: BorderRadius.circular(4.0),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
@@ -215,12 +251,15 @@ class OnboardingSlide {
   });
 }
 
+// 🚀 OPTIMISÉ: Widget avec mise en cache et performance améliorée
 class OnboardingSlideWidget extends StatelessWidget {
   final OnboardingSlide slide;
+  final AssetImage? preloadedImage;
 
   const OnboardingSlideWidget({
     super.key,
     required this.slide,
+    this.preloadedImage,
   });
 
   @override
@@ -235,51 +274,77 @@ class OnboardingSlideWidget extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Image
+          // 🚀 OPTIMISÉ: Image avec cache et loading amélioré
           SizedBox(
             height: imageHeight,
             width: double.infinity,
-            child: Image.asset(
-              slide.image,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: const Color(0xFFF9FAFB),
-                  child: Icon(
-                    Icons.image_not_supported,
-                    size: isSmallScreen ? 60 : 80,
-                    color: Colors.grey[400],
+            child: preloadedImage != null
+                ? Image(
+                    image: preloadedImage!,
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.medium,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: const Color(0xFFF9FAFB),
+                        child: Icon(
+                          Icons.image_not_supported,
+                          size: isSmallScreen ? 60 : 80,
+                          color: Colors.grey[400],
+                        ),
+                      );
+                    },
+                  )
+                : Image.asset(
+                    slide.image,
+                    fit: BoxFit.contain,
+                    cacheWidth: (screenSize.width * 0.8).round(),
+                    cacheHeight: imageHeight.round(),
+                    filterQuality: FilterQuality.medium,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: const Color(0xFFF9FAFB),
+                        child: Icon(
+                          Icons.image_not_supported,
+                          size: isSmallScreen ? 60 : 80,
+                          color: Colors.grey[400],
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
           
           SizedBox(height: isSmallScreen ? 32 : 48),
           
-          // Title
-          Text(
-            slide.title,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.poppins(
-              fontSize: isSmallScreen ? 20 : 24,
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF1F2937),
-              height: 1.2,
-            ),
-          ),
-          
-          SizedBox(height: isSmallScreen ? 12 : 16),
-          
-          // Subtitle
-          Text(
-            slide.subtitle,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.nunito(
-              fontSize: isSmallScreen ? 14 : 16,
-              color: Colors.grey[600],
-              height: 1.5,
-              fontWeight: FontWeight.w400,
+          // 🚀 OPTIMISÉ: Texte avec RepaintBoundary pour éviter les repaints
+          RepaintBoundary(
+            child: Column(
+              children: [
+                // Title
+                Text(
+                  slide.title,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(
+                    fontSize: isSmallScreen ? 20 : 24,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF1F2937),
+                    height: 1.2,
+                  ),
+                ),
+                
+                SizedBox(height: isSmallScreen ? 12 : 16),
+                
+                // Subtitle
+                Text(
+                  slide.subtitle,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.nunito(
+                    fontSize: isSmallScreen ? 14 : 16,
+                    color: Colors.grey[600],
+                    height: 1.5,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

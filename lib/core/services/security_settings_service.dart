@@ -1,5 +1,6 @@
 import '../storage/secure_storage.dart';
 import 'biometric_auth_service.dart';
+import 'crypto_service.dart';
 import 'package:flutter/foundation.dart';
 
 /// Service pour gérer les préférences de sécurité utilisateur
@@ -7,7 +8,8 @@ import 'package:flutter/foundation.dart';
 class SecuritySettingsService {
   static const String _biometricPreferenceKey = 'biometric_preference'; // NOUVEAU
   static const String _pinPreferenceKey = 'pin_preference'; // NOUVEAU
-  static const String _appPinKey = 'app_pin'; // NOUVEAU
+  static const String _appPinKey = 'app_pin'; // NOUVEAU  
+  static const String _pinSaltKey = 'pin_salt'; // NOUVEAU - pour sécurité
   static const String _firstTimePromptKey = 'first_time_security_prompt'; // NOUVEAU
   
   // Keys existantes (compatibilité)
@@ -57,15 +59,22 @@ class SecuritySettingsService {
     debugPrint('🔐 [SECURITY] Préférence biométrique: $enabled');
   }
   
-  /// Définir la préférence PIN interne
+  /// 🔐 SÉCURITÉ: Définir la préférence PIN interne avec hachage sécurisé
   static Future<void> setPinPreference(bool enabled, {String? pin}) async {
     await _secureStorage.write(_pinPreferenceKey, enabled.toString());
     
     if (enabled && pin != null) {
-      // TODO: Hasher le PIN pour la sécurité
-      await _secureStorage.write(_appPinKey, pin);
+      // 🔐 SÉCURITÉ AMÉLIORÉE: Hasher le PIN avec salt
+      final salt = CryptoService.generateSalt();
+      final hashedPin = CryptoService.hashPin(pin, salt);
+      
+      await _secureStorage.write(_appPinKey, hashedPin);
+      await _secureStorage.write(_pinSaltKey, salt);
+      
+      debugPrint('🔐 [SECURITY] PIN haché et stocké sécurisé');
     } else if (!enabled) {
       await _secureStorage.delete(_appPinKey);
+      await _secureStorage.delete(_pinSaltKey);
     }
     
     debugPrint('🔐 [SECURITY] Préférence PIN: $enabled');
@@ -115,11 +124,32 @@ class SecuritySettingsService {
     return !prefs.firstTimePromptShown && prefs.biometricAvailable;
   }
   
+  /// 🔐 SÉCURITÉ: Vérifier un PIN entré par l'utilisateur
+  static Future<bool> verifyPin(String enteredPin) async {
+    try {
+      final hashedPin = await _secureStorage.read(_appPinKey);
+      final salt = await _secureStorage.read(_pinSaltKey);
+      
+      if (hashedPin == null || salt == null) {
+        debugPrint('❌ [SECURITY] PIN ou salt manquant');
+        return false;
+      }
+      
+      final isValid = CryptoService.verifyPin(enteredPin, hashedPin, salt);
+      debugPrint('🔐 [SECURITY] Vérification PIN: ${isValid ? "✅" : "❌"}');
+      return isValid;
+    } catch (e) {
+      debugPrint('❌ [SECURITY] Erreur vérification PIN: $e');
+      return false;
+    }
+  }
+
   /// Réinitialiser toutes les préférences (logout)
   static Future<void> resetPreferences() async {
     await _secureStorage.delete(_biometricPreferenceKey);
     await _secureStorage.delete(_pinPreferenceKey);
     await _secureStorage.delete(_appPinKey);
+    await _secureStorage.delete(_pinSaltKey);
     await _secureStorage.delete(_firstTimePromptKey);
     // Note: Ne pas supprimer _legacyBiometricSetupKey pour compatibilité device auth
   }

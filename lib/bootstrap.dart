@@ -116,38 +116,50 @@ Future<void> _clearAllFinanceCache() async {
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  await dotenv.load(fileName: ".env");
+  // ⚡ OPTIMISATION: Charger .env en parallèle avec l'initialisation DB
+  final envFuture = dotenv.load(fileName: ".env");
+  final dbFuture = DatabaseInitializer.initialize();
   
-  // Initialiser la base de données Hive
-  await DatabaseInitializer.initialize();
+  await Future.wait([envFuture, dbFuture]);
   
-  // Initialiser le stockage local des transactions (nécessaire avant le vidage)
-  await TransactionLocalStorageService.initialize();
+  // ⚡ OPTIMISATION: Initialiser seulement les services critiques au démarrage
+  await _initializeCriticalServices();
   
-  // 🚨 VIDAGE COMPLET DU CACHE FINANCE (pour debug - à commenter après test)
-  // ⚠️  COMMENTER/DÉCOMMENTER LA LIGNE CI-DESSOUS POUR TESTER NOUVEAU TÉLÉPHONE
-  // await _clearAllFinanceCache(); // ❌ COMMENTÉ - vidage désactivé
-  
-  // 🎯 VIDAGE DU MAÎTRE UNIQUEMENT (force resynchronisation complète)
-  await _clearMasterCacheOnly();
-  
-  // Initialiser le stockage local des totaux financiers
-  await FinanceTotalsLocalStorageService.initialize();
-  
-  // Initialiser les services de cache des paiements
-  await PaymentStatisticsLocalStorageService.initialize();
-  await PaymentOverviewLocalStorageService.initialize();
-  
-  // Initialiser les services de cache des cotisations
-  await ContributionLocalStorageService.initialize();
-  
-  // Initialiser le service de cache des mouvements de caisse
-  await CashMovementsLocalStorageService.initialize();
+  // ⚡ OPTIMISATION: Lazy loading pour les autres services
+  _initializeNonCriticalServices();
   
   final router = AppRouter.createRouter();
   DioClient.setRouter(router);
   
   runApp(GestCityApp(router: router));
+}
+
+/// Initialise uniquement les services critiques pour l'authentification
+Future<void> _initializeCriticalServices() async {
+  // Service de base pour les transactions (nécessaire pour auth)
+  await TransactionLocalStorageService.initialize();
+  
+  // 🎯 VIDAGE DU MAÎTRE UNIQUEMENT (force resynchronisation complète)
+  await _clearMasterCacheOnly();
+}
+
+/// Initialise les services non-critiques en arrière-plan (lazy loading)
+void _initializeNonCriticalServices() {
+  // Lancer l'initialisation en arrière-plan sans bloquer l'UI
+  Future.microtask(() async {
+    try {
+      await Future.wait([
+        FinanceTotalsLocalStorageService.initialize(),
+        PaymentStatisticsLocalStorageService.initialize(),
+        PaymentOverviewLocalStorageService.initialize(),
+        ContributionLocalStorageService.initialize(),
+        CashMovementsLocalStorageService.initialize(),
+      ]);
+      debugPrint('✅ [BOOTSTRAP] Services non-critiques initialisés en arrière-plan');
+    } catch (e) {
+      debugPrint('⚠️ [BOOTSTRAP] Erreur initialisation services non-critiques: $e');
+    }
+  });
 }
 
 class GestCityApp extends StatefulWidget {

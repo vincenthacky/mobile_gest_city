@@ -25,15 +25,39 @@ class BiometricAuthService {
     }
   }
 
-  /// Authentifie l'utilisateur avec la biométrie
+  /// 🚀 OPTIMISÉ: Cache pour éviter les vérifications répétées
+  static bool? _cachedBiometricAvailability;
+  static DateTime? _lastAvailabilityCheck;
+  static const Duration _cacheValidityDuration = Duration(minutes: 5);
+
+  /// 🚀 OPTIMISÉ: Vérifie la disponibilité avec cache
+  static Future<bool> _isBiometricAvailableOptimized() async {
+    final now = DateTime.now();
+    
+    // Utiliser le cache si valide (5 minutes)
+    if (_cachedBiometricAvailability != null && 
+        _lastAvailabilityCheck != null &&
+        now.difference(_lastAvailabilityCheck!) < _cacheValidityDuration) {
+      return _cachedBiometricAvailability!;
+    }
+    
+    // Vérification réelle
+    final isAvailable = await isBiometricAvailable();
+    _cachedBiometricAvailability = isAvailable;
+    _lastAvailabilityCheck = now;
+    
+    return isAvailable;
+  }
+
+  /// Authentifie l'utilisateur avec la biométrie (optimisé)
   static Future<BiometricAuthResult> authenticate({
     String localizedReason = 'Veuillez vous authentifier pour accéder à l\'application',
     bool useErrorDialogs = true,
     bool stickyAuth = false,
   }) async {
     try {
-      // Vérifier si la biométrie est disponible
-      final bool isAvailable = await isBiometricAvailable();
+      // 🚀 OPTIMISÉ: Vérification avec cache
+      final bool isAvailable = await _isBiometricAvailableOptimized();
       if (!isAvailable) {
         return BiometricAuthResult.biometricNotAvailable;
       }
