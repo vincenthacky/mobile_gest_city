@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/services/biometric_auth_service.dart';
 import '../../../core/services/crypto_service.dart';
@@ -243,16 +245,32 @@ class AuthController extends ChangeNotifier {
       
       debugPrint('🔐 [LOGIN] Clés générées, device_id: $deviceId');
 
-      // 3. NOUVELLE APPROCHE WHATSAPP : Ne plus forcer la biométrie au login
+      // 3. Obtenir les informations de l'appareil
+      final deviceInfo = DeviceInfoPlugin();
+      String deviceName = '';
+
+      try {
+        if (Platform.isAndroid) {
+          final androidInfo = await deviceInfo.androidInfo;
+          deviceName = '${androidInfo.manufacturer} ${androidInfo.model}';
+        } else if (Platform.isIOS) {
+          final iosInfo = await deviceInfo.iosInfo;
+          deviceName = '${iosInfo.name} (${iosInfo.model})';
+        }
+      } catch (e) {
+        deviceName = 'Device ${DateTime.now().day}/${DateTime.now().month}';
+      }
+
+      // 4. NOUVELLE APPROCHE WHATSAPP : Ne plus forcer la biométrie au login
       // L'utilisateur activera la biométrie dans les paramètres s'il le souhaite
       debugPrint('🚀 [LOGIN] Login sans biométrie forcée (approche WhatsApp)');
 
-      // 4. Appel API login avec clés
+      // 5. Appel API login avec clés
       final response = await _authDataSource.loginWithDeviceAuth(
         phoneOrEmail: phoneOrEmail,
         password: password,
         deviceId: deviceId,
-        deviceName: 'Flutter Device', // Peut être amélioré avec device_info
+        deviceName: deviceName,
         publicKey: publicKeyPem,
       );
 
@@ -261,7 +279,7 @@ class AuthController extends ChangeNotifier {
       if (response['success'] == true && response['data'] != null) {
         final data = response['data'];
         
-        // 5. Extraire les informations
+        // 6. Extraire les informations
         final deviceToken = data['tokens'] as String;
         final userMap = data['user'] as Map<String, dynamic>;
         
@@ -270,7 +288,7 @@ class AuthController extends ChangeNotifier {
         
         debugPrint('🔐 [LOGIN] Device token reçu, stockage sécurisé...');
 
-        // 6. Stocker les secrets selon le pattern du register
+        // 7. Stocker les secrets selon le pattern du register
         await secureStorage.write('device_token', deviceToken);
         await secureStorage.write('private_key', privateKeyPem);
         await secureStorage.write('public_key', publicKeyPem);
@@ -278,10 +296,10 @@ class AuthController extends ChangeNotifier {
         await secureStorage.write('user_id', user.id);
         await secureStorage.write('biometric_setup', 'false'); // Par défaut non activé
         
-        // 7. Stocker les données utilisateur (compatibilité)
+        // 8. Stocker les données utilisateur (compatibilité)
         await SecureStorage.saveUserData(jsonEncode(user.toJson()));
         
-        // 8. Mettre à jour l'état
+        // 9. Mettre à jour l'état
         _user = user;
         _setStatus(AuthStatus.authenticated);
         
