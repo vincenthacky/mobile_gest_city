@@ -64,17 +64,10 @@ class RegisterController extends ChangeNotifier {
       final publicKeyPem = CryptoService.publicKeyToPem(keyPair.publicKey);
       final privateKeyPem = CryptoService.privateKeyToPem(keyPair.privateKey);
 
-      // 4. ÉTAPE CRITIQUE : Demander l'authentification biométrique
-      // Ceci lie la clé privée au secret local (Touch ID/Face ID/PIN)
-      final biometricResult = await BiometricAuthService.authenticateWithFallback(
-        localizedReason: 'Configurez votre authentification biométrique pour sécuriser votre appareil',
-      );
-
-      if (!biometricResult.isSuccess) {
-        _errorMessage = 'Authentification biométrique requise pour finaliser l\'inscription: ${biometricResult.message}';
-        _setStatus(RegisterStatus.error);
-        return false;
-      }
+      // 4. NOUVELLE APPROCHE WHATSAPP : Ne plus forcer la biométrie à l'inscription
+      // La biométrie sera proposée optionnellement après connexion réussie
+      debugPrint('🚀 [REGISTER] Génération des clés sans biométrie forcée (approche WhatsApp)');
+      // Plus de vérification biométrique obligatoire ici
 
       // 5. Obtenir les informations de l'appareil
       final deviceInfo = DeviceInfoPlugin();
@@ -123,11 +116,12 @@ class RegisterController extends ChangeNotifier {
         await SecureStorage.saveUserData(jsonEncode(response.data!.toJson()));
       }
       
-      // Marquer que l'utilisateur a configuré l'auth biométrique
-      await secureStorage.write('biometric_setup', 'true');
+      // NOUVEAU : Ne plus forcer biometric_setup, sera géré par les préférences utilisateur
+      // Compatible avec l'ancien système mais optionnel maintenant
+      await secureStorage.write('biometric_setup', 'false'); // Par défaut non activé
 
       _userData = response.data;
-      _successMessage = 'Inscription réussie. Votre appareil a été configuré pour l\'authentification biométrique.';
+      _successMessage = 'Inscription réussie ! Vous allez être connecté automatiquement.';
       _setStatus(RegisterStatus.success);
       return true;
 

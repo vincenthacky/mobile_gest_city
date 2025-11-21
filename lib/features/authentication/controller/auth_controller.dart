@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/services/biometric_auth_service.dart';
 import '../../../core/services/crypto_service.dart';
+import '../../../core/services/security_settings_service.dart';
 import '../data_source/auth_data_source.dart';
 import '../model/user_model.dart';
 
@@ -38,7 +39,7 @@ class AuthController extends ChangeNotifier {
       
       debugPrint('👑 [AUTH SUPREME] Device secrets - token:${deviceToken != null}, biometric:$biometricSetup, user:${userId != null}, key:${publicKey != null}');
       
-      if (deviceToken != null && biometricSetup == 'true' && userId != null && publicKey != null) {
+      if (deviceToken != null && userId != null && publicKey != null) {
         // Vérifier format des clés
         if (!_isNewKeyFormat(publicKey)) {
           debugPrint('👑 [AUTH SUPREME] Ancien format détecté - reset complet');
@@ -54,10 +55,21 @@ class AuthController extends ChangeNotifier {
             final userJson = jsonDecode(userData);
             _user = UserModel.fromJson(userJson);
             
-            // Device auth complet trouvé → biométrie requise
-            debugPrint('👑 [AUTH SUPREME] Device auth complet trouvé → BIOMETRIC REQUIRED');
-            _setStatus(AuthStatus.biometricRequired);
-            return;
+            // NOUVELLE LOGIQUE WHATSAPP : Respecter les préférences utilisateur
+            final securityPrefs = await SecuritySettingsService.getPreferences();
+            debugPrint('👑 [AUTH SUPREME] Device auth trouvé - préférences: $securityPrefs');
+            
+            if (securityPrefs.biometricEnabled || securityPrefs.pinEnabled) {
+              // Utilisateur a choisi une sécurité → biométrie/PIN requis
+              debugPrint('👑 [AUTH SUPREME] Sécurité activée par utilisateur → BIOMETRIC REQUIRED');
+              _setStatus(AuthStatus.biometricRequired);
+              return;
+            } else {
+              // Utilisateur n'a pas activé la sécurité → connexion directe (comme WhatsApp)
+              debugPrint('👑 [AUTH SUPREME] Aucune sécurité activée → AUTHENTICATED direct');
+              _setStatus(AuthStatus.authenticated);
+              return;
+            }
             
           } catch (e) {
             debugPrint('👑 [AUTH SUPREME] Erreur userData: $e');
@@ -210,19 +222,9 @@ class AuthController extends ChangeNotifier {
       
       debugPrint('🔐 [LOGIN] Clés générées, device_id: $deviceId');
 
-      // 3. ÉTAPE CRITIQUE : Demander l'authentification biométrique
-      final biometricResult = await BiometricAuthService.authenticateWithFallback(
-        localizedReason: 'Configurez votre authentification biométrique pour vous connecter',
-      );
-
-      if (!biometricResult.isSuccess) {
-        debugPrint('❌ [LOGIN] Biométrie refusée: ${biometricResult.name}');
-        _setError('Authentification biométrique requise pour la sécurité');
-        _setStatus(AuthStatus.unauthenticated);
-        return false;
-      }
-
-      debugPrint('✅ [LOGIN] Biométrie acceptée, appel API login...');
+      // 3. NOUVELLE APPROCHE WHATSAPP : Ne plus forcer la biométrie au login
+      // L'utilisateur activera la biométrie dans les paramètres s'il le souhaite
+      debugPrint('🚀 [LOGIN] Login sans biométrie forcée (approche WhatsApp)');
 
       // 4. Appel API login avec clés
       final response = await _authDataSource.loginWithDeviceAuth(
@@ -253,7 +255,7 @@ class AuthController extends ChangeNotifier {
         await secureStorage.write('public_key', publicKeyPem);
         await secureStorage.write('device_id', deviceId);
         await secureStorage.write('user_id', user.id);
-        await secureStorage.write('biometric_setup', 'true');
+        await secureStorage.write('biometric_setup', 'false'); // Par défaut non activé
         
         // 7. Stocker les données utilisateur (compatibilité)
         await SecureStorage.saveUserData(jsonEncode(user.toJson()));
@@ -459,20 +461,29 @@ class AuthController extends ChangeNotifier {
           return;
         }
         
-        // NOUVEAU: Demander la biométrie AVANT d'authentifier
-        debugPrint('🔐 [AUTH] Secrets trouvés - demande de biométrie obligatoire...');
-        final biometricResult = await BiometricAuthService.authenticateWithFallback(
-          localizedReason: 'Authentifiez-vous pour accéder à votre compte',
-        );
+        // NOUVELLE LOGIQUE WHATSAPP : Vérifier les préférences utilisateur
+        debugPrint('🔐 [AUTH] Secrets trouvés - vérification préférences sécurité...');
+        final securityPrefs = await SecuritySettingsService.getPreferences();
         
-        if (!biometricResult.isSuccess) {
-          debugPrint('❌ [AUTH] Biométrie échouée au démarrage: ${biometricResult.name} - reset des secrets');
-          await _resetAllSecrets();
-          _setStatus(AuthStatus.unauthenticated);
-          return;
+        if (securityPrefs.biometricEnabled || securityPrefs.pinEnabled) {
+          // Utilisateur a activé la sécurité → biométrie requise
+          debugPrint('🔐 [AUTH] Sécurité activée → BIOMETRIC REQUIRED');
+          final biometricResult = await BiometricAuthService.authenticateWithFallback(
+            localizedReason: 'Authentifiez-vous pour accéder à votre compte',
+          );
+          
+          if (!biometricResult.isSuccess) {
+            debugPrint('❌ [AUTH] Biométrie échouée: ${biometricResult.name} - reset des secrets');
+            await _resetAllSecrets();
+            _setStatus(AuthStatus.unauthenticated);
+            return;
+          }
+        } else {
+          // Utilisateur n'a pas activé de sécurité → connexion directe
+          debugPrint('🔓 [AUTH] Aucune sécurité activée - connexion directe (WhatsApp-like)');
         }
         
-        debugPrint('✅ [AUTH] Biométrie réussie - récupération données utilisateur...');
+        debugPrint('✅ [AUTH] Authentification OK - récupération données utilisateur...');
         // Biométrie OK - récupérer les vraies données utilisateur
         final userData = await SecureStorage.getUserData();
         if (userData != null) {

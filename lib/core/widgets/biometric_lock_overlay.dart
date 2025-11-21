@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/app_lock_service.dart';
 import '../services/biometric_auth_service.dart';
+import '../services/security_settings_service.dart';
 
 /// Overlay de verrouillage biométrique (comme WhatsApp)
 /// S'affiche au-dessus de l'application quand elle est verrouillée
@@ -15,14 +16,26 @@ class BiometricLockOverlay extends StatefulWidget {
 class _BiometricLockOverlayState extends State<BiometricLockOverlay> {
   bool _hasError = false;
   String _errorMessage = '';
+  LockType _lockType = LockType.none;
 
   @override
   void initState() {
     super.initState();
-    // Lancer l'authentification automatiquement à l'ouverture
+    // Déterminer le type de lock et lancer l'authentification
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _authenticateUser();
+      _initializeAndAuthenticate();
     });
+  }
+
+  Future<void> _initializeAndAuthenticate() async {
+    // Déterminer le type de verrouillage préféré
+    _lockType = await SecuritySettingsService.getPreferredLockType();
+    debugPrint('🔐 [OVERLAY] Type de lock déterminé: $_lockType');
+    
+    if (mounted) {
+      setState(() {});
+      _authenticateUser();
+    }
   }
 
   Future<void> _authenticateUser() async {
@@ -36,31 +49,126 @@ class _BiometricLockOverlayState extends State<BiometricLockOverlay> {
     AppLockService.startAuthentication();
 
     try {
-      final result = await BiometricAuthService.authenticate(
-        localizedReason: 'Déverrouiller Gest City pour accéder à vos données',
-        useErrorDialogs: false, // Gérer nous-mêmes les erreurs
-        stickyAuth: true, // Garder actif jusqu'à succès/annulation
-      );
+      bool success = false;
 
-      if (result.isSuccess) {
-        // Succès → Retirer l'overlay (plus besoin de communiquer avec Bootstrap)
+      if (_lockType == LockType.biometric) {
+        // Authentification biométrique
+        final result = await BiometricAuthService.authenticate(
+          localizedReason: 'Déverrouiller Gest City pour accéder à vos données',
+          useErrorDialogs: false,
+          stickyAuth: true,
+        );
+        success = result.isSuccess;
+        if (!success) {
+          _errorMessage = result.message;
+        }
+      } else if (_lockType == LockType.pin) {
+        // Authentification PIN
+        final pin = await _showPinDialog();
+        if (pin != null) {
+          success = await _verifyPin(pin);
+          if (!success) {
+            _errorMessage = 'Code PIN incorrect';
+          }
+        } else {
+          _errorMessage = 'Code PIN requis';
+        }
+      } else {
+        // Aucun lock défini → débloquer directement
+        success = true;
+      }
+
+      if (success) {
+        // Succès → Retirer l'overlay
         AppLockService.unlock();
       } else {
-        // Échec → Afficher l'erreur et permettre de réessayer
+        // Échec → Afficher l'erreur
         setState(() {
           _hasError = true;
-          _errorMessage = result.message;
         });
         AppLockService.isAuthenticating.value = false;
       }
     } catch (e) {
-      // Erreur inattendue
       setState(() {
         _hasError = true;
         _errorMessage = 'Erreur d\'authentification: $e';
       });
       AppLockService.isAuthenticating.value = false;
-      debugPrint('❌ [BIOMETRIC OVERLAY] Erreur: $e');
+      debugPrint('❌ [OVERLAY] Erreur: $e');
+    }
+  }
+
+  Future<String?> _showPinDialog() async {
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Code PIN'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Entrez votre code PIN pour déverrouiller l\'application'),
+            const SizedBox(height: 16),
+            TextField(
+              decoration: const InputDecoration(
+                hintText: 'Code PIN',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              obscureText: true,
+              onSubmitted: (value) => Navigator.of(context).pop(value),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Annuler'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool> _verifyPin(String enteredPin) async {
+    final prefs = await SecuritySettingsService.getPreferences();
+    return prefs.appPin == enteredPin;
+  }
+
+  String _getInstructionText() {
+    switch (_lockType) {
+      case LockType.biometric:
+        return 'Utilisez votre empreinte/Face ID pour déverrouiller l\'application';
+      case LockType.pin:
+        return 'Entrez votre code PIN pour déverrouiller l\'application';
+      case LockType.none:
+      default:
+        return 'Déverrouillez votre application pour accéder à vos données';
+    }
+  }
+
+  IconData _getLockIcon() {
+    switch (_lockType) {
+      case LockType.biometric:
+        return Icons.fingerprint;
+      case LockType.pin:
+        return Icons.pin;
+      case LockType.none:
+      default:
+        return Icons.lock;
+    }
+  }
+
+  String _getButtonText() {
+    switch (_lockType) {
+      case LockType.biometric:
+        return 'Utiliser biométrie';
+      case LockType.pin:
+        return 'Entrer le code';
+      case LockType.none:
+      default:
+        return 'Déverrouiller';
     }
   }
 
@@ -177,9 +285,9 @@ class _BiometricLockOverlayState extends State<BiometricLockOverlay> {
 
               SizedBox(height: screenSize.height * 0.02),
 
-              // Instructions
+              // Instructions adaptées au type de lock
               Text(
-                'Déverrouillez votre application pour accéder à vos données',
+                _getInstructionText(),
                 style: GoogleFonts.nunito(
                   fontSize: isSmallScreen ? 16 : 18,
                   color: const Color(0xFFC0C7D0),

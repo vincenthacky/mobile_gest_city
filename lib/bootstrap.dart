@@ -15,6 +15,7 @@ import 'features/finance/services/cash_movements_local_storage_service.dart';
 import 'features/authentication/controller/auth_controller.dart';
 import 'features/authentication/controller/register_controller.dart';
 import 'core/services/app_lock_service.dart';
+import 'core/services/security_settings_service.dart';
 import 'core/widgets/biometric_lock_overlay.dart';
 import 'features/projets/controllers/project_controller.dart';
 import 'features/signalement/controllers/signalement_controller.dart';
@@ -308,13 +309,9 @@ class GestCityAppState extends State<GestCityApp> with WidgetsBindingObserver {
     switch (state) {
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
-        // App mise en arrière-plan → activer le lock si biométrie configurée
+        // App mise en arrière-plan → vérifier si lock nécessaire
         _appWasInBackground = true;
-        
-        if (_shouldActivateBiometricLock()) {
-          AppLockService.lock();
-          debugPrint('🔒 [LIFECYCLE] App en arrière-plan - lock overlay activé');
-        }
+        _handleAppPause();
         break;
         
       case AppLifecycleState.resumed:
@@ -331,13 +328,28 @@ class GestCityAppState extends State<GestCityApp> with WidgetsBindingObserver {
     }
   }
 
-  /// Détermine si le lock biométrique doit être activé
-  bool _shouldActivateBiometricLock() {
-    // Vérifier si l'utilisateur est authentifié
+  /// Gère la mise en arrière-plan (WhatsApp-like)
+  Future<void> _handleAppPause() async {
     final isAuthenticated = _authController.status == AuthStatus.authenticated;
     
-    // TODO: Ajouter la vérification biométrique setup - pour l'instant activer pour tous les authentifiés
-    return isAuthenticated;
+    if (!isAuthenticated) {
+      debugPrint('🔒 [LIFECYCLE] User non authentifié - pas de lock');
+      return;
+    }
+    
+    // Vérifier les préférences utilisateur
+    try {
+      final shouldLock = await SecuritySettingsService.shouldActivateAppLock();
+      
+      if (shouldLock) {
+        AppLockService.lock();
+        debugPrint('🔒 [LIFECYCLE] App en arrière-plan - lock overlay activé');
+      } else {
+        debugPrint('🔒 [LIFECYCLE] User n\'a pas activé de sécurité - pas de lock (comme WhatsApp)');
+      }
+    } catch (e) {
+      debugPrint('🔒 [LIFECYCLE] Erreur vérification préférences: $e');
+    }
   }
 
 
