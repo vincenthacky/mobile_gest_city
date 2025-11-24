@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../data_sources/signalement_data_source.dart';
+import '../../../core/services/connectivity_service.dart';
+import '../../../core/services/unified_sync_service.dart';
 
 enum SignalementSubmissionStatus { initial, loading, success, error }
 
@@ -11,6 +13,8 @@ enum PriorityLevel { low, medium, high }
 class SignalementController extends ChangeNotifier {
   final SignalementDataSource _signalementDataSource = SignalementDataSource();
   final ImagePicker _imagePicker = ImagePicker();
+  final ConnectivityService _connectivityService = ConnectivityService();
+  final UnifiedSyncService _unifiedSyncService = UnifiedSyncService();
   
   SignalementSubmissionStatus _status = SignalementSubmissionStatus.initial;
   String? _errorMessage;
@@ -105,26 +109,57 @@ class SignalementController extends ChangeNotifier {
     _clearError();
 
     try {
-      final response = await _signalementDataSource.createSignalement(
-        title: title,
-        description: description,
-        reportType: _mapSignalementTypeToApi(reportType),
-        place: place,
-        priority: _mapPriorityToApi(priority),
-        anonymous: isAnonymous,
-        images: _selectedImages,
-      );
-      
-      if (response.success) {
+      // Vérifier la connectivité
+      if (_connectivityService.isConnected) {
+        // Connexion disponible - tenter l'envoi direct
+        final response = await _signalementDataSource.createSignalement(
+          title: title,
+          description: description,
+          reportType: _mapSignalementTypeToApi(reportType),
+          place: place,
+          priority: _mapPriorityToApi(priority),
+          anonymous: isAnonymous,
+          images: _selectedImages,
+        );
+        
+        if (response.success) {
+          _setStatus(SignalementSubmissionStatus.success);
+          _selectedImages.clear();
+          return true;
+        } else {
+          _setError(response.message);
+          _setStatus(SignalementSubmissionStatus.error);
+          return false;
+        }
+      } else {
+        // Pas de connexion - sauvegarder en local
+        debugPrint('📵 [SIGNALEMENT] Pas de connexion - sauvegarde en local');
+        
+        // Copier les images dans un dossier temporaire pour les garder
+        final imagePaths = <String>[];
+        for (final image in _selectedImages) {
+          imagePaths.add(image.path);
+        }
+        
+        // Sauvegarder le signalement en attente
+        final pendingId = await _unifiedSyncService.addPendingSignalement(
+          title: title,
+          description: description,
+          place: place,
+          type: _mapSignalementTypeToApi(reportType),
+          priority: _mapPriorityToApi(priority),
+          isAnonymous: isAnonymous,
+          imagePaths: imagePaths,
+        );
+        
+        debugPrint('💾 [SIGNALEMENT] Signalement "$title" sauvegardé en local avec ID: $pendingId');
+        
         _setStatus(SignalementSubmissionStatus.success);
         _selectedImages.clear();
         return true;
-      } else {
-        _setError(response.message);
-        _setStatus(SignalementSubmissionStatus.error);
-        return false;
       }
     } catch (e) {
+      debugPrint('❌ [SIGNALEMENT] Erreur lors de la création: $e');
       _setError(e.toString());
       _setStatus(SignalementSubmissionStatus.error);
       return false;

@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../data_sources/information_data_source.dart';
+import '../../../core/services/connectivity_service.dart';
+import '../../../core/services/unified_sync_service.dart';
 
 enum InformationSubmissionStatus { initial, loading, success, error }
 
@@ -11,6 +13,8 @@ enum PriorityLevel { low, medium, high }
 class InformationSubmissionController extends ChangeNotifier {
   final InformationDataSource _informationDataSource = InformationDataSource();
   final ImagePicker _imagePicker = ImagePicker();
+  final ConnectivityService _connectivityService = ConnectivityService();
+  final UnifiedSyncService _unifiedSyncService = UnifiedSyncService();
   
   InformationSubmissionStatus _status = InformationSubmissionStatus.initial;
   String? _errorMessage;
@@ -105,26 +109,56 @@ class InformationSubmissionController extends ChangeNotifier {
     _clearError();
 
     try {
-      final response = await _informationDataSource.createInformation(
-        title: title,
-        description: description,
-        reportType: _mapInformationTypeToApi(reportType),
-        place: place,
-        priority: _mapPriorityToApi(priority),
-        anonymous: isAnonymous,
-        images: _selectedImages,
-      );
-      
-      if (response.success) {
+      // Vérifier la connectivité
+      if (_connectivityService.isConnected) {
+        // Connexion disponible - tenter l'envoi direct
+        final response = await _informationDataSource.createInformation(
+          title: title,
+          description: description,
+          reportType: _mapInformationTypeToApi(reportType),
+          place: place,
+          priority: _mapPriorityToApi(priority),
+          anonymous: isAnonymous,
+          images: _selectedImages,
+        );
+        
+        if (response.success) {
+          _setStatus(InformationSubmissionStatus.success);
+          _selectedImages.clear();
+          return true;
+        } else {
+          _setError(response.message);
+          _setStatus(InformationSubmissionStatus.error);
+          return false;
+        }
+      } else {
+        // Pas de connexion - sauvegarder en local
+        debugPrint('📵 [CADRE_VIE] Pas de connexion - sauvegarde en local');
+        
+        // Copier les images dans un dossier temporaire pour les garder
+        final imagePaths = <String>[];
+        for (final image in _selectedImages) {
+          imagePaths.add(image.path);
+        }
+        
+        // Sauvegarder l'information en attente
+        final pendingId = await _unifiedSyncService.addPendingCadreDeVie(
+          title: title,
+          description: description,
+          place: place,
+          type: _mapInformationTypeToApi(reportType),
+          priority: _mapPriorityToApi(priority),
+          imagePaths: imagePaths,
+        );
+        
+        debugPrint('💾 [CADRE_VIE] Information "$title" sauvegardée en local avec ID: $pendingId');
+        
         _setStatus(InformationSubmissionStatus.success);
         _selectedImages.clear();
         return true;
-      } else {
-        _setError(response.message);
-        _setStatus(InformationSubmissionStatus.error);
-        return false;
       }
     } catch (e) {
+      debugPrint('❌ [CADRE_VIE] Erreur lors de la création: $e');
       _setError(e.toString());
       _setStatus(InformationSubmissionStatus.error);
       return false;

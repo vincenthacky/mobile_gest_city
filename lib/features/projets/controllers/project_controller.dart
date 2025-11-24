@@ -7,7 +7,7 @@ import '../models/voter_model.dart';
 import '../models/sync_models.dart';
 import '../services/sync_service.dart';
 import '../services/local_storage_service.dart';
-import '../services/pending_projects_service.dart';
+import '../../../core/services/unified_sync_service.dart';
 import '../../../core/widgets/sync_notification.dart';
 import '../../../core/services/connectivity_service.dart';
 
@@ -20,7 +20,7 @@ enum PrioritizationStatus { initial, loading, success, error }
 class ProjectController extends ChangeNotifier {
   final ProjectDataSource _projectDataSource = ProjectDataSource();
   final ImagePicker _imagePicker = ImagePicker();
-  final PendingProjectsService _pendingService = PendingProjectsService();
+  final UnifiedSyncService _unifiedSyncService = UnifiedSyncService();
   final ConnectivityService _connectivityService = ConnectivityService();
   
   ProjectSubmissionStatus _status = ProjectSubmissionStatus.initial;
@@ -205,7 +205,7 @@ class ProjectController extends ChangeNotifier {
         }
         
         // Sauvegarder le projet en attente
-        final pendingProjectId = await _pendingService.addPendingProject(
+        final pendingProjectId = await _unifiedSyncService.addPendingProject(
           title: title,
           briefDescription: briefDescription,
           detailedDescription: detailedDescription,

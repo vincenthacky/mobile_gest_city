@@ -1,53 +1,62 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/widgets/app_header.dart';
-import '../../../../core/widgets/main_layout.dart';
-import '../../../../core/services/connectivity_service.dart';
-import '../../models/pending_project_models.dart';
-import '../../services/pending_projects_service.dart';
+import '../widgets/app_header.dart';
+import '../services/connectivity_service.dart';
+import '../models/pending_sync_models.dart';
+import '../services/unified_sync_service.dart';
 
-class PendingSyncPage extends StatefulWidget {
-  const PendingSyncPage({super.key});
+class UnifiedSyncPage extends StatefulWidget {
+  const UnifiedSyncPage({super.key});
 
   @override
-  State<PendingSyncPage> createState() => _PendingSyncPageState();
+  State<UnifiedSyncPage> createState() => _UnifiedSyncPageState();
 }
 
-class _PendingSyncPageState extends State<PendingSyncPage> {
-  late PendingProjectsService _pendingService;
-  List<PendingProject> _pendingProjects = [];
+class _UnifiedSyncPageState extends State<UnifiedSyncPage> {
+  late UnifiedSyncService _syncService;
+  List<PendingSyncItem> _pendingItems = [];
+  Map<PendingDataType, List<PendingSyncItem>> _itemsByType = {};
+  PendingDataType? _selectedTypeFilter;
   bool _isLoading = true;
   bool _isSyncing = false;
 
   @override
   void initState() {
     super.initState();
-    _pendingService = PendingProjectsService();
-    _loadPendingProjects();
+    _syncService = UnifiedSyncService();
+    _loadPendingItems();
     
     // Écouter les changements du service
-    _pendingService.addListener(_onServiceChanged);
+    _syncService.addListener(_onServiceChanged);
   }
 
   @override
   void dispose() {
-    _pendingService.removeListener(_onServiceChanged);
+    _syncService.removeListener(_onServiceChanged);
     super.dispose();
   }
 
   void _onServiceChanged() {
     if (mounted) {
-      _loadPendingProjects();
+      _loadPendingItems();
     }
   }
 
-  Future<void> _loadPendingProjects() async {
+  Future<void> _loadPendingItems() async {
     setState(() => _isLoading = true);
     
     try {
-      final projects = await _pendingService.getAllPendingProjects();
+      final items = await _syncService.getAllPendingItems();
+      
+      // Grouper par type
+      final itemsByType = <PendingDataType, List<PendingSyncItem>>{};
+      for (final type in PendingDataType.values) {
+        itemsByType[type] = items.where((item) => item.type == type).toList();
+      }
+      
       setState(() {
-        _pendingProjects = projects;
+        _pendingItems = items;
+        _itemsByType = itemsByType;
         _isLoading = false;
       });
     } catch (e) {
@@ -63,11 +72,18 @@ class _PendingSyncPageState extends State<PendingSyncPage> {
     }
   }
 
-  Future<void> _syncAllProjects() async {
+  List<PendingSyncItem> _getFilteredItems() {
+    if (_selectedTypeFilter == null) {
+      return _pendingItems;
+    }
+    return _itemsByType[_selectedTypeFilter] ?? [];
+  }
+
+  Future<void> _syncAllItems() async {
     setState(() => _isSyncing = true);
     
     try {
-      await _pendingService.syncAllPendingProjects();
+      await _syncService.syncAllPendingItems();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -90,15 +106,15 @@ class _PendingSyncPageState extends State<PendingSyncPage> {
     }
   }
 
-  Future<void> _syncProject(String projectId) async {
+  Future<void> _syncItem(String itemId) async {
     try {
-      final success = await _pendingService.syncProject(projectId);
+      final success = await _syncService.syncItem(itemId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(success 
-                ? 'Synchronisation du projet lancée' 
-                : 'Impossible de synchroniser le projet'),
+                ? 'Synchronisation lancée' 
+                : 'Impossible de synchroniser l\'élément'),
             backgroundColor: success ? Colors.green : Colors.red,
           ),
         );
@@ -115,13 +131,13 @@ class _PendingSyncPageState extends State<PendingSyncPage> {
     }
   }
 
-  Future<void> _removeProject(String projectId) async {
+  Future<void> _removeItem(String itemId) async {
     try {
-      await _pendingService.removePendingProject(projectId);
+      await _syncService.removePendingItem(itemId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Projet supprimé de la liste'),
+            content: Text('Élément supprimé de la liste'),
             backgroundColor: Colors.green,
           ),
         );
@@ -138,13 +154,13 @@ class _PendingSyncPageState extends State<PendingSyncPage> {
     }
   }
 
-  Future<void> _retryFailedProjects() async {
+  Future<void> _retryFailedItems() async {
     try {
-      await _pendingService.retryFailedProjects();
+      await _syncService.retryFailedItems();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Projets en échec remis en attente'),
+            content: Text('Éléments en échec remis en attente'),
             backgroundColor: Colors.green,
           ),
         );
@@ -161,13 +177,13 @@ class _PendingSyncPageState extends State<PendingSyncPage> {
     }
   }
 
-  Future<void> _clearCompletedProjects() async {
+  Future<void> _clearCompletedItems() async {
     try {
-      await _pendingService.clearCompletedProjects();
+      await _syncService.clearCompletedItems();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Projets synchronisés supprimés'),
+            content: Text('Éléments synchronisés supprimés'),
             backgroundColor: Colors.green,
           ),
         );
@@ -186,33 +202,36 @@ class _PendingSyncPageState extends State<PendingSyncPage> {
 
   @override
   Widget build(BuildContext context) {
-    return MainLayout(
-      currentPath: '/pending-sync',
-      child: Column(
-        children: [
-          const AppHeader(title: '📤 Données en attente'),
-          
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _buildContent(),
-          ),
-        ],
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9FAFB),
+      body: SafeArea(
+        child: Column(
+          children: [
+            const AppHeader(title: '📤 Données en attente'),
+            
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _buildContent(),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildContent() {
-    if (_pendingProjects.isEmpty) {
+    if (_pendingItems.isEmpty) {
       return _buildEmptyState();
     }
 
     return RefreshIndicator(
-      onRefresh: _loadPendingProjects,
+      onRefresh: _loadPendingItems,
       child: Column(
         children: [
           _buildHeader(),
-          Expanded(child: _buildProjectsList()),
+          _buildTypeFilters(),
+          Expanded(child: _buildItemsList()),
         ],
       ),
     );
@@ -259,9 +278,10 @@ class _PendingSyncPageState extends State<PendingSyncPage> {
   }
 
   Widget _buildHeader() {
-    final pendingCount = _pendingProjects.where((p) => p.status == PendingProjectStatus.pending).length;
-    final failedCount = _pendingProjects.where((p) => p.status == PendingProjectStatus.failed).length;
-    final completedCount = _pendingProjects.where((p) => p.status == PendingProjectStatus.completed).length;
+    final totalItems = _pendingItems.length;
+    final pendingCount = _pendingItems.where((i) => i.status == PendingSyncStatus.pending).length;
+    final failedCount = _pendingItems.where((i) => i.status == PendingSyncStatus.failed).length;
+    final completedCount = _pendingItems.where((i) => i.status == PendingSyncStatus.completed).length;
 
     return Container(
       margin: const EdgeInsets.all(16),
@@ -318,7 +338,7 @@ class _PendingSyncPageState extends State<PendingSyncPage> {
                   if (pendingCount > 0 || failedCount > 0) ...[
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: isConnected && !_isSyncing ? _syncAllProjects : null,
+                        onPressed: isConnected && !_isSyncing ? _syncAllItems : null,
                         icon: _isSyncing 
                             ? const SizedBox(
                                 width: 16,
@@ -343,7 +363,7 @@ class _PendingSyncPageState extends State<PendingSyncPage> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: _retryFailedProjects,
+                        onPressed: _retryFailedItems,
                         icon: const Icon(Icons.refresh, size: 18),
                         label: const Text('Réessayer échecs'),
                         style: OutlinedButton.styleFrom(
@@ -361,7 +381,7 @@ class _PendingSyncPageState extends State<PendingSyncPage> {
                   if (completedCount > 0) ...[
                     const SizedBox(width: 8),
                     IconButton(
-                      onPressed: _clearCompletedProjects,
+                      onPressed: _clearCompletedItems,
                       icon: const Icon(Icons.clear_all),
                       tooltip: 'Nettoyer les synchronisés',
                       color: const Color(0xFF6B7280),
@@ -446,25 +466,116 @@ class _PendingSyncPageState extends State<PendingSyncPage> {
     );
   }
 
-  Widget _buildProjectsList() {
+  Widget _buildTypeFilters() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          // Filtre "Tous"
+          Expanded(
+            child: _buildFilterChip(
+              label: 'Tous',
+              count: _pendingItems.length,
+              isSelected: _selectedTypeFilter == null,
+              onTap: () => setState(() => _selectedTypeFilter = null),
+            ),
+          ),
+          const SizedBox(width: 8),
+          
+          // Filtres par type
+          ...PendingDataType.values.map((type) {
+            final items = _itemsByType[type] ?? [];
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: _buildFilterChip(
+                  label: type.label,
+                  count: items.length,
+                  isSelected: _selectedTypeFilter == type,
+                  onTap: () => setState(() => _selectedTypeFilter = type),
+                ),
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required int count,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF3B82F6) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF3B82F6) : const Color(0xFFE5E7EB),
+          ),
+        ),
+        child: Text(
+          '$label ($count)',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: isSelected ? Colors.white : const Color(0xFF6B7280),
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildItemsList() {
+    final filteredItems = _getFilteredItems();
+    
+    if (filteredItems.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.filter_list,
+              size: 48,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Aucun élément pour ce filtre',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      itemCount: _pendingProjects.length,
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      itemCount: filteredItems.length,
       itemBuilder: (context, index) {
-        final project = _pendingProjects[index];
-        return _buildProjectCard(project);
+        final item = filteredItems[index];
+        return _buildItemCard(item);
       },
     );
   }
 
-  Widget _buildProjectCard(PendingProject project) {
+  Widget _buildItemCard(PendingSyncItem item) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: _getStatusColor(project.status).withValues(alpha: 0.2),
+          color: _getStatusColor(item.status).withValues(alpha: 0.2),
           width: 1.5,
         ),
         boxShadow: [
@@ -481,7 +592,7 @@ class _PendingSyncPageState extends State<PendingSyncPage> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: _getStatusColor(project.status).withValues(alpha: 0.1),
+              color: _getStatusColor(item.status).withValues(alpha: 0.1),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(12),
                 topRight: Radius.circular(12),
@@ -490,26 +601,38 @@ class _PendingSyncPageState extends State<PendingSyncPage> {
             child: Row(
               children: [
                 Text(
-                  project.status.icon,
+                  '${item.typeIcon} ${item.status.icon}',
                   style: const TextStyle(fontSize: 16),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text(
-                    project.title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1F2937),
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1F2937),
+                        ),
+                      ),
+                      Text(
+                        item.typeLabel,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 Text(
-                  project.status.label,
+                  item.status.label,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: _getStatusColor(project.status),
+                    color: _getStatusColor(item.status),
                   ),
                 ),
               ],
@@ -523,7 +646,7 @@ class _PendingSyncPageState extends State<PendingSyncPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  project.shortDescription,
+                  item.description,
                   style: const TextStyle(
                     fontSize: 14,
                     color: Color(0xFF6B7280),
@@ -536,36 +659,38 @@ class _PendingSyncPageState extends State<PendingSyncPage> {
                 Row(
                   children: [
                     Icon(
-                      Icons.monetization_on,
-                      size: 16,
-                      color: Colors.grey[600],
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${project.estimatedAmount} FCFA',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF6B7280),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Icon(
                       Icons.schedule,
                       size: 16,
                       color: Colors.grey[600],
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Créé le ${_formatDate(project.createdAt)}',
+                      'Créé le ${_formatDate(item.createdAt)}',
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF6B7280),
                       ),
                     ),
+                    if (item.imagePaths.isNotEmpty) ...[
+                      const SizedBox(width: 16),
+                      Icon(
+                        Icons.image,
+                        size: 16,
+                        color: Colors.grey[600],
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${item.imagePaths.length} image(s)',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
                 
-                if (project.retryCount > 0) ...[
+                if (item.retryCount > 0) ...[
                   const SizedBox(height: 8),
                   Row(
                     children: [
@@ -576,7 +701,7 @@ class _PendingSyncPageState extends State<PendingSyncPage> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        'Tentatives: ${project.retryCount}/3',
+                        'Tentatives: ${item.retryCount}/3',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.orange[600],
@@ -586,7 +711,7 @@ class _PendingSyncPageState extends State<PendingSyncPage> {
                   ),
                 ],
                 
-                if (project.lastError != null) ...[
+                if (item.lastError != null) ...[
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.all(8),
@@ -605,7 +730,7 @@ class _PendingSyncPageState extends State<PendingSyncPage> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            project.lastError!,
+                            item.lastError!,
                             style: const TextStyle(
                               fontSize: 12,
                               color: Colors.red,
@@ -625,10 +750,10 @@ class _PendingSyncPageState extends State<PendingSyncPage> {
                   children: [
                     Consumer<ConnectivityService>(
                       builder: (context, connectivityService, child) {
-                        if (project.canSync && connectivityService.isConnected) {
+                        if (item.canSync && connectivityService.isConnected) {
                           return Expanded(
                             child: OutlinedButton.icon(
-                              onPressed: () => _syncProject(project.id),
+                              onPressed: () => _syncItem(item.id),
                               icon: const Icon(Icons.sync, size: 16),
                               label: const Text('Synchroniser'),
                               style: OutlinedButton.styleFrom(
@@ -646,11 +771,11 @@ class _PendingSyncPageState extends State<PendingSyncPage> {
                       },
                     ),
                     
-                    if (project.canRetry) ...[
+                    if (item.canRetry) ...[
                       const SizedBox(width: 8),
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () => _syncProject(project.id),
+                          onPressed: () => _syncItem(item.id),
                           icon: const Icon(Icons.refresh, size: 16),
                           label: const Text('Réessayer'),
                           style: OutlinedButton.styleFrom(
@@ -667,7 +792,7 @@ class _PendingSyncPageState extends State<PendingSyncPage> {
                     
                     const SizedBox(width: 8),
                     IconButton(
-                      onPressed: () => _showDeleteConfirmation(project),
+                      onPressed: () => _showDeleteConfirmation(item),
                       icon: const Icon(Icons.delete_outline, size: 20),
                       color: Colors.red,
                       tooltip: 'Supprimer',
@@ -682,15 +807,15 @@ class _PendingSyncPageState extends State<PendingSyncPage> {
     );
   }
 
-  Color _getStatusColor(PendingProjectStatus status) {
+  Color _getStatusColor(PendingSyncStatus status) {
     switch (status) {
-      case PendingProjectStatus.pending:
+      case PendingSyncStatus.pending:
         return const Color(0xFF3B82F6);
-      case PendingProjectStatus.syncing:
+      case PendingSyncStatus.syncing:
         return const Color(0xFF8B5CF6);
-      case PendingProjectStatus.completed:
+      case PendingSyncStatus.completed:
         return const Color(0xFF10B981);
-      case PendingProjectStatus.failed:
+      case PendingSyncStatus.failed:
         return const Color(0xFFEF4444);
     }
   }
@@ -699,12 +824,12 @@ class _PendingSyncPageState extends State<PendingSyncPage> {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
-  Future<void> _showDeleteConfirmation(PendingProject project) async {
+  Future<void> _showDeleteConfirmation(PendingSyncItem item) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Supprimer le projet'),
-        content: Text('Voulez-vous vraiment supprimer "${project.title}" de la liste d\'attente ?'),
+        title: const Text('Supprimer l\'élément'),
+        content: Text('Voulez-vous vraiment supprimer "${item.title}" de la liste d\'attente ?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -720,7 +845,7 @@ class _PendingSyncPageState extends State<PendingSyncPage> {
     );
 
     if (confirmed == true) {
-      await _removeProject(project.id);
+      await _removeItem(item.id);
     }
   }
 }

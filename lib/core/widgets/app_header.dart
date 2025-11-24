@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../services/connectivity_service.dart';
-import '../../features/projets/services/pending_projects_service.dart';
+import '../services/unified_sync_service.dart';
 
 class AppHeader extends StatelessWidget {
   final String title;
@@ -111,8 +111,8 @@ class AppHeader extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Indicateur de connexion avec compteur de données non sync
-                Consumer2<ConnectivityService, PendingProjectsService>(
-                  builder: (context, connectivityService, pendingProjectsService, child) {
+                Consumer2<ConnectivityService, UnifiedSyncService>(
+                  builder: (context, connectivityService, syncService, child) {
                     final isConnected = connectivityService.isConnected;
                     
                     return GestureDetector(
@@ -147,7 +147,7 @@ class AppHeader extends StatelessWidget {
                           ),
                           // Badge avec le nombre de données non synchronisées
                           FutureBuilder<int>(
-                            future: pendingProjectsService.getUnsyncedCount(),
+                            future: syncService.getUnsyncedCount(),
                             builder: (context, snapshot) {
                               final count = snapshot.data ?? 0;
                               if (count == 0) return const SizedBox.shrink();
