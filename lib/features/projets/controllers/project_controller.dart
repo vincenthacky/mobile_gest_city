@@ -7,7 +7,9 @@ import '../models/voter_model.dart';
 import '../models/sync_models.dart';
 import '../services/sync_service.dart';
 import '../services/local_storage_service.dart';
+import '../services/pending_projects_service.dart';
 import '../../../core/widgets/sync_notification.dart';
+import '../../../core/services/connectivity_service.dart';
 
 enum ProjectSubmissionStatus { initial, loading, success, error }
 enum ProjectLoadingStatus { initial, loading, success, error }
@@ -18,6 +20,8 @@ enum PrioritizationStatus { initial, loading, success, error }
 class ProjectController extends ChangeNotifier {
   final ProjectDataSource _projectDataSource = ProjectDataSource();
   final ImagePicker _imagePicker = ImagePicker();
+  final PendingProjectsService _pendingService = PendingProjectsService();
+  final ConnectivityService _connectivityService = ConnectivityService();
   
   ProjectSubmissionStatus _status = ProjectSubmissionStatus.initial;
   String? _errorMessage;
@@ -158,34 +162,72 @@ class ProjectController extends ChangeNotifier {
     required String dateLapses,
     required bool withCallForTenders,
     required bool withServiceProvider,
+    String? providerName,
+    String? providerAmount,
   }) async {
     _setStatus(ProjectSubmissionStatus.loading);
     _clearError();
 
     try {
-      final response = await _projectDataSource.createProject(
-        title: title,
-        briefDescription: briefDescription,
-        detailedDescription: detailedDescription,
-        estimatedBudget: estimatedBudget,
-        startDate: startDate,
-        estimatedCompletionDate: estimatedCompletionDate,
-        dateLapses: dateLapses,
-        withCallForTenders: withCallForTenders,
-        withServiceProvider: withServiceProvider,
-        images: _selectedImages,
-      );
-      
-      if (response.success) {
+      // Vérifier la connectivité
+      if (_connectivityService.isConnected) {
+        // Connexion disponible - tenter l'envoi direct
+        final response = await _projectDataSource.createProject(
+          title: title,
+          briefDescription: briefDescription,
+          detailedDescription: detailedDescription,
+          estimatedBudget: estimatedBudget,
+          startDate: startDate,
+          estimatedCompletionDate: estimatedCompletionDate,
+          dateLapses: dateLapses,
+          withCallForTenders: withCallForTenders,
+          withServiceProvider: withServiceProvider,
+          images: _selectedImages,
+        );
+        
+        if (response.success) {
+          _setStatus(ProjectSubmissionStatus.success);
+          _selectedImages.clear();
+          return true;
+        } else {
+          _setError(response.message);
+          _setStatus(ProjectSubmissionStatus.error);
+          return false;
+        }
+      } else {
+        // Pas de connexion - sauvegarder en local
+        debugPrint('📵 [PROJECT] Pas de connexion - sauvegarde en local');
+        
+        // Copier les images dans un dossier temporaire pour les garder
+        final imagePaths = <String>[];
+        for (final image in _selectedImages) {
+          imagePaths.add(image.path);
+        }
+        
+        // Sauvegarder le projet en attente
+        final pendingProjectId = await _pendingService.addPendingProject(
+          title: title,
+          briefDescription: briefDescription,
+          detailedDescription: detailedDescription,
+          estimatedBudget: estimatedBudget,
+          startDate: startDate,
+          estimatedCompletionDate: estimatedCompletionDate,
+          dateLapses: dateLapses,
+          withCallForTenders: withCallForTenders,
+          withServiceProvider: withServiceProvider,
+          imagePaths: imagePaths,
+          providerName: providerName,
+          providerAmount: providerAmount,
+        );
+        
+        debugPrint('💾 [PROJECT] Projet "$title" sauvegardé en local avec ID: $pendingProjectId');
+        
         _setStatus(ProjectSubmissionStatus.success);
         _selectedImages.clear();
         return true;
-      } else {
-        _setError(response.message);
-        _setStatus(ProjectSubmissionStatus.error);
-        return false;
       }
     } catch (e) {
+      debugPrint('❌ [PROJECT] Erreur lors de la création: $e');
       _setError(e.toString());
       _setStatus(ProjectSubmissionStatus.error);
       return false;

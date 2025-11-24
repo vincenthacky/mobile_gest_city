@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../services/connectivity_service.dart';
+import '../../features/projets/services/pending_projects_service.dart';
 
 class AppHeader extends StatelessWidget {
   final String title;
@@ -109,31 +110,74 @@ class AppHeader extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Indicateur de connexion
-                Consumer<ConnectivityService>(
-                  builder: (context, connectivityService, child) {
+                // Indicateur de connexion avec compteur de données non sync
+                Consumer2<ConnectivityService, PendingProjectsService>(
+                  builder: (context, connectivityService, pendingProjectsService, child) {
                     final isConnected = connectivityService.isConnected;
-                    return Container(
-                      width: 20,
-                      height: 20,
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(
-                        color: isConnected ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: isConnected 
-                                ? const Color(0xFF10B981).withValues(alpha: 0.3)
-                                : const Color(0xFFEF4444).withValues(alpha: 0.3),
-                            blurRadius: 4,
-                            offset: const Offset(0, 1),
+                    
+                    return GestureDetector(
+                      onTap: () {
+                        // Naviguer vers la page des données non synchronisées
+                        context.go('/pending-sync');
+                      },
+                      child: Stack(
+                        children: [
+                          Container(
+                            width: 28,
+                            height: 28,
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              color: isConnected ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: isConnected 
+                                      ? const Color(0xFF10B981).withValues(alpha: 0.3)
+                                      : const Color(0xFFEF4444).withValues(alpha: 0.3),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              isConnected ? Icons.wifi : Icons.wifi_off,
+                              color: Colors.white,
+                              size: 14,
+                            ),
+                          ),
+                          // Badge avec le nombre de données non synchronisées
+                          FutureBuilder<int>(
+                            future: pendingProjectsService.getUnsyncedCount(),
+                            builder: (context, snapshot) {
+                              final count = snapshot.data ?? 0;
+                              if (count == 0) return const SizedBox.shrink();
+                              
+                              return Positioned(
+                                right: 4,
+                                top: -2,
+                                child: Container(
+                                  constraints: const BoxConstraints(minWidth: 16),
+                                  height: 16,
+                                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF4F46E5),
+                                    borderRadius: BorderRadius.all(Radius.circular(8)),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      count > 99 ? '99+' : '$count',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ],
-                      ),
-                      child: Icon(
-                        isConnected ? Icons.wifi : Icons.wifi_off,
-                        color: Colors.white,
-                        size: 12,
                       ),
                     );
                   },

@@ -29,6 +29,7 @@ import 'features/cadre_de_vie/controllers/sync_information_controller.dart';
 import 'features/finance/controllers/contribution_controller.dart';
 import 'features/finance/controllers/cash_movements_controller.dart';
 import 'features/finance/controllers/payment_breakdown_controller.dart';
+import 'features/projets/services/pending_projects_service.dart';
 import 'core/services/connectivity_service.dart';
 // import 'features/cotisations/controller/cotisations_controller.dart';
 // import 'features/cotisations/controller/payment_proof_controller.dart';
@@ -177,6 +178,7 @@ class GestCityAppState extends State<GestCityApp> with WidgetsBindingObserver {
   late ContributionController _contributionController;
   late CashMovementsController _cashMovementsController;
   late PaymentBreakdownController _paymentBreakdownController;
+  late PendingProjectsService _pendingProjectsService;
   
   // Variables pour la gestion du lifecycle simplifié
   bool _appWasInBackground = false;
@@ -194,8 +196,9 @@ class GestCityAppState extends State<GestCityApp> with WidgetsBindingObserver {
     _contributionController = ContributionController()..initialize();
     _cashMovementsController = CashMovementsController()..initialize();
     _paymentBreakdownController = PaymentBreakdownController()..initialize();
+    _pendingProjectsService = PendingProjectsService();
     
-    debugPrint('🎯 [BOOTSTRAP] Contrôleurs finance initialisés - écoute du maître active');
+    debugPrint('🎯 [BOOTSTRAP] Contrôleurs finance et services projets initialisés - écoute du maître active');
     
     // Démarrer le monitoring de la connexion
     _connectivityService.startMonitoring();
@@ -257,6 +260,9 @@ class GestCityAppState extends State<GestCityApp> with WidgetsBindingObserver {
         ),
         ChangeNotifierProvider.value(
           value: _paymentBreakdownController,
+        ),
+        ChangeNotifierProvider.value(
+          value: _pendingProjectsService,
         ),
         // ChangeNotifierProvider(
         //   create: (_) => CotisationsController(),
@@ -372,6 +378,7 @@ class GestCityAppState extends State<GestCityApp> with WidgetsBindingObserver {
     _contributionController.dispose();
     _cashMovementsController.dispose();
     _paymentBreakdownController.dispose();
+    _pendingProjectsService.dispose();
     super.dispose();
   }
 }

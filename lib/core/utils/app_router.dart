@@ -14,6 +14,7 @@ import '../pages/home_page.dart';
 import '../../features/finance/presentation/pages/finance_page.dart';
 import '../../features/projets/presentation/pages/projets_page.dart';
 import '../../features/projets/presentation/pages/create_project_page.dart';
+import '../../features/projets/presentation/pages/pending_sync_page.dart';
 import '../../features/signalement/presentation/pages/signalements_page.dart';
 import '../../features/signalement/presentation/pages/ajouter_signalement_page.dart';
 import '../../features/cadre_de_vie/presentation/pages/cadre_de_vie_page.dart';
@@ -170,6 +171,11 @@ class AppRouter {
               path: '/compte',
               name: 'compte',
               builder: (context, state) => const ComptePage(),
+            ),
+            GoRoute(
+              path: '/pending-sync',
+              name: 'pending-sync',
+              builder: (context, state) => const PendingSyncPage(),
             ),
           ],
         ),
