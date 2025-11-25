@@ -180,7 +180,14 @@ class SyncReportController extends ChangeNotifier {
 
       // 5. Mettre à jour les données locales dans le cache complet
       if (result.hasChanges) {
-        _allReports = result.reports.cast<ReportModel>(); // Cache complet
+        // ✅ FUSION INTELLIGENTE : Maintenir les données existantes
+        if (result.operation == ReportSyncOperation.fullSync) {
+          // Full sync : remplacement complet
+          _allReports = result.reports.cast<ReportModel>();
+        } else {
+          // Sync différentielle : fusion intelligente
+          _mergeReportsIntelligently(result.reports.cast<ReportModel>(), result.changes);
+        }
         _applyLocalFilters(); // Filtrage local
         _pagination = null; // Reset pagination après sync
       }
@@ -301,6 +308,37 @@ class SyncReportController extends ChangeNotifier {
         _setLoadingStatus(ReportLoadingStatus.success);
       }
     }
+  }
+  
+  /// Fusionne intelligemment les signalements avec les changements
+  void _mergeReportsIntelligently(List<ReportModel> syncedReports, ReportSyncChanges? changes) {
+    if (changes == null) {
+      // Pas de changements spécifiques, utiliser la liste syncée
+      _allReports = syncedReports;
+      return;
+    }
+    
+    // Fusionner intelligemment selon les types de changements
+    final updatedReports = List<ReportModel>.from(_allReports);
+    
+    // Traiter les suppressions
+    for (final deletedId in changes.deleted) {
+      updatedReports.removeWhere((report) => report.id == deletedId);
+    }
+    
+    // Traiter les ajouts et mises à jour
+    for (final newReport in syncedReports) {
+      final existingIndex = updatedReports.indexWhere((r) => r.id == newReport.id);
+      if (existingIndex != -1) {
+        // Mettre à jour le signalement existant
+        updatedReports[existingIndex] = newReport;
+      } else {
+        // Ajouter le nouveau signalement
+        updatedReports.add(newReport);
+      }
+    }
+    
+    _allReports = updatedReports;
   }
   
   /// Applique les filtres localement comme WhatsApp (SANS API)

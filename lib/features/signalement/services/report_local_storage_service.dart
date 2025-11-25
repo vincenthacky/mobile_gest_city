@@ -217,23 +217,40 @@ class ReportLocalStorageService {
   // ============ MÉTHODES POUR LES SIGNALEMENTS COMPLETS ============
 
   /// Sauvegarde les signalements complets dans le cache local
-  static Future<void> saveCachedReports(List<ReportModel> reports) async {
+  /// FUSION INTELLIGENTE : Met à jour ou ajoute les signalements sans effacer les autres
+  static Future<void> saveCachedReports(List<ReportModel> reports, {bool replaceAll = false}) async {
     final box = await reportsBox;
     final now = DateTime.now();
     
-    final cachedReports = <String, CachedReport>{};
-    for (final report in reports) {
-      final reportJson = jsonEncode(report.toJson());
-      cachedReports[report.id] = CachedReport.create(
-        reportId: report.id,
-        reportJson: reportJson,
-        cachedAt: now,
-      );
+    if (replaceAll) {
+      // Mode remplacement complet (utilisé pour full sync)
+      final cachedReports = <String, CachedReport>{};
+      for (final report in reports) {
+        final reportJson = jsonEncode(report.toJson());
+        cachedReports[report.id] = CachedReport.create(
+          reportId: report.id,
+          reportJson: reportJson,
+          cachedAt: now,
+        );
+      }
+      await box.clear();
+      await box.putAll(cachedReports);
+      print('💾 [CACHE] ${reports.length} signalements remplacés complètement en cache');
+    } else {
+      // Mode fusion intelligente (par défaut)
+      final cachedReports = <String, CachedReport>{};
+      for (final report in reports) {
+        final reportJson = jsonEncode(report.toJson());
+        cachedReports[report.id] = CachedReport.create(
+          reportId: report.id,
+          reportJson: reportJson,
+          cachedAt: now,
+        );
+      }
+      // Fusion : met à jour ou ajoute, sans effacer les autres
+      await box.putAll(cachedReports);
+      print('💾 [CACHE] ${reports.length} signalements fusionnés en cache (total: ${box.length})');
     }
-
-    await box.clear(); // Efface les anciens signalements
-    await box.putAll(cachedReports);
-    print('💾 [CACHE] ${reports.length} signalements sauvegardés en cache');
   }
 
   /// Récupère tous les signalements en cache

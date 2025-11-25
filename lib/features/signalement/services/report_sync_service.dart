@@ -214,9 +214,17 @@ class ReportSyncService {
     if (reports.isNotEmpty) {
       // ✅ UTILISER les checksums de l'API directement
       await ReportLocalStorageService.saveReportChecksumsWithOrder(reports, apiChecksums);
-      
-      // Sauvegarder les signalements complets en cache
-      await ReportLocalStorageService.saveCachedReports(reports);
+    }
+  }
+  
+  /// Sauvegarde la liste complète des signalements avec fusion intelligente
+  static Future<void> _saveMergedReports(
+    List<ReportModel> allReports,
+    List<ReportModel> changedReports
+  ) async {
+    if (changedReports.isNotEmpty) {
+      // Sauvegarder seulement les signalements changés (fusion)
+      await ReportLocalStorageService.saveCachedReports(changedReports);
     }
   }
 
@@ -235,8 +243,8 @@ class ReportSyncService {
       // Sauvegarder les checksums AVEC l'ordre de réception
       await ReportLocalStorageService.saveReportChecksumsWithOrder(reports, checksums);
       
-      // Sauvegarder les signalements complets en cache
-      await ReportLocalStorageService.saveCachedReports(reports);
+      // Pour full sync : remplacement complet
+      await ReportLocalStorageService.saveCachedReports(reports, replaceAll: true);
     }
   }
 
