@@ -180,7 +180,14 @@ class SyncInformationController extends ChangeNotifier {
 
       // 5. Mettre à jour les données locales dans le cache complet
       if (result.hasChanges) {
-        _allInformations = result.informations.cast<InformationModel>(); // Cache complet
+        // ✅ FUSION INTELLIGENTE : Maintenir les données existantes
+        if (result.operation == InformationSyncOperation.fullSync) {
+          // Full sync : remplacement complet
+          _allInformations = result.informations.cast<InformationModel>();
+        } else {
+          // Sync différentielle : fusion intelligente
+          _mergeInformationsIntelligently(result.informations.cast<InformationModel>(), result.changes);
+        }
         _applyLocalFilters(); // Filtrage local
         _pagination = null; // Reset pagination après sync
       }
@@ -301,6 +308,37 @@ class SyncInformationController extends ChangeNotifier {
         _setLoadingStatus(InformationLoadingStatus.success);
       }
     }
+  }
+  
+  /// Fusionne intelligemment les informations avec les changements
+  void _mergeInformationsIntelligently(List<InformationModel> syncedInformations, InformationSyncChanges? changes) {
+    if (changes == null) {
+      // Pas de changements spécifiques, utiliser la liste syncée
+      _allInformations = syncedInformations;
+      return;
+    }
+    
+    // Fusionner intelligemment selon les types de changements
+    final updatedInformations = List<InformationModel>.from(_allInformations);
+    
+    // Traiter les suppressions
+    for (final deletedId in changes.deleted) {
+      updatedInformations.removeWhere((information) => information.id == deletedId);
+    }
+    
+    // Traiter les ajouts et mises à jour
+    for (final newInformation in syncedInformations) {
+      final existingIndex = updatedInformations.indexWhere((i) => i.id == newInformation.id);
+      if (existingIndex != -1) {
+        // Mettre à jour l'information existante
+        updatedInformations[existingIndex] = newInformation;
+      } else {
+        // Ajouter la nouvelle information
+        updatedInformations.add(newInformation);
+      }
+    }
+    
+    _allInformations = updatedInformations;
   }
   
   /// Applique les filtres localement comme WhatsApp (SANS API)
@@ -470,5 +508,45 @@ class SyncInformationController extends ChangeNotifier {
       applySearchFilter(searchQuery);
     }
     return informations;
+  }
+  
+  /// Méthode de validation pour déboguer les problèmes de synchronisation
+  Future<Map<String, dynamic>> debugSyncState() async {
+    final cacheCount = await InformationLocalStorageService.getCachedInformationsCount();
+    final checksumCount = await InformationLocalStorageService.getChecksumsCount();
+    final storageStats = await InformationLocalStorageService.getStorageStats();
+    
+    return {
+      'memory_informations': _allInformations.length,
+      'displayed_informations': _informations.length,
+      'cache_count': cacheCount,
+      'checksum_count': checksumCount,
+      'storage_stats': storageStats,
+      'current_status_filter': _currentStatusFilter?.toString(),
+      'current_priority_filter': _currentPriorityFilter?.toString(),
+      'current_type_filter': _currentTypeFilter?.toString(),
+      'current_search': _currentSearch,
+      'sync_status': _syncStatus.toString(),
+      'has_cache': await InformationLocalStorageService.hasCachedInformations(),
+    };
+  }
+  
+  /// Force une synchronisation complète pour corriger les incohérences
+  Future<void> forceSyncRepair() async {
+    debugPrint('🔄 [REPAIR] Début de la réparation de synchronisation des informations');
+    
+    try {
+      // 1. Nettoyer les données incohérentes
+      await InformationLocalStorageService.clearCachedInformations();
+      await InformationLocalStorageService.clearAllChecksums();
+      
+      // 2. Forcer une synchronisation complète
+      await syncInformations(forceFullSync: true, showNotifications: true);
+      
+      debugPrint('✅ [REPAIR] Réparation de synchronisation des informations terminée');
+    } catch (e) {
+      debugPrint('❌ [REPAIR] Erreur lors de la réparation des informations: $e');
+      rethrow;
+    }
   }
 }

@@ -130,9 +130,16 @@ class InformationSyncService {
     final updatedInformations = List<InformationModel>.from(currentInformations);
 
     // Traiter les suppressions
+    final deletedIds = <String>[];
     for (final deletedId in changes.deleted) {
       updatedInformations.removeWhere((information) => information.id == deletedId);
       await InformationLocalStorageService.deleteInformationChecksum(deletedId);
+      deletedIds.add(deletedId);
+    }
+    
+    // Supprimer les informations supprimées du cache
+    if (deletedIds.isNotEmpty) {
+      await InformationLocalStorageService.removeCachedInformations(deletedIds);
     }
 
     // Traiter les ajouts - l'API renvoie des listes imbriquées
@@ -194,6 +201,9 @@ class InformationSyncService {
     
     // ✅ UTILISER les checksums de l'API (ne pas recalculer)
     await _saveInformationChecksumsWithApiData(allChangedInformations, allApiChecksums);
+    
+    // ✅ FUSION INTELLIGENTE: Sauvegarder TOUTES les informations (anciennes + nouvelles)
+    await _saveMergedInformations(updatedInformations, allChangedInformations);
 
     return InformationSyncResult(
       operation: InformationSyncOperation.checkSync,
@@ -214,9 +224,17 @@ class InformationSyncService {
     if (informations.isNotEmpty) {
       // ✅ UTILISER les checksums de l'API directement
       await InformationLocalStorageService.saveInformationChecksumsWithOrder(informations, apiChecksums);
-      
-      // Sauvegarder les informations complètes en cache
-      await InformationLocalStorageService.saveCachedInformations(informations);
+    }
+  }
+  
+  /// Sauvegarde la liste complète des informations avec fusion intelligente
+  static Future<void> _saveMergedInformations(
+    List<InformationModel> allInformations,
+    List<InformationModel> changedInformations
+  ) async {
+    if (changedInformations.isNotEmpty) {
+      // Sauvegarder seulement les informations changées (fusion)
+      await InformationLocalStorageService.saveCachedInformations(changedInformations);
     }
   }
 
@@ -235,8 +253,8 @@ class InformationSyncService {
       // Sauvegarder les checksums AVEC l'ordre de réception
       await InformationLocalStorageService.saveInformationChecksumsWithOrder(informations, checksums);
       
-      // Sauvegarder les informations complètes en cache
-      await InformationLocalStorageService.saveCachedInformations(informations);
+      // Pour full sync : remplacement complet
+      await InformationLocalStorageService.saveCachedInformations(informations, replaceAll: true);
     }
   }
 

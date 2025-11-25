@@ -217,23 +217,40 @@ class InformationLocalStorageService {
   // ============ MÉTHODES POUR LES INFORMATIONS COMPLÈTES ============
 
   /// Sauvegarde les informations complètes dans le cache local
-  static Future<void> saveCachedInformations(List<InformationModel> informations) async {
+  /// FUSION INTELLIGENTE : Met à jour ou ajoute les informations sans effacer les autres
+  static Future<void> saveCachedInformations(List<InformationModel> informations, {bool replaceAll = false}) async {
     final box = await informationsBox;
     final now = DateTime.now();
     
-    final cachedInformations = <String, CachedInformation>{};
-    for (final information in informations) {
-      final informationJson = jsonEncode(information.toJson());
-      cachedInformations[information.id] = CachedInformation.create(
-        informationId: information.id,
-        informationJson: informationJson,
-        cachedAt: now,
-      );
+    if (replaceAll) {
+      // Mode remplacement complet (utilisé pour full sync)
+      final cachedInformations = <String, CachedInformation>{};
+      for (final information in informations) {
+        final informationJson = jsonEncode(information.toJson());
+        cachedInformations[information.id] = CachedInformation.create(
+          informationId: information.id,
+          informationJson: informationJson,
+          cachedAt: now,
+        );
+      }
+      await box.clear();
+      await box.putAll(cachedInformations);
+      print('💾 [CACHE] ${informations.length} informations remplacées complètement en cache');
+    } else {
+      // Mode fusion intelligente (par défaut)
+      final cachedInformations = <String, CachedInformation>{};
+      for (final information in informations) {
+        final informationJson = jsonEncode(information.toJson());
+        cachedInformations[information.id] = CachedInformation.create(
+          informationId: information.id,
+          informationJson: informationJson,
+          cachedAt: now,
+        );
+      }
+      // Fusion : met à jour ou ajoute, sans effacer les autres
+      await box.putAll(cachedInformations);
+      print('💾 [CACHE] ${informations.length} informations fusionnées en cache (total: ${box.length})');
     }
-
-    await box.clear(); // Efface les anciennes informations
-    await box.putAll(cachedInformations);
-    print('💾 [CACHE] ${informations.length} informations sauvegardées en cache');
   }
 
   /// Récupère toutes les informations en cache
@@ -262,6 +279,13 @@ class InformationLocalStorageService {
     
     print('📱 [CACHE] ${informations.length} informations récupérées du cache avec succès');
     return informations;
+  }
+
+  /// Supprime des informations spécifiques du cache
+  static Future<void> removeCachedInformations(List<String> informationIds) async {
+    final box = await informationsBox;
+    await box.deleteAll(informationIds);
+    print('🗑️ [CACHE] ${informationIds.length} informations supprimées du cache');
   }
 
   /// Supprime toutes les informations en cache
