@@ -234,23 +234,40 @@ class LocalStorageService {
   // ============ MÉTHODES POUR LES PROJETS COMPLETS ============
 
   /// Sauvegarde les projets complets dans le cache local
-  static Future<void> saveCachedProjects(List<ProjectModel> projects) async {
+  /// FUSION INTELLIGENTE : Met à jour ou ajoute les projets sans effacer les autres
+  static Future<void> saveCachedProjects(List<ProjectModel> projects, {bool replaceAll = false}) async {
     final box = await projectsBox;
     final now = DateTime.now();
     
-    final cachedProjects = <String, CachedProject>{};
-    for (final project in projects) {
-      final projectJson = jsonEncode(project.toJson());
-      cachedProjects[project.id] = CachedProject.create(
-        projectId: project.id,
-        projectJson: projectJson,
-        cachedAt: now,
-      );
+    if (replaceAll) {
+      // Mode remplacement complet (utilisé pour full sync)
+      final cachedProjects = <String, CachedProject>{};
+      for (final project in projects) {
+        final projectJson = jsonEncode(project.toJson());
+        cachedProjects[project.id] = CachedProject.create(
+          projectId: project.id,
+          projectJson: projectJson,
+          cachedAt: now,
+        );
+      }
+      await box.clear();
+      await box.putAll(cachedProjects);
+      print('💾 [CACHE] ${projects.length} projets remplacés complètement en cache');
+    } else {
+      // Mode fusion intelligente (par défaut)
+      final cachedProjects = <String, CachedProject>{};
+      for (final project in projects) {
+        final projectJson = jsonEncode(project.toJson());
+        cachedProjects[project.id] = CachedProject.create(
+          projectId: project.id,
+          projectJson: projectJson,
+          cachedAt: now,
+        );
+      }
+      // Fusion : met à jour ou ajoute, sans effacer les autres
+      await box.putAll(cachedProjects);
+      print('💾 [CACHE] ${projects.length} projets fusionnés en cache (total: ${box.length})');
     }
-
-    await box.clear(); // Efface les anciens projets
-    await box.putAll(cachedProjects);
-    print('💾 [CACHE] ${projects.length} projets sauvegardés en cache');
   }
 
   /// Récupère tous les projets en cache
@@ -279,6 +296,13 @@ class LocalStorageService {
     
     print('📱 [CACHE] ${projects.length} projets récupérés du cache avec succès');
     return projects;
+  }
+
+  /// Supprime des projets spécifiques du cache
+  static Future<void> removeCachedProjects(List<String> projectIds) async {
+    final box = await projectsBox;
+    await box.deleteAll(projectIds);
+    print('🗑️  [CACHE] ${projectIds.length} projets supprimés du cache');
   }
 
   /// Supprime tous les projets en cache

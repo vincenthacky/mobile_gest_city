@@ -188,6 +188,16 @@ class ProjectController extends ChangeNotifier {
         if (response.success) {
           _setStatus(ProjectSubmissionStatus.success);
           _selectedImages.clear();
+          
+          // ✅ SYNCHRONISER les données après création pour maintenir la cohérence
+          try {
+            await syncProjects(showNotifications: false);
+            debugPrint('✅ [PROJECT] Synchronisation post-création réussie');
+          } catch (e) {
+            debugPrint('⚠️ [PROJECT] Erreur sync post-création: $e');
+            // Ne pas faire échouer la création pour autant
+          }
+          
           return true;
         } else {
           _setError(response.message);
@@ -221,6 +231,9 @@ class ProjectController extends ChangeNotifier {
         );
         
         debugPrint('💾 [PROJECT] Projet "$title" sauvegardé en local avec ID: $pendingProjectId');
+        
+        // Note: Pas de sync ici car c'est un mode hors ligne
+        // La sync se fera automatiquement quand la connexion reviendra
         
         _setStatus(ProjectSubmissionStatus.success);
         _selectedImages.clear();
@@ -298,8 +311,15 @@ class ProjectController extends ChangeNotifier {
         _updateUserProjectsVotedYes(response['data']);
       }
       
-      // Recharger les projets depuis l'API pour avoir l'état exact (en arrière-plan)
-      fetchProjects();
+      // ✅ SYNCHRONISATION INTELLIGENTE : Sync rapide au lieu de fetchProjects complet
+      try {
+        await syncProjects(showNotifications: false);
+        debugPrint('✅ [VOTE] Synchronisation post-vote réussie');
+      } catch (e) {
+        debugPrint('⚠️ [VOTE] Erreur sync post-vote: $e');
+        // Fallback : rechargement classique
+        fetchProjects();
+      }
       
       return response;
     } catch (e) {
@@ -342,8 +362,15 @@ class ProjectController extends ChangeNotifier {
         _updateUserProjectsVotedYes(response['data']);
       }
       
-      // Recharger les projets depuis l'API pour avoir l'état exact (en arrière-plan)
-      fetchProjects();
+      // ✅ SYNCHRONISATION INTELLIGENTE : Sync rapide au lieu de fetchProjects complet
+      try {
+        await syncProjects(showNotifications: false);
+        debugPrint('✅ [MODIFY-VOTE] Synchronisation post-modification réussie');
+      } catch (e) {
+        debugPrint('⚠️ [MODIFY-VOTE] Erreur sync post-modification: $e');
+        // Fallback : rechargement classique
+        fetchProjects();
+      }
       
       return response;
     } catch (e) {
@@ -676,7 +703,14 @@ class ProjectController extends ChangeNotifier {
 
       // 5. Mettre à jour les données locales dans le cache complet
       if (result.hasChanges) {
-        _allProjects = result.projects; // Cache complet
+        // ✅ FUSION INTELLIGENTE : Maintenir les données existantes
+        if (result.operation == SyncOperation.fullSync) {
+          // Full sync : remplacement complet
+          _allProjects = result.projects;
+        } else {
+          // Sync différentielle : fusion intelligente
+          _mergeProjectsIntelligently(result.projects, result.changes);
+        }
         _applyLocalFilters(); // Filtrage local
         _pagination = null; // Reset pagination après sync
       }
@@ -799,6 +833,37 @@ class ProjectController extends ChangeNotifier {
         // (sera géré dans la page selon la connectivité)
       }
     }
+  }
+  
+  /// Fusionne intelligemment les projets avec les changements
+  void _mergeProjectsIntelligently(List<ProjectModel> syncedProjects, SyncChanges? changes) {
+    if (changes == null) {
+      // Pas de changements spécifiques, utiliser la liste syncée
+      _allProjects = syncedProjects;
+      return;
+    }
+    
+    // Fusionner intelligemment selon les types de changements
+    final updatedProjects = List<ProjectModel>.from(_allProjects);
+    
+    // Traiter les suppressions
+    for (final deletedId in changes.deleted) {
+      updatedProjects.removeWhere((project) => project.id == deletedId);
+    }
+    
+    // Traiter les ajouts et mises à jour
+    for (final newProject in syncedProjects) {
+      final existingIndex = updatedProjects.indexWhere((p) => p.id == newProject.id);
+      if (existingIndex != -1) {
+        // Mettre à jour le projet existant
+        updatedProjects[existingIndex] = newProject;
+      } else {
+        // Ajouter le nouveau projet
+        updatedProjects.add(newProject);
+      }
+    }
+    
+    _allProjects = updatedProjects;
   }
   
   /// Applique les filtres localement comme WhatsApp (SANS API)
@@ -927,6 +992,44 @@ class ProjectController extends ChangeNotifier {
     _syncStatus = SyncStatus.idle;
     _clearSyncMessages();
     notifyListeners();
+  }
+  
+  /// Méthode de validation pour déboguer les problèmes de synchronisation
+  Future<Map<String, dynamic>> debugSyncState() async {
+    final cacheCount = await LocalStorageService.getCachedProjectsCount();
+    final checksumCount = await LocalStorageService.getChecksumsCount();
+    final storageStats = await LocalStorageService.getStorageStats();
+    
+    return {
+      'memory_projects': _allProjects.length,
+      'displayed_projects': _projects.length,
+      'cache_count': cacheCount,
+      'checksum_count': checksumCount,
+      'storage_stats': storageStats,
+      'current_filter': _currentFilter?.toString(),
+      'current_search': _currentSearch,
+      'sync_status': _syncStatus.toString(),
+      'has_cache': await LocalStorageService.hasCachedProjects(),
+    };
+  }
+  
+  /// Force une synchronisation complète pour corriger les incohérences
+  Future<void> forceSyncRepair() async {
+    debugPrint('🔄 [REPAIR] Début de la réparation de synchronisation');
+    
+    try {
+      // 1. Nettoyer les données incohérentes
+      await LocalStorageService.clearCachedProjects();
+      await LocalStorageService.clearAllChecksums();
+      
+      // 2. Forcer une synchronisation complète
+      await syncProjects(forceFullSync: true, showNotifications: true);
+      
+      debugPrint('✅ [REPAIR] Réparation de synchronisation terminée');
+    } catch (e) {
+      debugPrint('❌ [REPAIR] Erreur lors de la réparation: $e');
+      rethrow;
+    }
   }
 }
 

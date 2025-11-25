@@ -130,9 +130,16 @@ class SyncService {
     final updatedProjects = List<ProjectModel>.from(currentProjects);
 
     // Traiter les suppressions
+    final deletedIds = <String>[];
     for (final deletedId in changes.deleted) {
       updatedProjects.removeWhere((project) => project.id == deletedId);
       await LocalStorageService.deleteProjectChecksum(deletedId);
+      deletedIds.add(deletedId);
+    }
+    
+    // Supprimer les projets supprimés du cache
+    if (deletedIds.isNotEmpty) {
+      await LocalStorageService.removeCachedProjects(deletedIds);
     }
 
     // Traiter les ajouts - l'API renvoie des listes imbriquées
@@ -194,6 +201,9 @@ class SyncService {
     
     // ✅ UTILISER les checksums de l'API (ne pas recalculer)
     await _saveProjectChecksumsWithApiData(allChangedProjects, allApiChecksums);
+    
+    // ✅ FUSION INTELLIGENTE: Sauvegarder TOUS les projets (anciens + nouveaux)
+    await _saveMergedProjects(updatedProjects, allChangedProjects);
 
     return SyncResult(
       operation: SyncOperation.checkSync,
@@ -214,9 +224,17 @@ class SyncService {
     if (projects.isNotEmpty) {
       // ✅ UTILISER les checksums de l'API directement
       await LocalStorageService.saveProjectChecksumsWithOrder(projects, apiChecksums);
-      
-      // Sauvegarder les projets complets en cache
-      await LocalStorageService.saveCachedProjects(projects);
+    }
+  }
+  
+  /// Sauvegarde la liste complète des projets avec fusion intelligente
+  static Future<void> _saveMergedProjects(
+    List<ProjectModel> allProjects,
+    List<ProjectModel> changedProjects
+  ) async {
+    if (changedProjects.isNotEmpty) {
+      // Sauvegarder seulement les projets changés (fusion)
+      await LocalStorageService.saveCachedProjects(changedProjects);
     }
   }
 
@@ -235,8 +253,8 @@ class SyncService {
       // Sauvegarder les checksums AVEC l'ordre de réception
       await LocalStorageService.saveProjectChecksumsWithOrder(projects, checksums);
       
-      // Sauvegarder les projets complets en cache
-      await LocalStorageService.saveCachedProjects(projects);
+      // Pour full sync : remplacement complet
+      await LocalStorageService.saveCachedProjects(projects, replaceAll: true);
     }
   }
 
