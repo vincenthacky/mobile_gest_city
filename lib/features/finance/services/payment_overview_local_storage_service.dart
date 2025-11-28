@@ -73,6 +73,7 @@ class PaymentOverviewLocalStorageService {
     debugPrint('🗑️ [OVERVIEW CACHE] Cache vidé');
   }
 
+
   /// Obtient les statistiques du cache
   static Map<String, dynamic> getCacheStats() {
     if (_box == null) return {'has_data': false};
@@ -93,6 +94,7 @@ class PaymentOverviewLocalStorageService {
       'full_name': user.fullName,
       'email': user.email,
       'phone': user.phone,
+      'villa_number': user.villaNumber,
       'payments': user.payments.map((payment) => {
         'month_number': payment.monthNumber,
         'status': payment.status,

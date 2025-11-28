@@ -12,47 +12,44 @@ class PaymentCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color backgroundColor;
-    Widget iconWidget;
+    Color textColor;
+    String symbol;
     
     switch (status) {
       case 'paid':
-        backgroundColor = const Color(0xFF10B981).withValues(alpha: 0.1);
-        iconWidget = const Text('✅', style: TextStyle(fontSize: 14));
+        textColor = const Color(0xFF2EC27E); // Couleur success du HTML
+        symbol = '✓';
         break;
       case 'pending':
-        backgroundColor = const Color(0xFFF59E0B).withValues(alpha: 0.1);
-        iconWidget = const Text('🟠', style: TextStyle(fontSize: 14));
+        textColor = const Color(0xFFF59E0B);
+        symbol = '🟠';
         break;
       case 'unpaid':
-        backgroundColor = const Color(0xFFEF4444).withValues(alpha: 0.1);
-        iconWidget = const Text('❌', style: TextStyle(fontSize: 14));
+        textColor = const Color(0xFFFF6B6B); // Couleur danger du HTML
+        symbol = '✕';
         break;
       case 'future':
-        backgroundColor = Colors.grey.shade50;
-        iconWidget = const Text('➖', style: TextStyle(fontSize: 14, color: Colors.grey));
+        textColor = const Color(0xFF9A9AA0); // Couleur muted du HTML
+        symbol = '➖';
         break;
       default:
-        backgroundColor = Colors.grey.shade100;
-        iconWidget = const Text('➖', style: TextStyle(fontSize: 14, color: Colors.grey));
+        textColor = const Color(0xFF9A9AA0);
+        symbol = '✕';
         break;
     }
     
-    if (isColumnSelected) {
-      backgroundColor = const Color(0xFF4F46E5).withValues(alpha: 0.2);
-    }
-    
-    return Container(
-      width: 36,
-      height: 36,
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(8),
-        border: isColumnSelected 
-            ? Border.all(color: const Color(0xFF4F46E5), width: 2)
-            : null,
+    return SizedBox(
+      height: 24,
+      child: Center(
+        child: Text(
+          symbol,
+          style: TextStyle(
+            fontSize: 18,
+            color: textColor,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
-      child: Center(child: iconWidget),
     );
   }
 }

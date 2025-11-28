@@ -3,6 +3,7 @@ class PaymentOverviewUser {
   final String fullName;
   final String email;
   final String phone;
+  final String villaNumber;
   final List<MonthlyPayment> payments;
 
   PaymentOverviewUser({
@@ -10,6 +11,7 @@ class PaymentOverviewUser {
     required this.fullName,
     required this.email,
     required this.phone,
+    required this.villaNumber,
     required this.payments,
   });
 
@@ -21,6 +23,7 @@ class PaymentOverviewUser {
       fullName: json['full_name'] ?? '',
       email: json['email'] ?? '',
       phone: json['phone'] ?? '',
+      villaNumber: json['villa_number'] ?? 'Villa non spécifiée',
       payments: paymentsList.map((item) => MonthlyPayment.fromJson(item)).toList(),
     );
   }

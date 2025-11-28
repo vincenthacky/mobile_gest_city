@@ -82,13 +82,13 @@ class PaymentTable extends StatelessWidget {
                           : null,
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: Row(
                         children: [
                           SizedBox(
                             width: 100,
                             child: Text(
-                              member['name'].split(' ')[0],
+                              member['villaNumber'] ?? 'N/A',
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -105,7 +105,7 @@ class PaymentTable extends StatelessWidget {
                                 
                                 return Expanded(
                                   child: Container(
-                                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                                    margin: const EdgeInsets.symmetric(horizontal: 1),
                                     child: PaymentCell(
                                       status: paymentStatus,
                                       isColumnSelected: isColumnSelected,

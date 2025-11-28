@@ -103,7 +103,7 @@ class _CotisationCardWidgetState extends State<CotisationCardWidget>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Cotisations Mensuelles',
+                            'Mes Cotisations Mensuelles',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
