@@ -17,6 +17,8 @@ class WalletPage extends StatefulWidget {
 
 class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
   String _selectedView = 'Compte en T'; // 'Liste' ou 'Compte en T'
+  bool _sortDescending = true; // true = plus récent d'abord, false = plus ancien d'abord
+  String _selectedFilter = 'Tous'; // 'Tous', 'Débit', 'Crédit' - pour la vue Liste uniquement
   
   // Animation controllers
   late AnimationController _slideController;
@@ -36,11 +38,32 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
 
   List<CashMovement> get _transactions {
     final controller = context.read<CashMovementsController>();
-    return controller.cashMovements;
+    List<CashMovement> transactions = List<CashMovement>.from(controller.cashMovements);
+    
+    // Appliquer le filtre seulement pour la vue Liste
+    if (_selectedView == 'Liste') {
+      switch (_selectedFilter) {
+        case 'Débit':
+          transactions = transactions.where((t) => t.isDebit).toList();
+          break;
+        case 'Crédit':
+          transactions = transactions.where((t) => t.isCredit).toList();
+          break;
+        case 'Tous':
+        default:
+          // Garder toutes les transactions
+          break;
+      }
+    }
+    
+    _sortTransactions(transactions);
+    return transactions;
   }
 
   List<CashMovement> get _debits {
-    return _transactions.where((t) => t.isDebit).toList();
+    final debits = _transactions.where((t) => t.isDebit).toList();
+    _sortTransactions(debits);
+    return debits;
   }
 
   List<CashMovement> get _credits {
@@ -184,6 +207,26 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
     HapticFeedback.lightImpact();
     setState(() {
       _selectedView = view;
+    });
+  }
+
+  void _sortTransactions(List<CashMovement> transactions) {
+    transactions.sort((a, b) {
+      return _sortDescending ? b.date.compareTo(a.date) : a.date.compareTo(b.date);
+    });
+  }
+
+  void _toggleSortOrder() {
+    HapticFeedback.lightImpact();
+    setState(() {
+      _sortDescending = !_sortDescending;
+    });
+  }
+
+  void _onFilterChanged(String filter) {
+    HapticFeedback.lightImpact();
+    setState(() {
+      _selectedFilter = filter;
     });
   }
 
@@ -367,12 +410,34 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Solde Actuel',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.white.withValues(alpha: 0.8),
-            ),
+          Row(
+            children: [
+              Text(
+                'Solde Actuel de la cite ',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white.withValues(alpha: 0.8),
+                ),
+              ),
+              const Spacer(),
+              Consumer<SyncTransactionController>(
+                builder: (context, syncController, child) {
+                  if (syncController.lastSyncDateTime != null) {
+                    final lastSync = syncController.lastSyncDateTime!;
+                    final formattedDate = '${lastSync.day.toString().padLeft(2, '0')}/${lastSync.month.toString().padLeft(2, '0')}/${lastSync.year}';
+                    final formattedTime = '${lastSync.hour.toString().padLeft(2, '0')}:${lastSync.minute.toString().padLeft(2, '0')}';
+                    return Text(
+                      '$formattedDate $formattedTime',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.white.withValues(alpha: 0.6),
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           Text(
@@ -476,23 +541,25 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
   Widget _buildViewSelector() {
     return Column(
       children: [
-        // Boutons de vue
+        // Boutons de vue et tri
         SizedBox(
           height: 40,
           child: Row(
-            children: _viewTypes.asMap().entries.map((entry) {
-              final index = entry.key;
-              final viewType = entry.value;
-              final isSelected = _selectedView == viewType;
+            children: [
+              // Boutons de vue
+              Row(
+                children: _viewTypes.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final viewType = entry.value;
+                  final isSelected = _selectedView == viewType;
               
-              return Expanded(
-                child: Container(
-                  margin: EdgeInsets.only(right: index < _viewTypes.length - 1 ? 8 : 0),
-                  child: InkWell(
-                    onTap: () => _onViewChanged(viewType),
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  return Container(
+                    margin: EdgeInsets.only(right: index < _viewTypes.length - 1 ? 6 : 0),
+                    child: InkWell(
+                      onTap: () => _onViewChanged(viewType),
+                      borderRadius: BorderRadius.circular(15),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: isSelected 
                             ? const Color(0xFF4F46E5) 
@@ -526,12 +593,82 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                       ),
                     ),
                   ),
+                );
+                }).toList(),
+              ),
+              const SizedBox(width: 6),
+              // Bouton de tri
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: const Color(0xFF4F46E5),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
                 ),
-              );
-            }).toList(),
+                child: InkWell(
+                  onTap: _toggleSortOrder,
+                  borderRadius: BorderRadius.circular(14),
+                  child: Center(
+                    child: Icon(
+                      _sortDescending ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
+                      color: const Color(0xFF4F46E5),
+                      size: 16,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
+        
+        // Boutons de filtre pour la vue Liste uniquement
+        if (_selectedView == 'Liste') ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _buildFilterButton('Tous', Colors.grey.shade700),
+              const SizedBox(width: 6),
+              _buildFilterButton('Débit', const Color(0xFFEF4444)),
+              const SizedBox(width: 6),
+              _buildFilterButton('Crédit', const Color(0xFF10B981)),
+            ],
+          ),
+        ],
       ],
+    );
+  }
+
+  Widget _buildFilterButton(String filter, Color color) {
+    final isSelected = _selectedFilter == filter;
+    return InkWell(
+      onTap: () => _onFilterChanged(filter),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          filter,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            color: isSelected ? color : color.withValues(alpha: 0.7),
+          ),
+        ),
+      ),
     );
   }
 

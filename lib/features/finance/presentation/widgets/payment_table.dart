@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'payment_cell.dart';
-import 'sticky_header_delegate.dart';
 import 'legend_widget.dart';
 
 class PaymentTable extends StatelessWidget {
@@ -27,22 +26,9 @@ class PaymentTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final segmentMonths = this.segmentMonths;
-    final currentMonth = DateTime.now().month;
     
     return CustomScrollView(
       slivers: [
-        // Sticky header
-        SliverPersistentHeader(
-          pinned: true,
-          delegate: StickyHeaderDelegate(
-            segmentMonths: segmentMonths,
-            currentMonth: currentMonth,
-            selectedMonth: selectedMonth,
-            monthNames: monthNames,
-            onMonthSelected: onMonthSelected,
-          ),
-        ),
-        
         // White container background for table
         SliverToBoxAdapter(
           child: Container(
@@ -82,13 +68,13 @@ class PaymentTable extends StatelessWidget {
                           : null,
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: Row(
                         children: [
                           SizedBox(
                             width: 100,
                             child: Text(
-                              member['name'].split(' ')[0],
+                              member['villaNumber'] ?? 'N/A',
                               style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -105,7 +91,7 @@ class PaymentTable extends StatelessWidget {
                                 
                                 return Expanded(
                                   child: Container(
-                                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                                    margin: const EdgeInsets.symmetric(horizontal: 1),
                                     child: PaymentCell(
                                       status: paymentStatus,
                                       isColumnSelected: isColumnSelected,

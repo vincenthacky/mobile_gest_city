@@ -254,6 +254,7 @@ class PaymentBreakdownController extends ChangeNotifier {
     await loadPaymentBreakdownData();
   }
 
+
   void _setStatus(PaymentBreakdownStatus status) {
     _status = status;
     notifyListeners();
@@ -370,6 +371,7 @@ class PaymentBreakdownController extends ChangeNotifier {
       
       return {
         'name': user.fullName,
+        'villaNumber': user.villaNumber,
         'payments': payments,
       };
     }).toList();
@@ -380,22 +382,27 @@ class PaymentBreakdownController extends ChangeNotifier {
     return [
       {
         'name': 'Marie DUPONT',
+        'villaNumber': 'Villa 001',
         'payments': ['paid', 'paid', 'unpaid', 'paid', 'paid', 'future', 'paid', 'paid', 'paid', 'paid', 'paid', 'future']
       },
       {
         'name': 'Paul MARTIN', 
+        'villaNumber': 'Villa 002',
         'payments': ['paid', 'paid', 'paid', 'paid', 'unpaid', 'future', 'paid', 'paid', 'paid', 'paid', 'unpaid', 'future']
       },
       {
         'name': 'Jean KOUASSI',
+        'villaNumber': 'Villa 003',
         'payments': ['unpaid', 'paid', 'paid', 'paid', 'paid', 'future', 'paid', 'paid', 'paid', 'paid', 'paid', 'future']
       },
       {
         'name': 'Sophie BROU',
+        'villaNumber': 'Villa 004',
         'payments': ['paid', 'unpaid', 'paid', 'unpaid', 'paid', 'future', 'paid', 'unpaid', 'paid', 'unpaid', 'paid', 'future']
       },
       {
         'name': 'Thomas YAO',
+        'villaNumber': 'Villa 005',
         'payments': ['paid', 'paid', 'paid', 'paid', 'paid', 'future', 'paid', 'paid', 'paid', 'paid', 'paid', 'future']
       },
     ];

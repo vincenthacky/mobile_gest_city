@@ -125,7 +125,7 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
                       ),
                       Expanded(
                         child: Text(
-                          'Tableau de Ventilation ${DateTime.now().year}',
+                          'Ventilation des cotisation ${DateTime.now().year}',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontSize: 16,
@@ -159,6 +159,91 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
                   ),
                 ],
               ),
+            ),
+            
+            // En-tête du tableau
+            Consumer<PaymentBreakdownController>(
+              builder: (context, controller, child) {
+                if (!controller.isLoading && controller.errorMessage == null) {
+                  final segmentMonths = List.generate(6, (index) => 
+                    (controller.selectedSegment == '1-6' ? 1 : 7) + index);
+                  final currentMonth = DateTime.now().month;
+                  
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      border: Border(
+                        bottom: BorderSide(
+                          color: Colors.grey.shade200,
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const SizedBox(
+                          width: 100,
+                          child: Text(
+                            'Membre',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF6B7280),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Row(
+                            children: segmentMonths.map((month) {
+                              final isCurrentMonth = month == currentMonth;
+                              final isSelected = month == controller.selectedMonth;
+                              return Expanded(
+                                child: GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    _onMonthSelected(month == controller.selectedMonth ? null : month);
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 4),
+                                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? const Color(0xFF4F46E5)
+                                          : isCurrentMonth
+                                              ? const Color(0xFF4F46E5).withValues(alpha: 0.1)
+                                              : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: isCurrentMonth && !isSelected
+                                          ? Border.all(color: const Color(0xFF4F46E5), width: 1)
+                                          : null,
+                                    ),
+                                    child: Text(
+                                      ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'][month - 1],
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: isSelected
+                                            ? Colors.white
+                                            : isCurrentMonth
+                                                ? const Color(0xFF4F46E5)
+                                                : const Color(0xFF6B7280),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
             ),
             
             // Bilan pliable

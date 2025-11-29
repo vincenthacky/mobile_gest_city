@@ -18,10 +18,10 @@ class LegendWidget extends StatelessWidget {
         spacing: 16,
         runSpacing: 8,
         children: [
-          _buildLegendItem('✅', 'Payé', const Color(0xFF10B981)),
+          _buildLegendItem('✓', 'Payé', const Color(0xFF2EC27E)),
           _buildLegendItem('🟠', 'En attente', const Color(0xFFF59E0B)),
-          _buildLegendItem('❌', 'Non payé', const Color(0xFFEF4444)),
-          _buildLegendItem('➖', 'Futur', Colors.grey.shade400),
+          _buildLegendItem('✕', 'Non payé', const Color(0xFFFF6B6B)),
+          _buildLegendItem('➖', 'Futur', const Color(0xFF9A9AA0)),
         ],
       ),
     );
@@ -31,17 +31,17 @@ class LegendWidget extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
+        SizedBox(
           width: 24,
           height: 24,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(4),
-          ),
           child: Center(
             child: Text(
               symbol,
-              style: const TextStyle(fontSize: 12),
+              style: TextStyle(
+                fontSize: 18,
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ),

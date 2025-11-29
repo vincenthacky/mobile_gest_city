@@ -20,7 +20,7 @@ class StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
       height: maxExtent,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
         border: Border(
@@ -55,7 +55,7 @@ class StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
                       onMonthSelected(month == selectedMonth ? null : month);
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.symmetric(vertical: 4),
                       margin: const EdgeInsets.symmetric(horizontal: 2),
                       decoration: BoxDecoration(
                         color: isSelected
@@ -93,10 +93,10 @@ class StickyHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  double get maxExtent => 66.0;
+  double get maxExtent => 44.0;
 
   @override
-  double get minExtent => 66.0;
+  double get minExtent => 44.0;
 
   @override
   bool shouldRebuild(SliverPersistentHeaderDelegate oldDelegate) => true;

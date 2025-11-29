@@ -69,9 +69,6 @@ class _SummaryCardState extends State<SummaryCard>
 
   @override
   Widget build(BuildContext context) {
-    final montantVentile = widget.selectedMonth != null
-        ? widget.montantVentileRef[widget.selectedMonth! - 1]
-        : _segmentMonths.fold(0, (sum, month) => sum + widget.montantVentileRef[month - 1]);
     
         
     final montantReel = widget.selectedMonth != null
@@ -103,7 +100,7 @@ class _SummaryCardState extends State<SummaryCard>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // En-tête avec icône et titre + bouton expand
+            // En-tête avec titre et montant réel
             Row(
               children: [
                 Container(
@@ -120,34 +117,38 @@ class _SummaryCardState extends State<SummaryCard>
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      RichText(
-                        text: TextSpan(
-                          text: 'Bilan Financier ',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF1F2937),
-                            fontFamily: 'Poppins',
-                          ),
-                          children: [
-                            TextSpan(
-                              text: widget.selectedMonth != null
-                                  ? widget.monthNames[widget.selectedMonth! - 1]
-                                  : '${widget.selectedSegment == '1-6' ? 'Janv-Juin' : 'Juil-Déc'} ${DateTime.now().year}',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.grey.shade600,
-                                fontFamily: 'Nunito',
-                              ),
-                            ),
-                          ],
-                        ),
+                  child: RichText(
+                    text: TextSpan(
+                      text: 'Bilan ',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1F2937),
+                        fontFamily: 'Poppins',
                       ),
-                    ],
+                      children: [
+                        TextSpan(
+                          text: widget.selectedMonth != null
+                              ? widget.monthNames[widget.selectedMonth! - 1]
+                              : '${widget.selectedSegment == '1-6' ? 'Janv-Juin' : 'Juil-Déc'} ${DateTime.now().year}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey.shade600,
+                            fontFamily: 'Nunito',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Text(
+                  _formatCurrency(montantReel),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF10B981),
+                    fontFamily: 'Poppins',
                   ),
                 ),
               ],
@@ -162,23 +163,11 @@ class _SummaryCardState extends State<SummaryCard>
                 color: Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(6),
               ),
-              child: Column(
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      _buildCompactInfoItem('M.réel', _formatCurrency(montantReel), const Color(0xFF10B981)),
-                      const SizedBox(width: 8),
-                      _buildCompactInfoItem('Rembours.', _formatCurrency(montantRemboursement), const Color(0xFF3B82F6)),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      _buildCompactInfoItem('M.avance', _formatCurrency(montantAvance), const Color(0xFF8B5CF6)),
-                      const SizedBox(width: 8),
-                      _buildCompactInfoItem('M.ventilé', _formatCurrency(montantVentile), const Color(0xFFF59E0B)),
-                    ],
-                  ),
+                  _buildCompactInfoItem('M.avance', _formatCurrency(montantAvance), const Color(0xFF8B5CF6)),
+                  const SizedBox(width: 8),
+                  _buildCompactInfoItem('M.arrière', _formatCurrency(montantRemboursement), const Color(0xFF3B82F6)),
                 ],
               ),
             ),
@@ -188,61 +177,6 @@ class _SummaryCardState extends State<SummaryCard>
       );
   }
 
-  Widget _buildModernInfoItem(
-    String label,
-    String value,
-    Color color,
-    IconData icon,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withValues(alpha: 0.1),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                icon,
-                color: color,
-                size: 16,
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                    fontFamily: 'Nunito',
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: color,
-              fontFamily: 'Poppins',
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
 
   String _formatCurrency(int amount) {
     if (amount >= 1000000) {
@@ -257,16 +191,23 @@ class _SummaryCardState extends State<SummaryCard>
   }
 
   Widget _buildCompactInfoItem(String label, String value, Color color) {
+    // Déterminer la direction de la flèche selon le type
+    IconData arrowIcon;
+    if (label.contains('avance')) {
+      arrowIcon = Icons.arrow_forward; // Flèche vers l'avant pour avance
+    } else if (label.contains('arrière')) {
+      arrowIcon = Icons.arrow_back; // Flèche vers l'arrière pour arrière
+    } else {
+      arrowIcon = Icons.arrow_forward; // Par défaut
+    }
+    
     return Expanded(
       child: Row(
         children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+          Icon(
+            arrowIcon,
+            color: color,
+            size: 14,
           ),
           const SizedBox(width: 6),
           Expanded(
