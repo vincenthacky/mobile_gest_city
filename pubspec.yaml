@@ -78,7 +78,8 @@ dependencies:
   google_fonts: ^6.2.1
   
   # Internationalization
-  intl: ^0.19.0
+  #intl: ^0.19.0
+  intl: ^0.18.1
   
   # Cryptography for checksums
   crypto: ^3.0.3
@@ -87,7 +88,7 @@ dependencies:
   pointycastle: ^3.9.1
   
   # Biometric authentication
-  local_auth: ^2.3.0
+  local_auth: 2.1.6
   
   # Local database
   hive: ^2.2.3
