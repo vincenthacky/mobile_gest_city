@@ -204,13 +204,16 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    _isEditing ? '📝 Modifier le projet' : '✨ Nouveau projet',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1F2937),
-                      fontFamily: 'Poppins',
+                  Expanded(
+                    child: Text(
+                      _isEditing ? 'Modifier le projet' : 'Nouveau projet',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1F2937),
+                        fontFamily: 'Poppins',
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],

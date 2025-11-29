@@ -123,14 +123,19 @@ class InformationDataSource {
     }
   }
 
-  /// Synchronise les informations avec le serveur
+  /// Synchronise les informations avec le serveur - NOUVELLE API POST
   Future<InformationSyncResponse> syncInformation(InformationSyncRequest request) async {
     try {
       final data = request.toJson();
       
-      final response = await _dio.get(
+      final response = await _dio.post(
         '/information/sync',
-        queryParameters: data,
+        data: data,
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        ),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {

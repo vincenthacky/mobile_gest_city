@@ -25,8 +25,6 @@ class _SignalementsPageState extends State<SignalementsPage> {
   late SyncReportController _reportController;
   late ConnectivityService _connectivityService;
   Timer? _searchTimer;
-  int _currentPage = 1;
-  bool _isLoadingMore = false;
   String _searchQuery = '';
 
   @override
@@ -90,73 +88,62 @@ class _SignalementsPageState extends State<SignalementsPage> {
   }
 
   Future<void> _loadReports() async {
-    _currentPage = 1;
-    
     // Si pas de connexion et qu'on a du cache, afficher notification
     if (!_connectivityService.isConnected && _reportController.allReports.isNotEmpty) {
       _reportController.showOfflineNotification();
     }
     
+    // Sync initial SANS filtres (récupère toutes les données)
     await _reportController.fetchReports(
-      status: _mapFilterToStatus(_selectedFilter),
-      priority: _mapFilterToPriority(_selectedFilter),
-      useSync: true, // Activer la synchronisation intelligente
-      showNotifications: _connectivityService.isConnected, // Afficher notifications si en ligne
+      useSync: true, // Synchronisation intelligente
+      showNotifications: _connectivityService.isConnected,
     );
     
-    // Appliquer les filtres après chargement
-    _reportController.applySearchFilter(_searchQuery.length >= 2 ? _searchQuery : null);
+    // Appliquer les filtres LOCALEMENT après sync
+    _applyLocalFilters();
   }
 
   Future<void> _loadMoreReports() async {
-    if (_isLoadingMore || _reportController.isLoadingReports) return;
-    
-    final pagination = _reportController.pagination;
-    if (pagination != null && _currentPage < pagination['last_page']) {
-      setState(() {
-        _isLoadingMore = true;
-        _currentPage++;
-      });
-
-      await _reportController.fetchReports(
-        status: _mapFilterToStatus(_selectedFilter),
-        priority: _mapFilterToPriority(_selectedFilter),
-        page: _currentPage,
-        append: true,
-      );
-
-      setState(() {
-        _isLoadingMore = false;
-      });
-    }
+    // Plus besoin de pagination avec filtrage local - toutes les données sont en mémoire
+    return;
   }
 
   Future<void> _resetAndSearch() async {
-    _currentPage = 1;
-    await _reportController.fetchReports(
-      status: _mapFilterToStatus(_selectedFilter),
-      priority: _mapFilterToPriority(_selectedFilter),
-      page: _currentPage,
-    );
+    // Plus besoin de requête API - utilisation du filtrage local
+    _applyLocalFilters();
   }
 
-  String? _mapFilterToStatus(SignalementFilter filter) {
+  /// Applique les filtres localement sur les données en cache
+  void _applyLocalFilters() {
+    // Appliquer le filtre de statut
+    final status = _mapFilterToReportStatus(_selectedFilter);
+    _reportController.applyStatusFilter(status);
+    
+    // Appliquer le filtre de priorité
+    final priority = _mapFilterToReportPriority(_selectedFilter);
+    _reportController.applyPriorityFilter(priority);
+    
+    // Appliquer la recherche
+    _reportController.applySearchFilter(_searchQuery.length >= 2 ? _searchQuery : null);
+  }
+
+  ReportStatus? _mapFilterToReportStatus(SignalementFilter filter) {
     switch (filter) {
       case SignalementFilter.nouveaux:
-        return 'pending';
+        return ReportStatus.pending;
       case SignalementFilter.enCours:
-        return 'in_progress';
+        return ReportStatus.inProgress;
       case SignalementFilter.resolus:
-        return 'resolved';
+        return ReportStatus.resolved;
       default:
         return null;
     }
   }
 
-  String? _mapFilterToPriority(SignalementFilter filter) {
+  PriorityLevel? _mapFilterToReportPriority(SignalementFilter filter) {
     switch (filter) {
       case SignalementFilter.urgents:
-        return 'urgent';
+        return PriorityLevel.high; // urgent = high priority
       default:
         return null;
     }
@@ -181,7 +168,8 @@ class _SignalementsPageState extends State<SignalementsPage> {
     setState(() {
       _selectedFilter = filter;
     });
-    _resetAndSearch();
+    // Utiliser le filtrage local au lieu de faire une requête API
+    _applyLocalFilters();
   }
 
   @override
@@ -415,39 +403,12 @@ class _SignalementsPageState extends State<SignalementsPage> {
                               );
                             }),
                             
-                            // Indicateur de chargement pour la pagination
-                            if (_isLoadingMore)
-                              Container(
-                                padding: const EdgeInsets.all(20),
-                                child: const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        color: Color(0xFFEF4444),
-                                        strokeWidth: 2,
-                                      ),
-                                    ),
-                                    SizedBox(width: 12),
-                                    Text(
-                                      'Chargement...',
-                                      style: TextStyle(
-                                        color: Color(0xFF6B7280),
-                                        fontFamily: 'Nunito',
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            
-                            // Information sur la pagination
-                            if (reportController.pagination != null && !_isLoadingMore)
+                            // Information sur le nombre de signalements
+                            if (_filteredReports.isNotEmpty)
                               Container(
                                 padding: const EdgeInsets.all(20),
                                 child: Text(
-                                  '${reportController.pagination!['from']} - ${reportController.pagination!['to']} sur ${reportController.pagination!['total']} signalements',
+                                  '${_filteredReports.length} signalement${_filteredReports.length > 1 ? 's' : ''}',
                                   style: const TextStyle(
                                     color: Color(0xFF6B7280),
                                     fontSize: 12,

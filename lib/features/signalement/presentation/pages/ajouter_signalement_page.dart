@@ -128,13 +128,16 @@ class _AjouterSignalementPageState extends State<AjouterSignalementPage> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Text(
-                    '🚨 Nouveau signalement',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1F2937),
-                      fontFamily: 'Poppins',
+                  const Expanded(
+                    child: Text(
+                      'Nouveau signalement',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1F2937),
+                        fontFamily: 'Poppins',
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],

@@ -142,6 +142,10 @@ class AuthController extends ChangeNotifier {
     try {
       _setStatus(AuthStatus.loading);
       
+      // Diagnostic d'abord pour voir les types disponibles
+      final diagnostic = await BiometricAuthService.diagnosticBiometrics();
+      debugPrint('🔍 [AUTH BIOMETRIC] Types disponibles: $diagnostic');
+      
       final biometricResult = await BiometricAuthService.authenticate(
         localizedReason: 'Authentifiez-vous pour accéder à votre compte',
         useErrorDialogs: true,

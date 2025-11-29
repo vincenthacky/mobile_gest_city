@@ -54,14 +54,19 @@ class ReportDataSource {
     }
   }
 
-  /// Synchronise les signalements avec le serveur
+  /// Synchronise les signalements avec le serveur - NOUVELLE API POST
   Future<ReportSyncResponse> syncReports(ReportSyncRequest request) async {
     try {
       final data = request.toJson();
       
-      final response = await _dio.get(
+      final response = await _dio.post(
         '/reports/sync',
-        queryParameters: data,
+        data: data,
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        ),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {

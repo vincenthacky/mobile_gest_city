@@ -85,26 +85,57 @@ class BiometricAuthService {
       final hasBiometric = hasFingerprint || hasFace || hasWeak || hasStrong;
       final hasScreenFingerprint = hasWeak || hasStrong;
       
-      // Configuration optimisée selon le type de biométrie
+      // 🎯 PRIORITÉ FACE ID : Si Face ID disponible, on force son utilisation
+      if (hasFace && (hasFingerprint || hasWeak || hasStrong)) {
+        debugPrint('🎯 [BIOMETRIC] Face ID détecté avec empreinte - priorité à Face ID');
+      }
+      
+      // Configuration optimisée selon le type de biométrie avec priorité Face ID
       final authOptions = AuthenticationOptions(
         useErrorDialogs: useErrorDialogs,
         stickyAuth: stickyAuth,
         // Si biométrie disponible → biometricOnly true, sinon false pour fallback PIN/Pattern
         biometricOnly: hasBiometric,
         sensitiveTransaction: hasScreenFingerprint || hasFingerprint,
+        // 🎯 NOUVEAU : Si Face ID disponible, on le force via la localizedFallbackTitle
       );
 
-      // Authentification biométrique avec retry automatique pour empreintes écran
+      // 🎯 STRATÉGIE PRIORITÉ FACE ID : Essayer d'abord avec Face ID si disponible
       bool isAuthenticated = false;
+      
+      if (hasFace && (hasFingerprint || hasWeak || hasStrong)) {
+        debugPrint('🎯 [AUTH] Priorité Face ID - tentative avec message optimisé pour visage');
+        try {
+          isAuthenticated = await _localAuth.authenticate(
+            localizedReason: 'Utilisez votre visage pour vous authentifier rapidement',
+            options: authOptions,
+          );
+          
+          if (isAuthenticated) {
+            debugPrint('✅ [AUTH] Authentification Face ID réussie (priorité respectée)');
+            return BiometricAuthResult.success;
+          }
+          
+          debugPrint('⚠️ [AUTH] Face ID échoué, fallback vers empreinte...');
+        } catch (e) {
+          debugPrint('⚠️ [AUTH] Erreur Face ID: $e, fallback vers empreinte...');
+        }
+      }
+      
+      // Authentification standard (empreinte ou retry après échec Face ID)
       int retryCount = 0;
       const maxRetries = 2;
 
       while (!isAuthenticated && retryCount < maxRetries) {
         try {
+          final reasonMessage = hasFace && retryCount == 0 
+            ? 'Utilisez votre empreinte digitale pour vous authentifier'
+            : localizedReason;
+            
           debugPrint('🔐 [AUTH] Tentative ${retryCount + 1}/$maxRetries avec options: $authOptions');
           
           isAuthenticated = await _localAuth.authenticate(
-            localizedReason: localizedReason,
+            localizedReason: reasonMessage,
             options: authOptions,
           );
           
@@ -208,13 +239,15 @@ class BiometricAuthService {
       'sensitiveTransaction': hasScreenFingerprint || hasFingerprint,
       'useErrorDialogs': true,
       'stickyAuth': true,
-      'reason': hasScreenFingerprint
-        ? 'Empreinte écran Samsung détectée (weak/strong) - biometricOnly=true'
-        : hasFingerprint 
-          ? 'Empreinte standard détectée - biometricOnly=true'
-          : hasFace 
-            ? 'Face ID détecté - biometricOnly=true'
-            : 'Aucune biométrie - biometricOnly=false (fallback PIN/Pattern)',
+      'reason': hasFace && (hasFingerprint || hasWeak || hasStrong)
+        ? 'Face ID + empreinte détectés - PRIORITÉ À FACE ID'
+        : hasScreenFingerprint
+          ? 'Empreinte écran Samsung détectée (weak/strong) - biometricOnly=true'
+          : hasFingerprint 
+            ? 'Empreinte standard détectée - biometricOnly=true'
+            : hasFace 
+              ? 'Face ID seul détecté - biometricOnly=true'
+              : 'Aucune biométrie - biometricOnly=false (fallback PIN/Pattern)',
     };
   }
 
