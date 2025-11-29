@@ -8,7 +8,7 @@ part of 'sync_models.dart';
 
 class ReportChecksumAdapter extends TypeAdapter<ReportChecksum> {
   @override
-  final int typeId = 2;
+  final int typeId = 16;
 
   @override
   ReportChecksum read(BinaryReader reader) {
@@ -50,7 +50,7 @@ class ReportChecksumAdapter extends TypeAdapter<ReportChecksum> {
 
 class CachedReportAdapter extends TypeAdapter<CachedReport> {
   @override
-  final int typeId = 3;
+  final int typeId = 17;
 
   @override
   CachedReport read(BinaryReader reader) {

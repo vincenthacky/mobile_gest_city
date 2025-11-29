@@ -3,7 +3,7 @@ import 'package:hive/hive.dart';
 part 'sync_models.g.dart';
 
 // Modèle pour stocker les checksums des signalements en local
-@HiveType(typeId: 2) // Utiliser un typeId différent de celui des projets
+@HiveType(typeId: 16) // Utiliser un typeId différent de celui des autres modules
 class ReportChecksum extends HiveObject {
   @HiveField(0)
   late String reportId;
@@ -35,7 +35,7 @@ class ReportChecksum extends HiveObject {
 }
 
 // Modèle pour stocker les signalements complets en local
-@HiveType(typeId: 3)
+@HiveType(typeId: 17)
 class CachedReport extends HiveObject {
   @HiveField(0)
   late String reportId;

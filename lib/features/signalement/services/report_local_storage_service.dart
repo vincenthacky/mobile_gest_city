@@ -16,10 +16,10 @@ class ReportLocalStorageService {
     await Hive.initFlutter();
     
     // Enregistrer les adaptateurs pour signalements si pas déjà fait
-    if (!Hive.isAdapterRegistered(2)) {
+    if (!Hive.isAdapterRegistered(16)) {
       Hive.registerAdapter(ReportChecksumAdapter());
     }
-    if (!Hive.isAdapterRegistered(3)) {
+    if (!Hive.isAdapterRegistered(17)) {
       Hive.registerAdapter(CachedReportAdapter());
     }
     
