@@ -142,8 +142,10 @@ class AuthController extends ChangeNotifier {
     try {
       _setStatus(AuthStatus.loading);
       
-      final biometricResult = await BiometricAuthService.authenticateWithFallback(
+      final biometricResult = await BiometricAuthService.authenticate(
         localizedReason: 'Authentifiez-vous pour accéder à votre compte',
+        useErrorDialogs: true,
+        stickyAuth: true,
       );
       
       if (biometricResult.isSuccess) {
@@ -533,8 +535,10 @@ class AuthController extends ChangeNotifier {
           // Utilisateur a activé la sécurité → authentication requise selon le type
           if (lockType == LockType.biometric) {
             debugPrint('🔐 [AUTH] Sécurité biométrique activée → BIOMETRIC AUTH');
-            final biometricResult = await BiometricAuthService.authenticateWithFallback(
+            final biometricResult = await BiometricAuthService.authenticate(
               localizedReason: 'Authentifiez-vous pour accéder à votre compte',
+              useErrorDialogs: true,
+              stickyAuth: true,
             );
             
             if (!biometricResult.isSuccess) {

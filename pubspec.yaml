@@ -88,7 +88,7 @@ dependencies:
   pointycastle: ^3.9.1
   
   # Biometric authentication
-  local_auth: 2.1.6
+  local_auth: 2.1.7
   
   # Local database
   hive: ^2.2.3

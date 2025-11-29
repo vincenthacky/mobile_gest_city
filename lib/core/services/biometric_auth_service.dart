@@ -89,7 +89,7 @@ class BiometricAuthService {
       final authOptions = AuthenticationOptions(
         useErrorDialogs: useErrorDialogs,
         stickyAuth: stickyAuth,
-        // biometricOnly true pour tous types de capteurs biométriques
+        // Si biométrie disponible → biometricOnly true, sinon false pour fallback PIN/Pattern
         biometricOnly: hasBiometric,
         sensitiveTransaction: hasScreenFingerprint || hasFingerprint,
       );
@@ -204,17 +204,17 @@ class BiometricAuthService {
     final hasScreenFingerprint = hasWeak || hasStrong;
     
     return {
-      'biometricOnly': hasBiometric,
+      'biometricOnly': hasBiometric, // True si biométrie disponible, false sinon
       'sensitiveTransaction': hasScreenFingerprint || hasFingerprint,
       'useErrorDialogs': true,
       'stickyAuth': true,
       'reason': hasScreenFingerprint
-        ? 'Empreinte écran Samsung détectée (weak/strong) - configuration optimisée'
+        ? 'Empreinte écran Samsung détectée (weak/strong) - biometricOnly=true'
         : hasFingerprint 
-          ? 'Empreinte standard détectée - configuration optimisée'
+          ? 'Empreinte standard détectée - biometricOnly=true'
           : hasFace 
-            ? 'Face ID détecté - configuration standard'
-            : 'Configuration générique',
+            ? 'Face ID détecté - biometricOnly=true'
+            : 'Aucune biométrie - biometricOnly=false (fallback PIN/Pattern)',
     };
   }
 
