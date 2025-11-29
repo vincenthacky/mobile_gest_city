@@ -23,7 +23,7 @@ android {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.gest_city"
         // Version SDK minimum pour la biométrie moderne (API 23 minimum pour fingerprint, 28+ pour biometric)
-        minSdk = 23 // Nécessaire pour USE_FINGERPRINT et biométrie moderne
+        minSdk = flutter.minSdkVersion // Nécessaire pour USE_FINGERPRINT et biométrie moderne
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

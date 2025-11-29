@@ -41,10 +41,14 @@ class _BiometricLockOverlayState extends State<BiometricLockOverlay> {
     
     if (mounted) {
       setState(() {});
-      // Pour la biométrie, on peut lancer automatiquement l'authentification
-      // Pour le PIN, on laisse l'utilisateur saisir d'abord son code
+      // Pour la biométrie, attendre que l'overlay soit complètement affiché
+      // avant de lancer l'authentification (Samsung nécessite délai)
       if (_lockType == LockType.biometric) {
-        _authenticateUser();
+        // Délai pour laisser l'overlay se stabiliser avant biométrie
+        await Future.delayed(const Duration(milliseconds: 1500));
+        if (mounted) {
+          _authenticateUser();
+        }
       }
     }
   }
@@ -296,10 +300,11 @@ class _BiometricLockOverlayState extends State<BiometricLockOverlay> {
     final containerSize = isSmallScreen ? screenSize.width * 0.25 : screenSize.width * 0.3;
     final iconSize = containerSize * 0.6;
 
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        backgroundColor: const Color(0xFF1F2937), // Fond sombre comme WhatsApp
+    // Utiliser Material au lieu de MaterialApp pour éviter de bloquer les dialogues système
+    return Material(
+      color: const Color(0xFF1F2937), // Fond sombre comme WhatsApp
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
         body: SafeArea(
           child: Padding(
             padding: EdgeInsets.symmetric(

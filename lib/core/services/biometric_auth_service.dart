@@ -1,6 +1,7 @@
 import 'package:local_auth/local_auth.dart';
 import 'package:local_auth/error_codes.dart' as auth_error;
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 
 class BiometricAuthService {
   static final LocalAuthentication _localAuth = LocalAuthentication();
@@ -100,19 +101,25 @@ class BiometricAuthService {
 
       while (!isAuthenticated && retryCount < maxRetries) {
         try {
+          debugPrint('🔐 [AUTH] Tentative ${retryCount + 1}/$maxRetries avec options: $authOptions');
+          
           isAuthenticated = await _localAuth.authenticate(
             localizedReason: localizedReason,
             options: authOptions,
           );
           
+          debugPrint('🔐 [AUTH] Résultat tentative ${retryCount + 1}: $isAuthenticated');
+          
           if (!isAuthenticated && retryCount < maxRetries - 1) {
             // Délai court avant retry pour empreintes écran
+            debugPrint('🔐 [AUTH] Retry dans 300ms...');
             await Future.delayed(const Duration(milliseconds: 300));
             retryCount++;
           } else {
             break;
           }
         } catch (e) {
+          debugPrint('❌ [AUTH] Erreur tentative ${retryCount + 1}: $e');
           if (retryCount < maxRetries - 1) {
             retryCount++;
             await Future.delayed(const Duration(milliseconds: 500));
