@@ -367,12 +367,34 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Solde Actuel',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.white.withValues(alpha: 0.8),
-            ),
+          Row(
+            children: [
+              Text(
+                'Solde Actuel de la cite ',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white.withValues(alpha: 0.8),
+                ),
+              ),
+              const Spacer(),
+              Consumer<SyncTransactionController>(
+                builder: (context, syncController, child) {
+                  if (syncController.lastSyncDateTime != null) {
+                    final lastSync = syncController.lastSyncDateTime!;
+                    final formattedDate = '${lastSync.day.toString().padLeft(2, '0')}/${lastSync.month.toString().padLeft(2, '0')}/${lastSync.year}';
+                    final formattedTime = '${lastSync.hour.toString().padLeft(2, '0')}:${lastSync.minute.toString().padLeft(2, '0')}';
+                    return Text(
+                      '$formattedDate $formattedTime',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.white.withValues(alpha: 0.6),
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           Text(

@@ -27,6 +27,9 @@ class SyncTransactionController extends ChangeNotifier {
   
   // Filtres
   TransactionSyncFilters? _currentFilters;
+  
+  // Date de dernière synchronisation
+  DateTime? _lastSyncDateTime;
 
   // Getters
   TransactionSyncStatus get syncStatus => _syncStatus;
@@ -39,6 +42,7 @@ class SyncTransactionController extends ChangeNotifier {
   List<Map<String, dynamic>> get allTransactions => _allTransactions;
   List<Map<String, dynamic>> get transactions => _transactions;
   TransactionSyncFilters? get currentFilters => _currentFilters;
+  DateTime? get lastSyncDateTime => _lastSyncDateTime;
   
   bool get isLoading => _syncStatus == TransactionSyncStatus.syncing;
   bool get hasError => _syncStatus == TransactionSyncStatus.error;
@@ -127,10 +131,16 @@ class SyncTransactionController extends ChangeNotifier {
         print('📊 [SYNC TRANSACTION] Aucun changement → solde non mis à jour');
         
         if (showNotifications) {
-          _showNotification(SyncNotificationType.upToDate, 'Transactions à jour');
+          final now = DateTime.now();
+          final formattedDate = '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+          final formattedTime = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+          _showNotification(SyncNotificationType.upToDate, 'Transactions à jour - $formattedDate $formattedTime');
         }
       }
 
+      // Mettre à jour la date de dernière synchronisation
+      _lastSyncDateTime = DateTime.now();
+      
       _changeSyncStatus(TransactionSyncStatus.success);
       _syncSuccessMessage = 'Synchronisation réussie';
 
@@ -169,8 +179,12 @@ class SyncTransactionController extends ChangeNotifier {
 
   /// Construit le message de succès de synchronisation
   String _buildSyncSuccessMessage(TransactionSyncStats? stats, {bool hasChanges = false}) {
+    final now = DateTime.now();
+    final formattedDate = '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+    final formattedTime = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    
     if (stats == null || !hasChanges) {
-      return 'Transactions à jour';
+      return 'Transactions à jour - $formattedDate $formattedTime';
     }
 
     final parts = <String>[];
@@ -178,8 +192,8 @@ class SyncTransactionController extends ChangeNotifier {
     if (stats.updatedCount > 0) parts.add('${stats.updatedCount} mise(s) à jour');
     if (stats.deletedCount > 0) parts.add('${stats.deletedCount} supprimée(s)');
 
-    if (parts.isEmpty) return 'Transactions synchronisées';
-    return 'Transactions: ${parts.join(', ')}';
+    if (parts.isEmpty) return 'Transactions synchronisées - $formattedDate $formattedTime';
+    return 'Transactions: ${parts.join(', ')} - $formattedDate $formattedTime';
   }
 
   /// Applique les filtres aux transactions

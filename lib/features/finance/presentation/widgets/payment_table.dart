@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'payment_cell.dart';
-import 'sticky_header_delegate.dart';
 import 'legend_widget.dart';
 
 class PaymentTable extends StatelessWidget {
@@ -27,22 +26,9 @@ class PaymentTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final segmentMonths = this.segmentMonths;
-    final currentMonth = DateTime.now().month;
     
     return CustomScrollView(
       slivers: [
-        // Sticky header
-        SliverPersistentHeader(
-          pinned: true,
-          delegate: StickyHeaderDelegate(
-            segmentMonths: segmentMonths,
-            currentMonth: currentMonth,
-            selectedMonth: selectedMonth,
-            monthNames: monthNames,
-            onMonthSelected: onMonthSelected,
-          ),
-        ),
-        
         // White container background for table
         SliverToBoxAdapter(
           child: Container(

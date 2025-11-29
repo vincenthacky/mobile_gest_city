@@ -69,9 +69,6 @@ class _SummaryCardState extends State<SummaryCard>
 
   @override
   Widget build(BuildContext context) {
-    final montantVentile = widget.selectedMonth != null
-        ? widget.montantVentileRef[widget.selectedMonth! - 1]
-        : _segmentMonths.fold(0, (sum, month) => sum + widget.montantVentileRef[month - 1]);
     
         
     final montantReel = widget.selectedMonth != null
@@ -168,9 +165,9 @@ class _SummaryCardState extends State<SummaryCard>
               ),
               child: Row(
                 children: [
-                  _buildCompactInfoItem('M.avancé', _formatCurrency(montantAvance), const Color(0xFF8B5CF6)),
+                  _buildCompactInfoItem('M.avance', _formatCurrency(montantAvance), const Color(0xFF8B5CF6)),
                   const SizedBox(width: 8),
-                  _buildCompactInfoItem('M.remboursé', _formatCurrency(montantRemboursement), const Color(0xFF3B82F6)),
+                  _buildCompactInfoItem('M.arrière', _formatCurrency(montantRemboursement), const Color(0xFF3B82F6)),
                 ],
               ),
             ),
@@ -194,16 +191,23 @@ class _SummaryCardState extends State<SummaryCard>
   }
 
   Widget _buildCompactInfoItem(String label, String value, Color color) {
+    // Déterminer la direction de la flèche selon le type
+    IconData arrowIcon;
+    if (label.contains('avance')) {
+      arrowIcon = Icons.arrow_forward; // Flèche vers l'avant pour avance
+    } else if (label.contains('arrière')) {
+      arrowIcon = Icons.arrow_back; // Flèche vers l'arrière pour arrière
+    } else {
+      arrowIcon = Icons.arrow_forward; // Par défaut
+    }
+    
     return Expanded(
       child: Row(
         children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+          Icon(
+            arrowIcon,
+            color: color,
+            size: 14,
           ),
           const SizedBox(width: 6),
           Expanded(
