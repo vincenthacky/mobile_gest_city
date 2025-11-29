@@ -164,28 +164,31 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
   }
 
   Future<void> _loadInitialData() async {
-    // Si pas de connexion et qu'on a du cache, afficher notification
-    if (!_connectivityService.isConnected && _syncTransactionController.allTransactions.isNotEmpty) {
-      _syncTransactionController.showOfflineNotification();
-    }
-    
-    // Synchroniser les transactions avec logique conditionnelle pour le solde
-    await _syncTransactionController.syncTransactions(
-      showNotifications: _connectivityService.isConnected,
-      forceFullSync: false, // La détection automatique se fait dans le controller
-    );
-    
-    // Charger les mouvements de caisse traditionnels
     if (!mounted) return;
-    final controller = context.read<CashMovementsController>();
-    
-    // ✅ Controller déjà initialisé dans bootstrap.dart
-    
-    await controller.loadCashTotals();
-    await controller.loadCashMovements();
-    
+    final cashController = context.read<CashMovementsController>();
+
+    // 1️⃣ Toujours afficher d'abord les données locales (offline-first)
+    //    - Totaux (solde, recettes, dépenses) depuis le cache
+    //    - Mouvements depuis le cache
+    await cashController.loadCashTotals(forceFromCache: true);
+    await cashController.loadCashMovements();
+
     if (mounted) {
       _startAnimations();
+    }
+
+    // 2️⃣ Ensuite seulement lancer la synchronisation en arrière-plan
+    if (_connectivityService.isConnected) {
+      // Lancer la sync sans attendre pour ne pas bloquer l'affichage
+      _syncTransactionController.syncTransactions(
+        showNotifications: true,
+        forceFullSync: false,
+      );
+    } else {
+      // Pas de connexion : si on a déjà des données, afficher la bannière hors ligne
+      if (_syncTransactionController.allTransactions.isNotEmpty || cashController.hasData) {
+        _syncTransactionController.showOfflineNotification();
+      }
     }
   }
 
