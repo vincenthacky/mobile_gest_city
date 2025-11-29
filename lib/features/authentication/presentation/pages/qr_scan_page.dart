@@ -13,26 +13,25 @@ class QrScanPage extends StatefulWidget {
   State<QrScanPage> createState() => _QrScanPageState();
 }
 
-class _QrScanPageState extends State<QrScanPage>
-    with TickerProviderStateMixin {
+class _QrScanPageState extends State<QrScanPage> with TickerProviderStateMixin {
   late MobileScannerController cameraController;
   late AnimationController _fadeController;
   late AnimationController _scanController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _scanAnimation;
-  
+
   bool _isScanning = true;
 
   @override
   void initState() {
     super.initState();
     cameraController = MobileScannerController();
-    
+
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    
+
     _scanController = AnimationController(
       duration: const Duration(milliseconds: 2000),
       vsync: this,
@@ -41,7 +40,7 @@ class _QrScanPageState extends State<QrScanPage>
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
     );
-    
+
     _scanAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _scanController, curve: Curves.easeInOut),
     );
@@ -60,14 +59,14 @@ class _QrScanPageState extends State<QrScanPage>
 
   void _onDetect(BarcodeCapture capture) {
     if (!_isScanning) return;
-    
+
     final List<Barcode> barcodes = capture.barcodes;
     for (final barcode in barcodes) {
       if (barcode.rawValue != null) {
         setState(() {
           _isScanning = false;
         });
-        
+
         // Simulation : après scan, naviguer vers register avec les données
         _showSuccessAndNavigate(barcode.rawValue!);
         break;
@@ -77,29 +76,30 @@ class _QrScanPageState extends State<QrScanPage>
 
   void _showSuccessAndNavigate(String code) async {
     final authController = Provider.of<AuthController>(context, listen: false);
-    
+
     try {
       // Parser le QR code au nouveau format {"villa_code":"","villa_number":"Villa-360"}
       String villaNumber = code;
       try {
         final qrData = json.decode(code);
-        if (qrData is Map<String, dynamic> && qrData.containsKey('villa_number')) {
+        if (qrData is Map<String, dynamic> &&
+            qrData.containsKey('villa_number')) {
           villaNumber = qrData['villa_number'];
         }
       } catch (e) {
         // Si ce n'est pas du JSON, utiliser le code tel quel
         villaNumber = code;
       }
-      
+
       // Appeler l'API pour vérifier le code villa avec le nouveau format
       final response = await authController.verifyVilla(villaNumber);
-      
+
       if (!mounted) return;
-      
+
       if (response != null && response['success'] == true) {
         // Succès - naviguer vers register avec villa_id de la réponse API
         final villaId = response['data']['villa_id'];
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -149,9 +149,7 @@ class _QrScanPageState extends State<QrScanPage>
           ),
         ),
         backgroundColor: const Color(0xFFEF4444),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(16),
       ),
@@ -203,9 +201,9 @@ class _QrScanPageState extends State<QrScanPage>
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 20),
-              
+
               // Zone de scan avec caméra (en haut maintenant)
               Expanded(
                 flex: 1,
@@ -220,7 +218,7 @@ class _QrScanPageState extends State<QrScanPage>
                           controller: cameraController,
                           onDetect: _onDetect,
                         ),
-                        
+
                         // Overlay avec zone de scan
                         Container(
                           decoration: BoxDecoration(
@@ -247,7 +245,10 @@ class _QrScanPageState extends State<QrScanPage>
                                         animation: _scanAnimation,
                                         builder: (context, child) {
                                           return Positioned(
-                                            top: scanAreaSize * _scanAnimation.value - 2,
+                                            top:
+                                                scanAreaSize *
+                                                    _scanAnimation.value -
+                                                2,
                                             left: 0,
                                             right: 0,
                                             child: Container(
@@ -256,7 +257,9 @@ class _QrScanPageState extends State<QrScanPage>
                                                 color: const Color(0xFF3B82F6),
                                                 boxShadow: [
                                                   BoxShadow(
-                                                    color: const Color(0xFF3B82F6).withValues(alpha: 0.5),
+                                                    color: const Color(
+                                                      0xFF3B82F6,
+                                                    ).withValues(alpha: 0.5),
                                                     blurRadius: 8,
                                                     spreadRadius: 2,
                                                   ),
@@ -266,12 +269,12 @@ class _QrScanPageState extends State<QrScanPage>
                                           );
                                         },
                                       ),
-                                      
+
                                       // Coins de la zone de scan
                                       ...List.generate(4, (index) {
                                         late Alignment alignment;
                                         late Widget corner;
-                                        
+
                                         switch (index) {
                                           case 0: // Top-left
                                             alignment = Alignment.topLeft;
@@ -298,7 +301,7 @@ class _QrScanPageState extends State<QrScanPage>
                                             );
                                             break;
                                         }
-                                        
+
                                         return Align(
                                           alignment: alignment,
                                           child: corner,
@@ -308,7 +311,7 @@ class _QrScanPageState extends State<QrScanPage>
                                   ),
                                 ),
                               ),
-                              
+
                               // Instruction en bas
                               Positioned(
                                 bottom: 40,
@@ -321,7 +324,9 @@ class _QrScanPageState extends State<QrScanPage>
                                       vertical: 12,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: Colors.black.withValues(alpha: 0.7),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.7,
+                                      ),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Text(
@@ -343,9 +348,9 @@ class _QrScanPageState extends State<QrScanPage>
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Titre et description (juste en dessous du cadre)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -361,9 +366,9 @@ class _QrScanPageState extends State<QrScanPage>
                         height: 1.2,
                       ),
                     ),
-                    
+
                     const SizedBox(height: 8),
-                    
+
                     Text(
                       'Scanne le code QR de ta villa pour rejoindre ta communauté',
                       textAlign: TextAlign.center,
@@ -377,9 +382,9 @@ class _QrScanPageState extends State<QrScanPage>
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 20),
-              
+
               // Illustration Storyset (agrandie intelligemment)
               Expanded(
                 flex: 1,
@@ -401,7 +406,7 @@ class _QrScanPageState extends State<QrScanPage>
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 16),
             ],
           ),
@@ -431,7 +436,7 @@ class _ScanCorner extends StatelessWidget {
       height: 20,
       decoration: BoxDecoration(
         border: Border(
-          top: (isTopLeft || isTopRight) 
+          top: (isTopLeft || isTopRight)
               ? const BorderSide(color: Color(0xFF3B82F6), width: 4)
               : BorderSide.none,
           bottom: (isBottomLeft || isBottomRight)

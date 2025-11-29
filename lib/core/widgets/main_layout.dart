@@ -1,18 +1,69 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../features/authentication/controller/auth_controller.dart';
 
 class MainLayout extends StatelessWidget {
   final Widget child;
   final String currentPath;
 
-  const MainLayout({
-    super.key,
-    required this.child,
-    required this.currentPath,
-  });
+  const MainLayout({super.key, required this.child, required this.currentPath});
 
   @override
   Widget build(BuildContext context) {
+    // Récupérer l'utilisateur depuis AuthController
+    final authController = context.watch<AuthController>();
+    final user = authController.user;
+    final isAdmin = user?.role == 'ADMIN';
+
+    // Construire la liste des items de navigation
+    final navItems = [
+      _buildNavItem(
+        context,
+        '/home',
+        Icons.home,
+        'Accueil',
+        currentPath == '/home',
+      ),
+      _buildNavItem(
+        context,
+        '/finance',
+        Icons.account_balance_wallet,
+        'Finance',
+        currentPath == '/finance',
+      ),
+      _buildNavItem(
+        context,
+        '/projets',
+        Icons.folder_outlined,
+        'Projets',
+        currentPath == '/projets',
+      ),
+      _buildNavItem(
+        context,
+        '/cadre-de-vie',
+        Icons.nature_people,
+        'Cadre de vie',
+        currentPath == '/cadre-de-vie',
+      ),
+      _buildNavItem(
+        context,
+        '/signalements',
+        Icons.security,
+        'Vigilance',
+        currentPath == '/signalements',
+      ),
+      // Afficher l'item Admin uniquement si l'utilisateur a le rôle ADMIN
+      if (isAdmin)
+        _buildNavItem(
+          context,
+          '/admin',
+          Icons.admin_panel_settings,
+          'Admin',
+          currentPath == '/admin',
+        ),
+    ];
+
     return Scaffold(
       body: child,
       bottomNavigationBar: Container(
@@ -26,10 +77,7 @@ class MainLayout extends StatelessWidget {
             ),
           ],
           border: const Border(
-            top: BorderSide(
-              color: Color(0xFFE5E7EB),
-              width: 1,
-            ),
+            top: BorderSide(color: Color(0xFFE5E7EB), width: 1),
           ),
         ),
         child: SafeArea(
@@ -38,43 +86,7 @@ class MainLayout extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(
-                  context,
-                  '/home',
-                  Icons.home,
-                  'Accueil',
-                  currentPath == '/home',
-                ),
-                _buildNavItem(
-                  context,
-                  '/finance',
-                  Icons.account_balance_wallet,
-                  'Finance',
-                  currentPath == '/finance',
-                ),
-                _buildNavItem(
-                  context,
-                  '/projets',
-                  Icons.folder_outlined,
-                  'Projets',
-                  currentPath == '/projets',
-                ),
-                _buildNavItem(
-                  context,
-                  '/cadre-de-vie',
-                  Icons.nature_people,
-                  'Cadre de vie',
-                  currentPath == '/cadre-de-vie',
-                ),
-                _buildNavItem(
-                  context,
-                  '/signalements',
-                  Icons.security,
-                  'Vigilance',
-                  currentPath == '/signalements',
-                ),
-              ],
+              children: navItems,
             ),
           ),
         ),
@@ -100,8 +112,10 @@ class MainLayout extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                color: isActive 
-                    ? const Color(0xFF4F46E5) 
+                color: label == "Admin"
+                    ? Colors.red
+                    : isActive
+                    ? const Color(0xFF4F46E5)
                     : const Color(0xFF9CA3AF),
                 size: 22,
               ),
@@ -116,8 +130,10 @@ class MainLayout extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                    color: isActive 
-                        ? const Color(0xFF4F46E5) 
+                    color: label == "Admin"
+                        ? Colors.red
+                        : isActive
+                        ? const Color(0xFF4F46E5)
                         : const Color(0xFF9CA3AF),
                   ),
                 ),

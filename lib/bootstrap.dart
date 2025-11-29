@@ -31,6 +31,8 @@ import 'features/finance/controllers/cash_movements_controller.dart';
 import 'features/finance/controllers/payment_breakdown_controller.dart';
 import 'core/services/unified_sync_service.dart';
 import 'core/services/connectivity_service.dart';
+import 'features/admin/controllers/admin_payments_controller.dart';
+import 'features/admin/services/admin_payments_local_storage_service.dart';
 // import 'features/cotisations/controller/cotisations_controller.dart';
 // import 'features/cotisations/controller/payment_proof_controller.dart';
 
@@ -139,7 +141,10 @@ Future<void> bootstrap() async {
 Future<void> _initializeCriticalServices() async {
   // Service de base pour les transactions (nécessaire pour auth)
   await TransactionLocalStorageService.initialize();
-  
+
+  // Initialiser le service de stockage pour les paiements admin
+  await AdminPaymentsLocalStorageService.initialize();
+
   // 🎯 VIDAGE DU MAÎTRE UNIQUEMENT (force resynchronisation complète)
   await _clearMasterCacheOnly();
 }
@@ -179,7 +184,8 @@ class GestCityAppState extends State<GestCityApp> with WidgetsBindingObserver {
   late CashMovementsController _cashMovementsController;
   late PaymentBreakdownController _paymentBreakdownController;
   late UnifiedSyncService _unifiedSyncService;
-  
+  late AdminPaymentsController _adminPaymentsController;
+
   // Variables pour la gestion du lifecycle simplifié
   bool _appWasInBackground = false;
 
@@ -197,7 +203,8 @@ class GestCityAppState extends State<GestCityApp> with WidgetsBindingObserver {
     _cashMovementsController = CashMovementsController()..initialize();
     _paymentBreakdownController = PaymentBreakdownController()..initialize();
     _unifiedSyncService = UnifiedSyncService();
-    
+    _adminPaymentsController = AdminPaymentsController()..initialize();
+
     debugPrint('🎯 [BOOTSTRAP] Contrôleurs finance et services projets initialisés - écoute du maître active');
     
     // Démarrer le monitoring de la connexion
@@ -263,6 +270,9 @@ class GestCityAppState extends State<GestCityApp> with WidgetsBindingObserver {
         ),
         ChangeNotifierProvider.value(
           value: _unifiedSyncService,
+        ),
+        ChangeNotifierProvider.value(
+          value: _adminPaymentsController,
         ),
         // ChangeNotifierProvider(
         //   create: (_) => CotisationsController(),
@@ -379,6 +389,7 @@ class GestCityAppState extends State<GestCityApp> with WidgetsBindingObserver {
     _cashMovementsController.dispose();
     _paymentBreakdownController.dispose();
     _unifiedSyncService.dispose();
+    _adminPaymentsController.dispose();
     super.dispose();
   }
 }
