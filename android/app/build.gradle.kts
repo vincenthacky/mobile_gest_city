@@ -22,12 +22,14 @@ android {
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.gest_city"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // Version SDK minimum pour la biométrie moderne (API 23 minimum pour fingerprint, 28+ pour biometric)
+        minSdk = 23 // Nécessaire pour USE_FINGERPRINT et biométrie moderne
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        // Configuration pour la biométrie
+        multiDexEnabled = true
     }
 
     buildTypes {
@@ -35,10 +37,33 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            
+            // Configuration ProGuard pour la biométrie
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Dépendances pour la biométrie Android moderne
+    implementation("androidx.biometric:biometric:1.1.0")
+    implementation("androidx.biometric:biometric-ktx:1.2.0-alpha05")
+    
+    // Support pour les anciens dispositifs
+    implementation("androidx.legacy:legacy-support-v4:1.0.0")
+    
+    // Core Android X pour compatibilité
+    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.fragment:fragment-ktx:1.6.2")
+    
+    // Pour le multidex si nécessaire
+    implementation("androidx.multidex:multidex:2.0.1")
 }
