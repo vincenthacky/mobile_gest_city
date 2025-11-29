@@ -17,6 +17,7 @@ class WalletPage extends StatefulWidget {
 
 class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
   String _selectedView = 'Compte en T'; // 'Liste' ou 'Compte en T'
+  bool _sortDescending = true; // true = plus récent d'abord, false = plus ancien d'abord
   
   // Animation controllers
   late AnimationController _slideController;
@@ -36,11 +37,15 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
 
   List<CashMovement> get _transactions {
     final controller = context.read<CashMovementsController>();
-    return controller.cashMovements;
+    final transactions = List<CashMovement>.from(controller.cashMovements);
+    _sortTransactions(transactions);
+    return transactions;
   }
 
   List<CashMovement> get _debits {
-    return _transactions.where((t) => t.isDebit).toList();
+    final debits = _transactions.where((t) => t.isDebit).toList();
+    _sortTransactions(debits);
+    return debits;
   }
 
   List<CashMovement> get _credits {
@@ -184,6 +189,19 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
     HapticFeedback.lightImpact();
     setState(() {
       _selectedView = view;
+    });
+  }
+
+  void _sortTransactions(List<CashMovement> transactions) {
+    transactions.sort((a, b) {
+      return _sortDescending ? b.date.compareTo(a.date) : a.date.compareTo(b.date);
+    });
+  }
+
+  void _toggleSortOrder() {
+    HapticFeedback.lightImpact();
+    setState(() {
+      _sortDescending = !_sortDescending;
     });
   }
 
@@ -498,11 +516,15 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
   Widget _buildViewSelector() {
     return Column(
       children: [
-        // Boutons de vue
+        // Boutons de vue et tri
         SizedBox(
           height: 40,
           child: Row(
-            children: _viewTypes.asMap().entries.map((entry) {
+            children: [
+              // Boutons de vue
+              Expanded(
+                child: Row(
+                  children: _viewTypes.asMap().entries.map((entry) {
               final index = entry.key;
               final viewType = entry.value;
               final isSelected = _selectedView == viewType;
@@ -551,6 +573,41 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                 ),
               );
             }).toList(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Bouton de tri
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: const Color(0xFF4F46E5),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+                child: InkWell(
+                  onTap: _toggleSortOrder,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Center(
+                    child: Icon(
+                      _sortDescending ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
+                      color: const Color(0xFF4F46E5),
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
