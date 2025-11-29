@@ -25,7 +25,7 @@ class DeviceAuthInterceptor extends Interceptor {
         '/auth/register-device', 
         '/auth/login',
         '/auth/verify-villa',
-        '/auth/logout', // Géré différemment
+        // ✅ RETIRÉ: /auth/logout doit maintenant utiliser l'auth device
       ];
       
       final isExcluded = excludedPaths.any((path) => options.path.endsWith(path));

@@ -251,14 +251,14 @@ class _BiometricLockOverlayState extends State<BiometricLockOverlay> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(context).pop();
               // Déconnexion complète en cas de problème persistant
               final mainContext = navigatorKey.currentContext;
               if (mainContext != null && mainContext.mounted) {
                 try {
                   final authController = Provider.of<AuthController>(mainContext, listen: false);
-                  authController.forceLogout();
+                  await authController.forceLogout();
                   debugPrint('🔐 [OVERLAY] Déconnexion forcée suite à problème auth');
                 } catch (e) {
                   debugPrint('❌ [OVERLAY] Erreur déconnexion forcée: $e');

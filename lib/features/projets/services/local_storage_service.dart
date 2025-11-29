@@ -2,13 +2,17 @@ import 'dart:convert';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/sync_models.dart';
 import '../models/project_model.dart';
+import '../models/project_detail_model.dart';
+import '../models/voter_model.dart';
 import '../../finance/models/transaction_sync_models.dart';
 
 class LocalStorageService {
   static const String _checksumBoxName = 'project_checksums';
   static const String _projectsBoxName = 'cached_projects';
+  static const String _projectDetailsBoxName = 'cached_project_details';
   static Box<ProjectChecksum>? _checksumBox;
   static Box<CachedProject>? _projectsBox;
+  static Box<CachedProjectDetail>? _projectDetailsBox;
   
   /// Initialise Hive et ouvre les boxes
   static Future<Box<ProjectChecksum>> get instance async {
@@ -32,6 +36,9 @@ class LocalStorageService {
     if (!Hive.isAdapterRegistered(1)) {
       Hive.registerAdapter(CachedProjectAdapter());
     }
+    if (!Hive.isAdapterRegistered(2)) {
+      Hive.registerAdapter(CachedProjectDetailAdapter());
+    }
     // Adapters pour les transactions (TypeId 6, 7)
     if (!Hive.isAdapterRegistered(6)) {
       Hive.registerAdapter(TransactionChecksumAdapter());
@@ -42,6 +49,7 @@ class LocalStorageService {
     
     _checksumBox = await Hive.openBox<ProjectChecksum>(_checksumBoxName);
     _projectsBox = await Hive.openBox<CachedProject>(_projectsBoxName);
+    _projectDetailsBox = await Hive.openBox<CachedProjectDetail>(_projectDetailsBoxName);
     
     print('✅ [MIGRATION] Nouvelles boxes créées avec receptionOrder');
     
@@ -54,12 +62,20 @@ class LocalStorageService {
     return _projectsBox!;
   }
 
+  /// Ouvre la box des détails de projets
+  static Future<Box<CachedProjectDetail>> get projectDetailsBox async {
+    await instance; // S'assurer que tout est initialisé
+    return _projectDetailsBox!;
+  }
+
   /// Ferme la base de données
   static Future<void> close() async {
     await _checksumBox?.close();
     await _projectsBox?.close();
+    await _projectDetailsBox?.close();
     _checksumBox = null;
     _projectsBox = null;
+    _projectDetailsBox = null;
   }
 
   /// Sauvegarde un checksum de projet
@@ -322,5 +338,167 @@ class LocalStorageService {
   static Future<int> getCachedProjectsCount() async {
     final box = await projectsBox;
     return box.length;
+  }
+
+  // ============ MÉTHODES POUR LES DÉTAILS DE PROJET AVEC VOTANTS ============
+
+  /// Sauvegarde les détails d'un projet avec ses votants en cache
+  static Future<void> saveProjectDetails(String projectId, ProjectModel project, List<VoterModel> voters) async {
+    final box = await projectDetailsBox;
+    final now = DateTime.now();
+    
+    final projectDetail = ProjectDetailModel(
+      project: project,
+      voters: voters,
+      cachedAt: now,
+    );
+    
+    final cachedDetail = CachedProjectDetail.create(
+      projectId: projectId,
+      detailJson: jsonEncode(projectDetail.toJson()),
+      cachedAt: now,
+    );
+    
+    await box.put(projectId, cachedDetail);
+    print('💾 [CACHE] Détails du projet $projectId sauvegardés avec ${voters.length} votants');
+  }
+
+  /// Récupère les détails d'un projet depuis le cache
+  static Future<ProjectDetailModel?> getProjectDetails(String projectId) async {
+    final box = await projectDetailsBox;
+    final cachedDetail = box.get(projectId);
+    
+    if (cachedDetail == null) {
+      print('📂 [CACHE] Aucun détail trouvé pour le projet $projectId');
+      return null;
+    }
+    
+    try {
+      final projectDetail = cachedDetail.toProjectDetailModel();
+      print('✅ [CACHE] Détails du projet $projectId récupérés avec ${projectDetail.voters.length} votants');
+      return projectDetail;
+    } catch (e) {
+      print('❌ [CACHE] Erreur lors du décodage des détails du projet $projectId: $e');
+      // Supprimer l'entrée corrompue
+      await box.delete(projectId);
+      return null;
+    }
+  }
+
+  /// Vérifie si les détails d'un projet sont en cache et récents
+  static Future<bool> hasRecentProjectDetails(String projectId) async {
+    final projectDetail = await getProjectDetails(projectId);
+    return projectDetail != null && projectDetail.isRecent;
+  }
+
+  /// Supprime les détails d'un projet du cache
+  static Future<void> removeProjectDetails(String projectId) async {
+    final box = await projectDetailsBox;
+    await box.delete(projectId);
+    print('🗑️  [CACHE] Détails du projet $projectId supprimés du cache');
+  }
+
+  /// Supprime tous les détails de projets du cache
+  static Future<void> clearAllProjectDetails() async {
+    final box = await projectDetailsBox;
+    await box.clear();
+    print('🗑️  [CACHE] Tous les détails de projets supprimés du cache');
+  }
+
+  /// Nettoie les détails de projets anciens (plus de 24h)
+  static Future<void> cleanupOldProjectDetails() async {
+    final box = await projectDetailsBox;
+    final now = DateTime.now();
+    final keysToDelete = <String>[];
+    
+    for (final entry in box.toMap().entries) {
+      final detail = entry.value;
+      final age = now.difference(detail.cachedAt);
+      
+      if (age.inHours > 24) {
+        keysToDelete.add(entry.key);
+      }
+    }
+    
+    if (keysToDelete.isNotEmpty) {
+      await box.deleteAll(keysToDelete);
+      print('🧹 [CACHE] ${keysToDelete.length} détails de projets anciens supprimés');
+    }
+  }
+
+  /// Récupère les statistiques du cache des détails
+  static Future<Map<String, dynamic>> getProjectDetailsStats() async {
+    final box = await projectDetailsBox;
+    final now = DateTime.now();
+    
+    int recentCount = 0;
+    int oldCount = 0;
+    
+    for (final detail in box.values) {
+      final age = now.difference(detail.cachedAt);
+      if (age.inHours <= 1) {
+        recentCount++;
+      } else {
+        oldCount++;
+      }
+    }
+    
+    return {
+      'total_details': box.length,
+      'recent_details': recentCount,
+      'old_details': oldCount,
+    };
+  }
+
+  // ============ MÉTHODES DE NETTOYAGE COMPLET ============
+
+  /// Supprime TOUTES les données locales des projets (déconnexion)
+  static Future<void> clearAllProjectData() async {
+    try {
+      await Future.wait([
+        clearAllChecksums(),        // Supprimer tous les checksums
+        clearCachedProjects(),      // Supprimer tous les projets en cache
+        clearAllProjectDetails(),   // Supprimer tous les détails avec votants
+      ]);
+      print('🧹 [LOGOUT] Toutes les données locales des projets supprimées');
+    } catch (e) {
+      print('❌ [LOGOUT] Erreur lors du nettoyage des données: $e');
+      rethrow;
+    }
+  }
+
+  /// Ferme toutes les boxes et supprime les fichiers du disque
+  static Future<void> clearAllProjectDataAndFiles() async {
+    try {
+      // 1. Fermer les boxes ouvertes
+      await close();
+      
+      // 2. Supprimer les fichiers du disque
+      await Future.wait([
+        Hive.deleteBoxFromDisk(_checksumBoxName),
+        Hive.deleteBoxFromDisk(_projectsBoxName),
+        Hive.deleteBoxFromDisk(_projectDetailsBoxName),
+      ]);
+      
+      print('🗑️ [LOGOUT] Toutes les données et fichiers des projets supprimés du disque');
+    } catch (e) {
+      print('❌ [LOGOUT] Erreur lors de la suppression des fichiers: $e');
+      // Ne pas faire échouer si certains fichiers n'existent pas
+    }
+  }
+
+  /// Statistiques avant nettoyage (pour debug)
+  static Future<Map<String, dynamic>> getCleanupStats() async {
+    final checksumCount = await getChecksumsCount();
+    final projectCount = await getCachedProjectsCount();
+    final detailsBox = await projectDetailsBox;
+    final detailsCount = detailsBox.length;
+    
+    return {
+      'checksums_count': checksumCount,
+      'projects_count': projectCount,
+      'details_count': detailsCount,
+      'total_items': checksumCount + projectCount + detailsCount,
+    };
   }
 }

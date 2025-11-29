@@ -424,4 +424,5 @@ class ProjectDataSource {
       throw Exception('Erreur inattendue lors de la synchronisation: $e');
     }
   }
+
 }

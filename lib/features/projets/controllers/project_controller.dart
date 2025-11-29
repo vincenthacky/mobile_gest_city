@@ -467,25 +467,75 @@ class ProjectController extends ChangeNotifier {
     _clearDetailError();
 
     try {
-      final response = await _projectDataSource.getProjectDetails(projectId);
-
-      if (response['success'] == true) {
-        final projectData = response['data'] as Map<String, dynamic>;
-        
-        // Créer le projet avec les données détaillées
-        _selectedProject = ProjectModel.fromJson(projectData);
-        
-        // Extraire les voteurs
-        final votersData = projectData['voters'] as List<dynamic>? ?? [];
-        _voters = votersData.map((voterJson) => VoterModel.fromJson(voterJson as Map<String, dynamic>)).toList();
-        
-        _setDetailStatus(ProjectDetailStatus.success);
+      // 1. D'abord vérifier le cache local
+      final cachedDetails = await LocalStorageService.getProjectDetails(projectId);
+      
+      // 2. Si connecté → Essayer de récupérer depuis l'API et mettre à jour le cache
+      if (_connectivityService.isConnected) {
+        try {
+          debugPrint('🌐 [DETAILS] Récupération des détails depuis l\'API pour projet $projectId');
+          final response = await _projectDataSource.getProjectDetails(projectId);
+          
+          if (response['success'] == true) {
+            final projectData = response['data'] as Map<String, dynamic>;
+            
+            // Créer le projet avec les données détaillées
+            _selectedProject = ProjectModel.fromJson(projectData);
+            
+            // Extraire les voteurs
+            final votersData = projectData['voters'] as List<dynamic>? ?? [];
+            _voters = votersData.map((voterJson) => VoterModel.fromJson(voterJson as Map<String, dynamic>)).toList();
+            
+            // Sauvegarder en cache pour utilisation future
+            await LocalStorageService.saveProjectDetails(projectId, _selectedProject!, _voters);
+            
+            _setDetailStatus(ProjectDetailStatus.success);
+            debugPrint('✅ [DETAILS] Détails récupérés depuis l\'API et sauvegardés (${_voters.length} votants)');
+            return;
+          }
+        } catch (e) {
+          debugPrint('⚠️ [DETAILS] Erreur API pour projet $projectId: $e');
+          // Continuer vers le fallback cache
+        }
       } else {
-        _setDetailError(response['message'] ?? 'Erreur lors de la récupération des détails du projet');
-        _setDetailStatus(ProjectDetailStatus.error);
+        debugPrint('📱 [DETAILS] Mode hors ligne - utilisation du cache');
       }
+      
+      // 3. Fallback → Utiliser le cache s'il existe
+      if (cachedDetails != null) {
+        _selectedProject = cachedDetails.project;
+        _voters = cachedDetails.voters;
+        _setDetailStatus(ProjectDetailStatus.success);
+        debugPrint('📂 [DETAILS] Détails récupérés depuis le cache (${cachedDetails.voters.length} votants)');
+        return;
+      }
+      
+      // 4. Dernier fallback → Projet de base de la liste sans votants
+      ProjectModel? projectFromList;
+      try {
+        projectFromList = _allProjects.firstWhere((p) => p.id == projectId);
+      } catch (e) {
+        try {
+          projectFromList = _projects.firstWhere((p) => p.id == projectId);
+        } catch (e) {
+          projectFromList = null;
+        }
+      }
+      
+      if (projectFromList != null) {
+        _selectedProject = projectFromList;
+        _voters = [];
+        _setDetailStatus(ProjectDetailStatus.success);
+        debugPrint('📋 [DETAILS] Projet trouvé dans la liste sans détails votants');
+        return;
+      }
+      
+      // Aucune donnée disponible
+      _setDetailError('Aucune donnée disponible pour ce projet.');
+      _setDetailStatus(ProjectDetailStatus.error);
+      
     } catch (e) {
-      _setDetailError(e.toString());
+      _setDetailError('Erreur lors de la récupération des détails: $e');
       _setDetailStatus(ProjectDetailStatus.error);
     }
   }

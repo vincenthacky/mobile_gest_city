@@ -80,4 +80,29 @@ class VoterModel {
       return '${votedAt.day}/${votedAt.month}/${votedAt.year}';
     }
   }
+
+  Map<String, dynamic> toJson() {
+    String voteTypeToApi() {
+      switch (voteType) {
+        case VoteChoice.yes:
+          return 'yes';
+        case VoteChoice.no:
+          return 'no';
+        case VoteChoice.yesWithReserve:
+          return 'yes_to_subject';
+        case VoteChoice.blank:
+          return 'neutral';
+      }
+    }
+
+    return {
+      'id': id,
+      'full_name': fullName,
+      'email': email,
+      'phone': phone,
+      'image_url': imageUrl,
+      'vote_type': voteTypeToApi(),
+      'voted_at': votedAt.toIso8601String(),
+    };
+  }
 }

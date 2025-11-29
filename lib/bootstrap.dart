@@ -211,8 +211,8 @@ class GestCityAppState extends State<GestCityApp> with WidgetsBindingObserver {
     _connectivityService.startMonitoring();
     
     // Configurer le callback pour les erreurs 401
-    DioClient.setUnauthorizedCallback(() {
-      _authController.forceLogout();
+    DioClient.setUnauthorizedCallback(() async {
+      await _authController.forceLogout();
     });
   }
 

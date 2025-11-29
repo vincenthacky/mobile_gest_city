@@ -235,6 +235,7 @@ class SyncService {
     if (changedProjects.isNotEmpty) {
       // Sauvegarder seulement les projets changés (fusion)
       await LocalStorageService.saveCachedProjects(changedProjects);
+      
     }
   }
 
@@ -255,6 +256,7 @@ class SyncService {
       
       // Pour full sync : remplacement complet
       await LocalStorageService.saveCachedProjects(projects, replaceAll: true);
+      
     }
   }
 
@@ -319,6 +321,7 @@ class SyncService {
       checksumCount: storedChecksums.length,
     );
   }
+
 }
 
 /// Résultat d'une opération de synchronisation
