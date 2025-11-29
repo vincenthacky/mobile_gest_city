@@ -59,8 +59,8 @@ class _BiometricLockOverlayState extends State<BiometricLockOverlay> {
     
     AppLockService.startAuthentication();
     
-    // 🚀 OPTIMISÉ: Timeout pour éviter les blocages
-    final timeout = Duration(seconds: 30);
+    // 🚀 OPTIMISÉ: Timeout étendu pour empreintes écran Android
+    final timeout = Duration(seconds: 60); // Plus long pour empreintes intégrées
     final timeoutFuture = Future.delayed(timeout, () => throw TimeoutException('Authentification timeout', timeout));
 
     try {
@@ -116,11 +116,15 @@ class _BiometricLockOverlayState extends State<BiometricLockOverlay> {
   Future<bool> _performAuthentication() async {
     try {
       if (_lockType == LockType.biometric) {
-        // Authentification biométrique
+        // Diagnostic préalable pour optimiser l'authentification
+        final diagnostic = await BiometricAuthService.diagnosticBiometrics();
+        debugPrint('🔍 [OVERLAY] Diagnostic biométrie: $diagnostic');
+        
+        // Authentification biométrique optimisée pour tous types d'empreintes
         final result = await BiometricAuthService.authenticate(
           localizedReason: 'Déverrouiller Gest City pour accéder à vos données',
-          useErrorDialogs: false,
-          stickyAuth: true,
+          useErrorDialogs: true, // CRUCIAL: afficher les dialogues système
+          stickyAuth: true, // Maintient l'authentification active
         );
         if (!result.isSuccess) {
           _errorMessage = result.message;

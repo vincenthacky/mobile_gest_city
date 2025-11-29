@@ -6,11 +6,22 @@ class BiometricAuthService {
   static final LocalAuthentication _localAuth = LocalAuthentication();
 
   /// Vérifie si la biométrie est disponible sur l'appareil
+  /// Compatible Face ID, Touch ID, empreinte écran/surface arrière, etc.
   static Future<bool> isBiometricAvailable() async {
     try {
-      final bool isAvailable = await _localAuth.canCheckBiometrics;
       final bool isDeviceSupported = await _localAuth.isDeviceSupported();
-      return isAvailable && isDeviceSupported;
+      if (!isDeviceSupported) return false;
+
+      // Certains appareils Android renvoient canCheckBiometrics = false
+      // alors que l'authentification système fonctionne très bien.
+      // On se base donc surtout sur isDeviceSupported + la liste réelle
+      // des biométries disponibles.
+      final available = await _localAuth.getAvailableBiometrics();
+
+      // Si au moins un type est présent (fingerprint, face, etc.) → OK.
+      // Sur certains appareils la liste peut être vide mais isDeviceSupported
+      // suffit pour afficher le prompt système, donc on accepte aussi ce cas.
+      return isDeviceSupported && (available.isNotEmpty || true);
     } catch (e) {
       return false;
     }
@@ -56,21 +67,60 @@ class BiometricAuthService {
     bool stickyAuth = false,
   }) async {
     try {
-      // 🚀 OPTIMISÉ: Vérification avec cache
-      final bool isAvailable = await _isBiometricAvailableOptimized();
-      if (!isAvailable) {
-        return BiometricAuthResult.biometricNotAvailable;
+      // IMPORTANT: ne pas bloquer sur canCheckBiometrics (buggé sur certains Android)
+      final bool isSupported = await _localAuth.isDeviceSupported();
+      if (!isSupported) {
+        return BiometricAuthResult.biometricNotSupported;
       }
 
-      // Authentification biométrique
-      final bool isAuthenticated = await _localAuth.authenticate(
-        localizedReason: localizedReason,
-        options: AuthenticationOptions(
-          useErrorDialogs: useErrorDialogs,
-          stickyAuth: stickyAuth,
-          biometricOnly: false, // Permettre PIN/Pattern en fallback
-        ),
+      // Vérifier les types de biométrie disponibles pour optimiser l'authentification
+      final availableBiometrics = await _localAuth.getAvailableBiometrics();
+      final hasFingerprint = availableBiometrics.contains(BiometricType.fingerprint);
+      final hasFace = availableBiometrics.contains(BiometricType.face);
+      final hasWeak = availableBiometrics.contains(BiometricType.weak);
+      final hasStrong = availableBiometrics.contains(BiometricType.strong);
+      
+      // Samsung et autres Android utilisent weak/strong pour empreintes écran
+      final hasBiometric = hasFingerprint || hasFace || hasWeak || hasStrong;
+      final hasScreenFingerprint = hasWeak || hasStrong;
+      
+      // Configuration optimisée selon le type de biométrie
+      final authOptions = AuthenticationOptions(
+        useErrorDialogs: useErrorDialogs,
+        stickyAuth: stickyAuth,
+        // biometricOnly true pour tous types de capteurs biométriques
+        biometricOnly: hasBiometric,
+        sensitiveTransaction: hasScreenFingerprint || hasFingerprint,
       );
+
+      // Authentification biométrique avec retry automatique pour empreintes écran
+      bool isAuthenticated = false;
+      int retryCount = 0;
+      const maxRetries = 2;
+
+      while (!isAuthenticated && retryCount < maxRetries) {
+        try {
+          isAuthenticated = await _localAuth.authenticate(
+            localizedReason: localizedReason,
+            options: authOptions,
+          );
+          
+          if (!isAuthenticated && retryCount < maxRetries - 1) {
+            // Délai court avant retry pour empreintes écran
+            await Future.delayed(const Duration(milliseconds: 300));
+            retryCount++;
+          } else {
+            break;
+          }
+        } catch (e) {
+          if (retryCount < maxRetries - 1) {
+            retryCount++;
+            await Future.delayed(const Duration(milliseconds: 500));
+          } else {
+            rethrow;
+          }
+        }
+      }
 
       return isAuthenticated 
           ? BiometricAuthResult.success 
@@ -86,13 +136,79 @@ class BiometricAuthService {
         case auth_error.permanentlyLockedOut:
           return BiometricAuthResult.lockedOut;
         case auth_error.biometricOnlyNotSupported:
-          return BiometricAuthResult.biometricNotSupported;
+          // Fallback: essayer sans biometricOnly pour les appareils problématiques
+          try {
+            final fallbackResult = await _localAuth.authenticate(
+              localizedReason: localizedReason,
+              options: AuthenticationOptions(
+                useErrorDialogs: useErrorDialogs,
+                stickyAuth: stickyAuth,
+                biometricOnly: false,
+              ),
+            );
+            return fallbackResult ? BiometricAuthResult.success : BiometricAuthResult.failed;
+          } catch (_) {
+            return BiometricAuthResult.biometricNotSupported;
+          }
         default:
           return BiometricAuthResult.failed;
       }
     } catch (e) {
       return BiometricAuthResult.failed;
     }
+  }
+
+  /// Diagnostique les types de biométrie et leur fonctionnement
+  static Future<Map<String, dynamic>> diagnosticBiometrics() async {
+    try {
+      final isSupported = await _localAuth.isDeviceSupported();
+      final canCheck = await _localAuth.canCheckBiometrics;
+      final availableBiometrics = await _localAuth.getAvailableBiometrics();
+      
+      return {
+        'isDeviceSupported': isSupported,
+        'canCheckBiometrics': canCheck,
+        'availableBiometrics': availableBiometrics.map((e) => e.toString()).toList(),
+        'hasFingerprint': availableBiometrics.contains(BiometricType.fingerprint),
+        'hasFace': availableBiometrics.contains(BiometricType.face),
+        'hasIris': availableBiometrics.contains(BiometricType.iris),
+        'hasWeak': availableBiometrics.contains(BiometricType.weak),
+        'hasStrong': availableBiometrics.contains(BiometricType.strong),
+        'recommendedSettings': _getRecommendedSettings(availableBiometrics),
+      };
+    } catch (e) {
+      return {
+        'error': e.toString(),
+        'isDeviceSupported': false,
+        'canCheckBiometrics': false,
+        'availableBiometrics': [],
+      };
+    }
+  }
+
+  /// Obtient les paramètres recommandés selon le type de biométrie
+  static Map<String, dynamic> _getRecommendedSettings(List<BiometricType> available) {
+    final hasFingerprint = available.contains(BiometricType.fingerprint);
+    final hasFace = available.contains(BiometricType.face);
+    final hasWeak = available.contains(BiometricType.weak);
+    final hasStrong = available.contains(BiometricType.strong);
+    
+    final hasBiometric = hasFingerprint || hasFace || hasWeak || hasStrong;
+    final hasScreenFingerprint = hasWeak || hasStrong;
+    
+    return {
+      'biometricOnly': hasBiometric,
+      'sensitiveTransaction': hasScreenFingerprint || hasFingerprint,
+      'useErrorDialogs': true,
+      'stickyAuth': true,
+      'reason': hasScreenFingerprint
+        ? 'Empreinte écran Samsung détectée (weak/strong) - configuration optimisée'
+        : hasFingerprint 
+          ? 'Empreinte standard détectée - configuration optimisée'
+          : hasFace 
+            ? 'Face ID détecté - configuration standard'
+            : 'Configuration générique',
+    };
   }
 
   /// Authentification avec fallback PIN/Pattern en cas d'absence de biométrie
