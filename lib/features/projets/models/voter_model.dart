@@ -39,8 +39,16 @@ class VoterModel {
       }
     }
 
+    int parseId(dynamic rawId) {
+      if (rawId == null) return 0;
+      if (rawId is int) return rawId;
+      // Gère les IDs envoyés comme string ("12") ou autre type
+      final parsed = int.tryParse(rawId.toString());
+      return parsed ?? 0;
+    }
+
     return VoterModel(
-      id: json['id'] ?? 0,
+      id: parseId(json['id']),
       fullName: json['full_name'] ?? '',
       email: json['email'] ?? '',
       phone: json['phone'] ?? '',
