@@ -18,6 +18,7 @@ class WalletPage extends StatefulWidget {
 class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
   String _selectedView = 'Compte en T'; // 'Liste' ou 'Compte en T'
   bool _sortDescending = true; // true = plus récent d'abord, false = plus ancien d'abord
+  String _selectedFilter = 'Tous'; // 'Tous', 'Débit', 'Crédit' - pour la vue Liste uniquement
   
   // Animation controllers
   late AnimationController _slideController;
@@ -37,7 +38,24 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
 
   List<CashMovement> get _transactions {
     final controller = context.read<CashMovementsController>();
-    final transactions = List<CashMovement>.from(controller.cashMovements);
+    List<CashMovement> transactions = List<CashMovement>.from(controller.cashMovements);
+    
+    // Appliquer le filtre seulement pour la vue Liste
+    if (_selectedView == 'Liste') {
+      switch (_selectedFilter) {
+        case 'Débit':
+          transactions = transactions.where((t) => t.isDebit).toList();
+          break;
+        case 'Crédit':
+          transactions = transactions.where((t) => t.isCredit).toList();
+          break;
+        case 'Tous':
+        default:
+          // Garder toutes les transactions
+          break;
+      }
+    }
+    
     _sortTransactions(transactions);
     return transactions;
   }
@@ -202,6 +220,13 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
     HapticFeedback.lightImpact();
     setState(() {
       _sortDescending = !_sortDescending;
+    });
+  }
+
+  void _onFilterChanged(String filter) {
+    HapticFeedback.lightImpact();
+    setState(() {
+      _selectedFilter = filter;
     });
   }
 
@@ -522,21 +547,19 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
           child: Row(
             children: [
               // Boutons de vue
-              Expanded(
-                child: Row(
-                  children: _viewTypes.asMap().entries.map((entry) {
-              final index = entry.key;
-              final viewType = entry.value;
-              final isSelected = _selectedView == viewType;
+              Row(
+                children: _viewTypes.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final viewType = entry.value;
+                  final isSelected = _selectedView == viewType;
               
-              return Expanded(
-                child: Container(
-                  margin: EdgeInsets.only(right: index < _viewTypes.length - 1 ? 8 : 0),
-                  child: InkWell(
-                    onTap: () => _onViewChanged(viewType),
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  return Container(
+                    margin: EdgeInsets.only(right: index < _viewTypes.length - 1 ? 6 : 0),
+                    child: InkWell(
+                      onTap: () => _onViewChanged(viewType),
+                      borderRadius: BorderRadius.circular(15),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: isSelected 
                             ? const Color(0xFF4F46E5) 
@@ -570,19 +593,17 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                       ),
                     ),
                   ),
-                ),
-              );
-            }).toList(),
-                ),
+                );
+                }).toList(),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               // Bouton de tri
               Container(
-                width: 40,
-                height: 40,
+                width: 28,
+                height: 28,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: const Color(0xFF4F46E5),
                     width: 1.5,
@@ -597,12 +618,12 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                 ),
                 child: InkWell(
                   onTap: _toggleSortOrder,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(14),
                   child: Center(
                     child: Icon(
                       _sortDescending ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
                       color: const Color(0xFF4F46E5),
-                      size: 20,
+                      size: 16,
                     ),
                   ),
                 ),
@@ -610,7 +631,44 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
             ],
           ),
         ),
+        
+        // Boutons de filtre pour la vue Liste uniquement
+        if (_selectedView == 'Liste') ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _buildFilterButton('Tous', Colors.grey.shade700),
+              const SizedBox(width: 6),
+              _buildFilterButton('Débit', const Color(0xFFEF4444)),
+              const SizedBox(width: 6),
+              _buildFilterButton('Crédit', const Color(0xFF10B981)),
+            ],
+          ),
+        ],
       ],
+    );
+  }
+
+  Widget _buildFilterButton(String filter, Color color) {
+    final isSelected = _selectedFilter == filter;
+    return InkWell(
+      onTap: () => _onFilterChanged(filter),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          filter,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            color: isSelected ? color : color.withValues(alpha: 0.7),
+          ),
+        ),
+      ),
     );
   }
 
