@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:gest_city/features/admin/presentation/pages/admin_dashboard.dart';
 import 'package:gest_city/features/admin/presentation/pages/payments_page.dart';
+import 'package:gest_city/features/admin/presentation/pages/admin_projects_page.dart';
 import 'package:gest_city/features/admin/presentation/pages/qr_scan_admin_page.dart';
 import 'package:gest_city/features/admin/presentation/pages/qr_validate_payment_page.dart';
 import 'package:gest_city/features/admin/models/admin_payment_model.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../features/authentication/controller/auth_controller.dart';
-import '../../features/authentication/presentation/pages/splash_page.dart';
-import '../../features/authentication/presentation/pages/login_page.dart';
-import '../../features/authentication/presentation/pages/register_page.dart';
-import '../../features/authentication/presentation/pages/forgot_password_page.dart';
-import '../../features/authentication/presentation/pages/onboarding_page.dart';
-import '../../features/authentication/presentation/pages/onboarding_choice_page.dart';
-import '../../features/authentication/presentation/pages/qr_scan_page.dart'
+import '../../features/authentification/controller/auth_controller.dart';
+import '../../features/authentification/presentation/pages/splash_page.dart';
+import '../../features/authentification/presentation/pages/login_page.dart';
+import '../../features/authentification/presentation/pages/register_page.dart';
+import '../../features/authentification/presentation/pages/forgot_password_page.dart';
+import '../../features/authentification/presentation/pages/onboarding_page.dart';
+import '../../features/authentification/presentation/pages/onboarding_choice_page.dart';
+import '../../features/authentification/presentation/pages/qr_scan_page.dart'
     as auth_qr;
-import '../../features/authentication/presentation/pages/biometric_auth_page.dart';
+import '../../features/authentification/presentation/pages/biometric_auth_page.dart';
 import '../pages/home_page.dart';
 import '../../features/finance/presentation/pages/finance_page.dart';
 import '../../features/projets/presentation/pages/projets_page.dart';
@@ -207,6 +208,11 @@ class AppRouter {
               path: '/admin/payments',
               name: 'admin-payments',
               builder: (context, state) => const PaymentsPage(),
+            ),
+            GoRoute(
+              path: '/admin/projects',
+              name: 'admin-projects',
+              builder: (context, state) => const AdminProjectsPage(),
             ),
           ],
         ),

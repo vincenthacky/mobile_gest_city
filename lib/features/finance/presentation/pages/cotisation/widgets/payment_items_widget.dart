@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../../controllers/contribution_controller.dart';
 import '../../../../models/payment_proofs_model.dart';
 import '../../cotisation_detail_page.dart';
-import '../../../../../authentication/controller/auth_controller.dart';
+import '../../../../../authentification/controller/auth_controller.dart';
 
 class PaymentItemsWidget extends StatelessWidget {
   final bool showingPayments;

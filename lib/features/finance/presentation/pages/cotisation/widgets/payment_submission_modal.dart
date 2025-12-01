@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../../models/payment_periods_model.dart';
 import '../../../../models/contribution_model.dart';
 import '../../../../controllers/contribution_controller.dart';
-import '../../../../../authentication/controller/auth_controller.dart';
+import '../../../../../authentification/controller/auth_controller.dart';
 
 class PaymentSubmissionModal extends StatefulWidget {
   final ContributionData contributionData;

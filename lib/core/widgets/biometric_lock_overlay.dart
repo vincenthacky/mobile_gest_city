@@ -6,7 +6,7 @@ import '../services/app_lock_service.dart';
 import '../services/biometric_auth_service.dart';
 import '../services/security_settings_service.dart';
 import '../utils/app_router.dart';
-import '../../features/authentication/controller/auth_controller.dart';
+import '../../features/authentification/controller/auth_controller.dart';
 
 /// Overlay de verrouillage biométrique (comme WhatsApp)
 /// S'affiche au-dessus de l'application quand elle est verrouillée
