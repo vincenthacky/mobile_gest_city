@@ -256,6 +256,13 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                   type: syncController.notificationType,
                   customMessage: syncController.notificationMessage,
                   onDismiss: () => syncController.clearNotification(),
+                  onRetrySync: () {
+                    // Ressayer la synchronisation
+                    syncController.syncTransactions(
+                      showNotifications: true,
+                      forceFullSync: true,
+                    );
+                  },
                 );
               },
             ),
@@ -416,7 +423,7 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
           Row(
             children: [
               Text(
-                'Solde Actuel de la cite ',
+                'Solde Actuel de la cité ',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.white.withValues(alpha: 0.8),

@@ -112,20 +112,9 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
                 children: [
                   Row(
                     children: [
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          padding: const EdgeInsets.all(8),
-                          child: const Icon(
-                            Icons.arrow_back,
-                            color: Color(0xFF1F2937),
-                            size: 22,
-                          ),
-                        ),
-                      ),
                       Expanded(
                         child: Text(
-                          'Ventilation des cotisation ${DateTime.now().year}',
+                          'Ventilation des cotisations ${DateTime.now().year}',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontSize: 16,

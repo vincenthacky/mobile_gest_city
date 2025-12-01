@@ -12,12 +12,14 @@ class SyncNotification extends StatefulWidget {
   final SyncNotificationType type;
   final String? customMessage;
   final VoidCallback? onDismiss;
+  final VoidCallback? onRetrySync;
 
   const SyncNotification({
     super.key,
     required this.type,
     this.customMessage,
     this.onDismiss,
+    this.onRetrySync,
   });
 
   @override
@@ -135,23 +137,26 @@ class _SyncNotificationState extends State<SyncNotification>
               ),
               child: Row(
                 children: [
-                  // Icône (même style que l'indicateur de connectivité)
-                  Container(
-                    width: 20,
-                    height: 20,
-                    margin: const EdgeInsets.only(right: 12),
-                    decoration: BoxDecoration(
-                      color: _getIconBackgroundColor(),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: _getIconBackgroundColor().withValues(alpha: 0.3),
-                          blurRadius: 3,
-                          offset: const Offset(0, 1),
-                        ),
-                      ],
+                  // Icône (cliquable pour ressayer la synchronisation)
+                  GestureDetector(
+                    onTap: widget.onRetrySync,
+                    child: Container(
+                      width: 20,
+                      height: 20,
+                      margin: const EdgeInsets.only(right: 12),
+                      decoration: BoxDecoration(
+                        color: _getIconBackgroundColor(),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: _getIconBackgroundColor().withValues(alpha: 0.3),
+                            blurRadius: 3,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: _buildIcon(),
                     ),
-                    child: _buildIcon(),
                   ),
 
                   // Message
@@ -211,19 +216,19 @@ class _SyncNotificationState extends State<SyncNotification>
     IconData iconData;
     switch (widget.type) {
       case SyncNotificationType.offline:
-        iconData = Icons.wifi_off;
+        iconData = Icons.refresh;
         break;
       case SyncNotificationType.syncing:
         iconData = Icons.sync;
         break;
       case SyncNotificationType.syncComplete:
-        iconData = Icons.check_circle;
+        iconData = Icons.refresh;
         break;
       case SyncNotificationType.upToDate:
-        iconData = Icons.verified;
+        iconData = Icons.refresh;
         break;
       case SyncNotificationType.none:
-        iconData = Icons.info;
+        iconData = Icons.refresh;
         break;
     }
 
