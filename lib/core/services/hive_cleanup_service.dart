@@ -312,4 +312,33 @@ class HiveCleanupService {
       rethrow;
     }
   }
+  
+  /// Force la réinitialisation complète de Hive après des changements d'adapters
+  /// Résout les problèmes "Box has already been closed"
+  static Future<void> forceHiveReinitialization() async {
+    debugPrint('🔄 [FORCE-REINIT] Début de la réinitialisation forcée de Hive...');
+    
+    try {
+      // ÉTAPE 1: Fermer tout Hive
+      await Hive.close();
+      debugPrint('🔒 [FORCE-REINIT] Hive fermé complètement');
+      
+      // ÉTAPE 2: Supprimer toutes les données
+      await Hive.deleteFromDisk();
+      debugPrint('🗑️ [FORCE-REINIT] Toutes les données Hive supprimées');
+      
+      // ÉTAPE 3: Forcer une pause pour laisser le système nettoyer
+      await Future.delayed(Duration(milliseconds: 500));
+      
+      // ÉTAPE 4: Réinitialiser Hive
+      await Hive.initFlutter();
+      debugPrint('🆕 [FORCE-REINIT] Hive réinitialisé');
+      
+      debugPrint('✅ [FORCE-REINIT] Réinitialisation forcée terminée - Redémarrez l\'application');
+      
+    } catch (e) {
+      debugPrint('❌ [FORCE-REINIT] Erreur lors de la réinitialisation: $e');
+      rethrow;
+    }
+  }
 }

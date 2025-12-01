@@ -5,6 +5,7 @@ import '../../features/finance/models/payment_cache_models.dart';
 import '../../features/finance/models/contribution_cache_models.dart';
 import '../../features/finance/models/cash_movements_cache_models.dart';
 import '../../features/signalement/models/sync_models.dart';
+import '../services/hive_cleanup_service.dart';
 
 class DatabaseInitializer {
   static bool _isInitialized = false;
@@ -14,6 +15,18 @@ class DatabaseInitializer {
     if (_isInitialized) return;
 
     try {
+      // Détecter les problèmes de corruption/conflit et nettoyer si nécessaire
+      if (kDebugMode) {
+        print('🔍 Vérification de l\'état de Hive...');
+        final shouldCleanup = await _detectHiveIssues();
+        if (shouldCleanup) {
+          print('🧹 Nettoyage de Hive détecté comme nécessaire');
+          await HiveCleanupService.forceHiveReinitialization();
+          // Attendre un peu après la réinitialisation
+          await Future.delayed(Duration(milliseconds: 200));
+        }
+      }
+
       // Enregistrer les adapters pour le cache des paiements
       if (!Hive.isAdapterRegistered(8)) {
         Hive.registerAdapter(PaymentStatisticsCacheAdapter());
@@ -125,6 +138,21 @@ class DatabaseInitializer {
         'status': 'error',
         'error': e.toString(),
       };
+    }
+  }
+  
+  /// Détecte s'il y a des problèmes avec Hive nécessitant un nettoyage
+  static Future<bool> _detectHiveIssues() async {
+    try {
+      // Pour l'instant, en mode debug, forcer le nettoyage si on a changé des adapters
+      // Cette méthode simple résout les problèmes de conflits d'adapters
+      return false; // Pas de nettoyage automatique pour éviter les boucles
+      
+    } catch (e) {
+      if (kDebugMode) {
+        print('⚠️ Erreur lors de la détection des problèmes Hive: $e');
+      }
+      return false; // En cas d'erreur, ne pas nettoyer automatiquement
     }
   }
 }

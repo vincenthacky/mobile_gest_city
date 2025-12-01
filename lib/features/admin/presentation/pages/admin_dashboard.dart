@@ -66,7 +66,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                                 ),
                                 SizedBox(height: 8),
                                 Text(
-                                  'Administration et gestion des cotisations',
+                                  'Module Administrateur',
                                   style: TextStyle(
                                     fontSize: 16,
                                     color: Color(0xFF6B7280),
