@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 
 class ReportChecksumService {
-  /// Calcule le checksum d'un signalement individuel à partir de son contenu JSON
+  /// Calcule le checksum d'un élément individuel à partir de son contenu JSON
   static String calculateItemChecksum(Map<String, dynamic> item) {
     final jsonString = jsonEncode(item);
     return sha256.convert(utf8.encode(jsonString)).toString();

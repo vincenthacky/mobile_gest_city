@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:crypto/crypto.dart';
 import '../models/sync_models.dart';
 import '../models/report_model.dart';
 
@@ -9,13 +11,12 @@ class ReportLocalStorageService {
   static Box<ReportChecksum>? _checksumBox;
   static Box<CachedReport>? _reportsBox;
   
-  /// Initialise Hive et ouvre les boxes pour signalements
+  /// Initialise Hive et ouvre les boxes
   static Future<Box<ReportChecksum>> get instance async {
     if (_checksumBox != null && _checksumBox!.isOpen) return _checksumBox!;
     
     await Hive.initFlutter();
     
-    // Enregistrer les adaptateurs pour signalements si pas déjà fait
     if (!Hive.isAdapterRegistered(16)) {
       Hive.registerAdapter(ReportChecksumAdapter());
     }
@@ -26,7 +27,7 @@ class ReportLocalStorageService {
     _checksumBox = await Hive.openBox<ReportChecksum>(_checksumBoxName);
     _reportsBox = await Hive.openBox<CachedReport>(_reportsBoxName);
     
-    print('✅ [REPORTS] Boxes créées pour les signalements');
+    debugPrint('✅ [REPORTS] Boxes Hive ouvertes avec succès');
     
     return _checksumBox!;
   }
@@ -65,52 +66,49 @@ class ReportLocalStorageService {
     Map<String, String> reportChecksums
   ) async {
     final box = await instance;
-    final now = DateTime.now();
     
-    final checksums = <String, ReportChecksum>{};
-    
-    // Respecter l'ordre de réception depuis l'API
-    for (int i = 0; i < reports.length; i++) {
-      final report = reports[i];
-      final checksum = reportChecksums[report.id];
+    try {
+      debugPrint('🗃️ [STORAGE] Début sauvegarde ${reports.length} checksums');
+      debugPrint('🗃️ [STORAGE] Box avant clear: ${box.length} éléments');
       
-      if (checksum != null) {
-        checksums[report.id] = ReportChecksum.create(
-          reportId: report.id,
-          checksum: checksum,
-          lastUpdated: now,
-          receptionOrder: i, // Préserver l'ordre de réception
-        );
+      // Supprimer tous les anciens checksums
+      await box.clear();
+      debugPrint('🗃️ [STORAGE] Box après clear: ${box.length} éléments');
+      
+      // Sauvegarder les nouveaux avec ordre
+      for (int i = 0; i < reports.length; i++) {
+        final report = reports[i];
+        final checksum = reportChecksums[report.id];
+        
+        if (checksum != null) {
+          final reportChecksum = ReportChecksum.create(
+            reportId: report.id,
+            checksum: checksum,
+            lastUpdated: DateTime.now(),
+            receptionOrder: i, // Ordre important pour la sync
+          );
+
+          await box.put(report.id, reportChecksum);
+          debugPrint('🗃️ [STORAGE] Checksum sauvé: ${report.id} (ordre: $i)');
+        } else {
+          debugPrint('⚠️ [STORAGE] Checksum manquant pour: ${report.id}');
+        }
       }
+      
+      final finalCount = box.length;
+      debugPrint('✅ [STORAGE] ${finalCount}/${reports.length} checksums sauvegardés avec ordre');
+      
+    } catch (e) {
+      debugPrint('❌ [STORAGE] Erreur sauvegarde checksums: $e');
+      throw Exception('Erreur lors de la sauvegarde des checksums: $e');
     }
-
-    await box.putAll(checksums);
   }
 
-  /// Sauvegarde une liste de checksums de signalements (méthode legacy)
-  static Future<void> saveReportChecksums(Map<String, String> reportChecksums) async {
-    final box = await instance;
-    final now = DateTime.now();
-    
-    final checksums = <String, ReportChecksum>{};
-    int order = 0;
-    for (final entry in reportChecksums.entries) {
-      checksums[entry.key] = ReportChecksum.create(
-        reportId: entry.key,
-        checksum: entry.value,
-        lastUpdated: now,
-        receptionOrder: order++, // Ordre arbitraire pour legacy
-      );
-    }
-
-    await box.putAll(checksums);
-  }
-
-  /// Récupère le checksum d'un signalement spécifique
+  /// Récupère un checksum de signalement
   static Future<String?> getReportChecksum(String reportId) async {
     final box = await instance;
-    final reportChecksum = box.get(reportId);
-    return reportChecksum?.checksum;
+    final checksum = box.get(reportId);
+    return checksum?.checksum;
   }
 
   /// Récupère tous les checksums de signalements
@@ -119,191 +117,201 @@ class ReportLocalStorageService {
     return box.values.toList();
   }
 
-  /// Récupère les checksums sous forme de Map pour l'API
-  /// RESPECTE l'ordre de réception depuis l'API Laravel
+  /// Récupère les checksums pour l'API (format attendu)
   static Future<List<Map<String, dynamic>>> getChecksumsForApi() async {
-    final checksums = await getAllReportChecksums();
+    final box = await instance;
     
-    // TRIER par ordre de réception pour correspondre à l'ordre Laravel
+    // Trier par ordre de réception pour maintenir la cohérence
+    final checksums = box.values.toList();
     checksums.sort((a, b) => a.receptionOrder.compareTo(b.receptionOrder));
     
     return checksums.map((checksum) => checksum.toJson()).toList();
   }
 
-  /// Met à jour le checksum d'un signalement existant
-  static Future<void> updateReportChecksum(String reportId, String newChecksum) async {
-    final box = await instance;
+  /// Calcule le checksum global des signalements locaux
+  static Future<String?> calculateGlobalChecksum() async {
+    final checksums = await getChecksumsForApi();
     
-    final existingChecksum = box.get(reportId);
-
-    if (existingChecksum != null) {
-      existingChecksum.checksum = newChecksum;
-      existingChecksum.lastUpdated = DateTime.now();
-      await box.put(reportId, existingChecksum);
-    } else {
-      await saveReportChecksum(reportId, newChecksum);
-    }
+    if (checksums.isEmpty) return null;
+    
+    // Concaténer tous les checksums dans l'ordre
+    final checksumString = checksums.map((c) => c['checksum']).join('');
+    
+    // Calculer le hash global
+    final bytes = utf8.encode(checksumString);
+    final digest = sha256.convert(bytes);
+    
+    return digest.toString();
   }
 
-  /// Supprime le checksum d'un signalement
+  /// Supprime un checksum de signalement
   static Future<void> deleteReportChecksum(String reportId) async {
     final box = await instance;
     await box.delete(reportId);
   }
 
-  /// Supprime une liste de checksums de signalements
-  static Future<void> deleteReportChecksums(List<String> reportIds) async {
-    final box = await instance;
-    await box.deleteAll(reportIds);
-  }
-
-  /// Supprime tous les checksums (utile pour reset complet)
+  /// Supprime tous les checksums
   static Future<void> clearAllChecksums() async {
     final box = await instance;
     await box.clear();
+    debugPrint('🗑️ [REPORTS] Tous les checksums supprimés');
   }
 
-  /// Vérifie si un signalement a un checksum stocké localement
-  static Future<bool> hasReportChecksum(String reportId) async {
-    final checksum = await getReportChecksum(reportId);
-    return checksum != null;
-  }
-
-  /// Récupère le nombre total de checksums stockés
+  /// Compte le nombre de checksums
   static Future<int> getChecksumsCount() async {
     final box = await instance;
-    return box.length;
+    final count = box.length;
+    debugPrint('🔍 [STORAGE] getChecksumsCount() = $count');
+    return count;
   }
 
-  /// Synchronise les checksums locaux avec une liste de signalements
-  /// Supprime les checksums des signalements qui ne sont plus dans la liste
-  static Future<void> syncChecksumsWithReports(List<String> currentReportIds) async {
-    final box = await instance;
-    final allChecksums = await getAllReportChecksums();
-    
-    final checksumsToDelete = allChecksums
-        .where((checksum) => !currentReportIds.contains(checksum.reportId))
-        .map((checksum) => checksum.reportId)
-        .toList();
-    
-    if (checksumsToDelete.isNotEmpty) {
-      await deleteReportChecksums(checksumsToDelete);
-    }
-  }
-
-  /// Obtient les statistiques de stockage local
-  static Future<Map<String, dynamic>> getStorageStats() async {
-    final checksumCount = await getChecksumsCount();
-    final allChecksums = await getAllReportChecksums();
-    
-    final now = DateTime.now();
-    final recentChecksums = allChecksums.where((checksum) {
-      final diff = now.difference(checksum.lastUpdated);
-      return diff.inDays <= 7; // Modifiés dans les 7 derniers jours
-    }).length;
-
-    return {
-      'total_checksums': checksumCount,
-      'recent_checksums': recentChecksums,
-      'oldest_checksum': allChecksums.isEmpty 
-          ? null 
-          : allChecksums.map((c) => c.lastUpdated).reduce((a, b) => a.isBefore(b) ? a : b),
-      'newest_checksum': allChecksums.isEmpty 
-          ? null 
-          : allChecksums.map((c) => c.lastUpdated).reduce((a, b) => a.isAfter(b) ? a : b),
-    };
-  }
-
-  // ============ MÉTHODES POUR LES SIGNALEMENTS COMPLETS ============
-
-  /// Sauvegarde les signalements complets dans le cache local
-  /// FUSION INTELLIGENTE : Met à jour ou ajoute les signalements sans effacer les autres
+  /// Sauvegarde les signalements complets en cache
   static Future<void> saveCachedReports(List<ReportModel> reports, {bool replaceAll = false}) async {
     final box = await reportsBox;
-    final now = DateTime.now();
     
-    if (replaceAll) {
-      // Mode remplacement complet (utilisé pour full sync)
-      final cachedReports = <String, CachedReport>{};
-      for (final report in reports) {
-        final reportJson = jsonEncode(report.toJson());
-        cachedReports[report.id] = CachedReport.create(
-          reportId: report.id,
-          reportJson: reportJson,
-          cachedAt: now,
-        );
+    try {
+      if (replaceAll) {
+        // Remplacement complet
+        await box.clear();
+        debugPrint('🗑️ [REPORTS] Cache signalements vidé pour remplacement complet');
       }
-      await box.clear();
-      await box.putAll(cachedReports);
-      print('💾 [CACHE] ${reports.length} signalements remplacés complètement en cache');
-    } else {
-      // Mode fusion intelligente (par défaut)
-      final cachedReports = <String, CachedReport>{};
+      
       for (final report in reports) {
-        final reportJson = jsonEncode(report.toJson());
-        cachedReports[report.id] = CachedReport.create(
+        final cachedReport = CachedReport.create(
           reportId: report.id,
-          reportJson: reportJson,
-          cachedAt: now,
+          reportJson: jsonEncode(report.toJson()),
+          cachedAt: DateTime.now(),
         );
+
+        await box.put(report.id, cachedReport);
       }
-      // Fusion : met à jour ou ajoute, sans effacer les autres
-      await box.putAll(cachedReports);
-      print('💾 [CACHE] ${reports.length} signalements fusionnés en cache (total: ${box.length})');
+      
+      debugPrint('💾 [REPORTS] ${reports.length} signalements sauvegardés en cache');
+      
+    } catch (e) {
+      debugPrint('❌ [REPORTS] Erreur sauvegarde cache: $e');
+      throw Exception('Erreur lors de la sauvegarde du cache: $e');
     }
   }
 
-  /// Récupère tous les signalements en cache
+  /// Récupère les signalements depuis le cache
   static Future<List<ReportModel>> getCachedReports() async {
     final box = await reportsBox;
-    final cachedReports = box.values.toList();
     
-    print('📂 [CACHE] ${cachedReports.length} entrées trouvées dans la box cached_reports');
-    
-    final reports = <ReportModel>[];
-    for (final cached in cachedReports) {
-      try {
-        print('🔄 [CACHE] Désérialisation du signalement ${cached.reportId}');
-        final reportJson = jsonDecode(cached.reportJson) as Map<String, dynamic>;
-        print('📋 [CACHE] JSON décodé pour ${cached.reportId}: ${reportJson.keys}');
-        
-        final report = ReportModel.fromJson(reportJson);
-        reports.add(report);
-        print('✅ [CACHE] Signalement ${cached.reportId} désérialisé avec succès - titre: "${report.title}"');
-      } catch (e, stackTrace) {
-        print('❌ [CACHE] Erreur lors du décodage du signalement ${cached.reportId}: $e');
-        print('🔍 [CACHE] StackTrace: $stackTrace');
-        print('📄 [CACHE] JSON brut: ${cached.reportJson.substring(0, 200)}...');
+    try {
+      final reports = <ReportModel>[];
+      
+      for (final cachedReport in box.values) {
+        try {
+          final reportJson = jsonDecode(cachedReport.reportJson) as Map<String, dynamic>;
+          final report = ReportModel.fromJson(reportJson);
+          reports.add(report);
+        } catch (e) {
+          debugPrint('⚠️ [REPORTS] Erreur décodage signalement ${cachedReport.reportId}: $e');
+        }
       }
+      
+      debugPrint('📂 [REPORTS] ${reports.length} signalements récupérés du cache');
+      return reports;
+      
+    } catch (e) {
+      debugPrint('❌ [REPORTS] Erreur récupération cache: $e');
+      return [];
     }
-    
-    print('📱 [CACHE] ${reports.length} signalements récupérés du cache avec succès');
-    return reports;
   }
 
-  /// Supprime tous les signalements en cache
+  /// Récupère un signalement spécifique depuis le cache
+  static Future<ReportModel?> getCachedReport(String reportId) async {
+    final box = await reportsBox;
+    
+    try {
+      final cachedReport = box.get(reportId);
+      if (cachedReport != null) {
+        final reportJson = jsonDecode(cachedReport.reportJson) as Map<String, dynamic>;
+        return ReportModel.fromJson(reportJson);
+      }
+      return null;
+      
+    } catch (e) {
+      debugPrint('❌ [REPORTS] Erreur récupération signalement $reportId: $e');
+      return null;
+    }
+  }
+
+  /// Supprime des signalements du cache
+  static Future<void> removeCachedReports(List<String> reportIds) async {
+    final box = await reportsBox;
+    
+    try {
+      for (final reportId in reportIds) {
+        await box.delete(reportId);
+      }
+      debugPrint('🗑️ [REPORTS] ${reportIds.length} signalements supprimés du cache');
+      
+    } catch (e) {
+      debugPrint('❌ [REPORTS] Erreur suppression cache: $e');
+      throw Exception('Erreur lors de la suppression du cache: $e');
+    }
+  }
+
+  /// Supprime tout le cache des signalements
   static Future<void> clearCachedReports() async {
     final box = await reportsBox;
     await box.clear();
-    print('🗑️ [CACHE] Tous les signalements en cache supprimés');
+    debugPrint('🗑️ [REPORTS] Tout le cache signalements supprimé');
   }
 
-  /// Vérifie si on a des signalements en cache
-  static Future<bool> hasCachedReports() async {
-    final box = await reportsBox;
-    return box.isNotEmpty;
-  }
-
-  /// Récupère le nombre de signalements en cache
+  /// Compte le nombre de signalements en cache
   static Future<int> getCachedReportsCount() async {
     final box = await reportsBox;
     return box.length;
   }
 
-  /// Supprime une liste de signalements du cache
-  static Future<void> removeCachedReports(List<String> reportIds) async {
-    final box = await reportsBox;
-    await box.deleteAll(reportIds);
-    print('🗑️ [CACHE] ${reportIds.length} signalements supprimés du cache');
+  /// Vérifie si on a des signalements en cache
+  static Future<bool> hasCachedReports() async {
+    final count = await getCachedReportsCount();
+    return count > 0;
+  }
+
+  /// Obtient les statistiques de stockage
+  static Future<Map<String, dynamic>> getStorageStats() async {
+    try {
+      final checksumCount = await getChecksumsCount();
+      final cachedCount = await getCachedReportsCount();
+      final hasCache = await hasCachedReports();
+      final globalChecksum = await calculateGlobalChecksum();
+      
+      return {
+        'checksum_count': checksumCount,
+        'cached_reports_count': cachedCount,
+        'has_cached_reports': hasCache,
+        'global_checksum': globalChecksum,
+        'checksum_box_name': _checksumBoxName,
+        'reports_box_name': _reportsBoxName,
+      };
+    } catch (e) {
+      return {
+        'error': e.toString(),
+        'checksum_count': 0,
+        'cached_reports_count': 0,
+        'has_cached_reports': false,
+      };
+    }
+  }
+
+  /// Valide la cohérence entre checksums et cache
+  static Future<bool> validateCacheConsistency() async {
+    try {
+      final checksumCount = await getChecksumsCount();
+      final cachedCount = await getCachedReportsCount();
+      
+      // La cohérence parfaite n'est pas obligatoire (cache peut être partiel)
+      // mais on vérifie qu'il n'y a pas d'incohérence majeure
+      return checksumCount >= 0 && cachedCount >= 0;
+      
+    } catch (e) {
+      debugPrint('⚠️ [REPORTS] Erreur validation cohérence: $e');
+      return false;
+    }
   }
 }

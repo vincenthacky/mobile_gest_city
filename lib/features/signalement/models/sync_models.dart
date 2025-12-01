@@ -2,8 +2,8 @@ import 'package:hive/hive.dart';
 
 part 'sync_models.g.dart';
 
-// Modèle pour stocker les checksums des signalements en local
-@HiveType(typeId: 16) // Utiliser un typeId différent de celui des autres modules
+// Modèle pour stocker les checksums en local
+@HiveType(typeId: 16) // ID 16-17 pour les signalements (éviter conflit avec finance 10-14)
 class ReportChecksum extends HiveObject {
   @HiveField(0)
   late String reportId;
@@ -35,7 +35,7 @@ class ReportChecksum extends HiveObject {
 }
 
 // Modèle pour stocker les signalements complets en local
-@HiveType(typeId: 17)
+@HiveType(typeId: 17) // ID 16-17 pour les signalements (éviter conflit avec finance 10-14)
 class CachedReport extends HiveObject {
   @HiveField(0)
   late String reportId;
@@ -84,7 +84,7 @@ class ReportSyncFilters {
   bool get isEmpty => status == null && priority == null && reportType == null && search == null && sort == null;
 }
 
-// Modèle de requête de synchronisation pour signalements
+// Modèle de requête de synchronisation des signalements
 class ReportSyncRequest {
   final bool? isInitializing;
   final String? globalChecksum;
@@ -99,32 +99,29 @@ class ReportSyncRequest {
   });
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> payload = {};
+    final Map<String, dynamic> json = {};
     
     if (isInitializing != null) {
-      payload['is_initializing'] = isInitializing.toString();
+      json['is_initializing'] = isInitializing.toString();
     }
     
     if (globalChecksum != null) {
-      payload['global_checksum'] = globalChecksum;
+      json['global_checksum'] = globalChecksum;
     }
     
     if (itemsChecksums != null) {
-      payload['items_checksums'] = itemsChecksums;
+      json['items_checksums'] = itemsChecksums;
     }
     
     if (filters != null && !filters!.isEmpty) {
-      payload['filters'] = filters!.toJson();
+      json['filters'] = filters!.toJson();
     }
     
-    // ✅ CORRECTION: Envelopper dans une clé 'data' comme attendu par le serveur
-    return {
-      'data': payload,
-    };
+    return json;
   }
 }
 
-// Modèle de réponse de synchronisation pour signalements
+// Modèle de réponse de synchronisation des signalements
 class ReportSyncResponse {
   final String syncType;
   final String? globalChecksum;
@@ -214,7 +211,7 @@ class ReportSyncStats {
   int get totalChanges => addedCount + updatedCount + deletedCount;
 }
 
-// États de synchronisation pour signalements
+// États de synchronisation des signalements
 enum ReportSyncStatus {
   idle,
   syncing,
@@ -222,18 +219,18 @@ enum ReportSyncStatus {
   error,
 }
 
-// Types d'opérations de synchronisation pour signalements
+// Types d'opérations de synchronisation des signalements
 enum ReportSyncOperation {
   fullSync,        // Synchronisation complète (première fois)
   checkSync,       // Vérification avec checksums
   filterSync,      // Application de filtres uniquement
 }
 
-// Résultat d'une opération de synchronisation pour signalements
+// Résultat de synchronisation des signalements
 class ReportSyncResult {
   final ReportSyncOperation operation;
   final bool hasChanges;
-  final List<dynamic> reports; // ReportModel sera défini dans le controller
+  final List<dynamic> reports;
   final String message;
   final ReportSyncStats? stats;
   final ReportSyncChanges? changes;
@@ -246,11 +243,9 @@ class ReportSyncResult {
     this.stats,
     this.changes,
   });
-
-  bool get isSuccessful => reports.isNotEmpty || !hasChanges;
 }
 
-// Résultat de validation des données locales pour signalements
+// Validation de synchronisation des signalements
 class ReportSyncValidation {
   final bool isValid;
   final List<String> issues;
@@ -263,8 +258,4 @@ class ReportSyncValidation {
     required this.reportCount,
     required this.checksumCount,
   });
-
-  String get summary => isValid 
-      ? 'Validation réussie: $reportCount signalements, $checksumCount checksums'
-      : 'Validation échouée: ${issues.length} problème${issues.length > 1 ? 's' : ''}';
 }

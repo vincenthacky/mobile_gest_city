@@ -4,6 +4,7 @@ import '../../features/projets/services/local_storage_service.dart';
 import '../../features/finance/models/payment_cache_models.dart';
 import '../../features/finance/models/contribution_cache_models.dart';
 import '../../features/finance/models/cash_movements_cache_models.dart';
+import '../../features/signalement/models/sync_models.dart';
 
 class DatabaseInitializer {
   static bool _isInitialized = false;
@@ -41,6 +42,14 @@ class DatabaseInitializer {
       // Enregistrer l'adapter pour le cache des mouvements de caisse
       if (!Hive.isAdapterRegistered(15)) {
         Hive.registerAdapter(CashMovementsCacheAdapter());
+      }
+      
+      // Enregistrer les adapters pour les signalements
+      if (!Hive.isAdapterRegistered(16)) {
+        Hive.registerAdapter(ReportChecksumAdapter());
+      }
+      if (!Hive.isAdapterRegistered(17)) {
+        Hive.registerAdapter(CachedReportAdapter());
       }
       
       // Initialiser Hive via LocalStorageService

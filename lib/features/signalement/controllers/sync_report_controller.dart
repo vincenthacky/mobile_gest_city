@@ -161,22 +161,22 @@ class SyncReportController extends ChangeNotifier {
         filters: filters,
         forceFullSync: forceFullSync,
       );
-      print('📋 [SYNC] Type d\'opération: ${operation.name}');
+      debugPrint('📋 [SYNC] Type d\'opération: ${operation.name}');
 
       // 2. Préparer la requête
       final request = await ReportSyncService.prepareSyncRequest(
         operation: operation,
         filters: filters,
       );
-      print('📤 [SYNC] Requête préparée: ${request.toJson()}');
+      debugPrint('📤 [SYNC] Requête préparée: ${request.toJson()}');
 
       // 3. Appeler l'API
       final response = await _reportDataSource.syncReports(request);
-      print('📥 [SYNC] Réponse reçue: ${response.syncType}');
+      debugPrint('📥 [SYNC] Réponse reçue: ${response.syncType}');
 
-      // 4. Traiter la réponse
-      final result = await ReportSyncService.processSyncResponse(response, _reports);
-      print('🔄 [SYNC] Résultat traité: ${result.reports.length} signalements, hasChanges: ${result.hasChanges}');
+      // 4. Traiter la réponse avec le cache complet pour sync différentielle
+      final result = await ReportSyncService.processSyncResponse(response, _allReports);
+      debugPrint('🔄 [SYNC] Résultat traité: ${result.reports.length} signalements, hasChanges: ${result.hasChanges}');
 
       // 5. Mettre à jour les données locales dans le cache complet
       if (result.hasChanges) {
@@ -259,7 +259,7 @@ class SyncReportController extends ChangeNotifier {
     bool showNotifications = false,
     bool forceFreshData = false,
   }) async {
-    print('📲 [FETCH] fetchReports appelée - useSync: $useSync, status: $status, search: $search');
+    debugPrint('📲 [FETCH] fetchReports appelée - useSync: $useSync, status: $status, search: $search');
     
     if (useSync) {
       // 1. Charger d'abord les données du cache si disponibles (sauf si forceFreshData)
@@ -268,14 +268,14 @@ class SyncReportController extends ChangeNotifier {
       }
       
       // 2. Utiliser la synchronisation intelligente
-      print('🔄 [FETCH] Utilisation de la synchronisation intelligente');
+      debugPrint('🔄 [FETCH] Utilisation de la synchronisation intelligente');
       final filters = ReportSyncFilters(
         status: status,
         priority: priority,
         reportType: reportType,
         search: search,
       );
-      print('📋 [FETCH] Filtres: ${filters.toJson()}');
+      debugPrint('📋 [FETCH] Filtres: ${filters.toJson()}');
       
       try {
         await syncReports(
@@ -289,7 +289,7 @@ class SyncReportController extends ChangeNotifier {
       }
     } else {
       // Utiliser l'ancienne méthode (fallback)
-      print('🔙 [FETCH] Utilisation de la méthode legacy');
+      debugPrint('🔙 [FETCH] Utilisation de la méthode legacy');
       await _fetchReportsLegacy(
         status: status,
         priority: priority,
@@ -299,7 +299,7 @@ class SyncReportController extends ChangeNotifier {
         append: append,
       );
     }
-    print('📱 [FETCH] fetchReports terminée - ${_reports.length} signalements en mémoire');
+    debugPrint('📱 [FETCH] fetchReports terminée - ${_reports.length} signalements en mémoire');
   }
 
   /// Charge les signalements depuis le cache si nécessaire (architecture WhatsApp)
@@ -466,19 +466,19 @@ class SyncReportController extends ChangeNotifier {
   }
 
   void _setSyncStatus(ReportSyncStatus status) {
-    print('🔄 [SYNC] Changement de statut: ${_syncStatus.name} → ${status.name}');
+    debugPrint('🔄 [SYNC] Changement de statut: ${_syncStatus.name} → ${status.name}');
     _syncStatus = status;
     notifyListeners();
   }
 
   void _setSyncError(String error) {
-    print('❌ [SYNC] Erreur: $error');
+    debugPrint('❌ [SYNC] Erreur: $error');
     _syncErrorMessage = error;
     notifyListeners();
   }
 
   void _setSyncMessage(String message) {
-    print('💬 [SYNC] Message: $message');
+    debugPrint('💬 [SYNC] Message: $message');
     _syncMessage = message;
     notifyListeners();
   }

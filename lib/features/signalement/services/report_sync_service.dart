@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../models/sync_models.dart';
 import '../models/report_model.dart';
 import 'report_checksum_service.dart';
@@ -10,25 +11,34 @@ class ReportSyncService {
     bool forceFullSync = false,
   }) async {
     if (forceFullSync) {
+      debugPrint('🔄 [SYNC_OPERATION] Force full sync demandé');
       return ReportSyncOperation.fullSync;
     }
 
+    // Vérifier le nombre de checksums stockés
+    final checksumCount = await ReportLocalStorageService.getChecksumsCount();
+    final cachedReportsCount = await ReportLocalStorageService.getCachedReportsCount();
+    debugPrint('🔍 [SYNC_OPERATION] Checksums stockés: $checksumCount, Rapports en cache: $cachedReportsCount');
+
     // Si on a des filtres uniquement, c'est un filter sync
     if (filters != null && !filters.isEmpty) {
-      final hasLocalData = await ReportLocalStorageService.getChecksumsCount() > 0;
-      if (!hasLocalData) {
+      debugPrint('🔍 [SYNC_OPERATION] Filtres détectés: ${filters.toJson()}');
+      if (checksumCount == 0) {
+        debugPrint('🔄 [SYNC_OPERATION] → FULL SYNC (pas de checksums pour filtres)');
         return ReportSyncOperation.fullSync;
       }
+      debugPrint('🔄 [SYNC_OPERATION] → FILTER SYNC');
       return ReportSyncOperation.filterSync;
     }
 
     // Si on n'a pas de données locales, c'est un full sync
-    final hasLocalData = await ReportLocalStorageService.getChecksumsCount() > 0;
-    if (!hasLocalData) {
+    if (checksumCount == 0) {
+      debugPrint('🔄 [SYNC_OPERATION] → FULL SYNC (aucun checksum stocké)');
       return ReportSyncOperation.fullSync;
     }
 
     // Sinon, c'est une vérification avec checksums
+    debugPrint('🔄 [SYNC_OPERATION] → CHECK SYNC (${checksumCount} checksums disponibles)');
     return ReportSyncOperation.checkSync;
   }
 
@@ -117,7 +127,10 @@ class ReportSyncService {
     ReportSyncResponse response,
     List<ReportModel> currentReports,
   ) async {
+    debugPrint('🔄 [DIFF_SYNC] Début sync différentielle avec ${currentReports.length} signalements locaux');
+    
     if (response.changes == null) {
+      debugPrint('🔄 [DIFF_SYNC] Aucun changement dans la réponse');
       return ReportSyncResult(
         operation: ReportSyncOperation.checkSync,
         hasChanges: false,
@@ -127,6 +140,7 @@ class ReportSyncService {
     }
 
     final changes = response.changes!;
+    debugPrint('🔄 [DIFF_SYNC] Changements: ${changes.added.length} ajouts, ${changes.updated.length} modifs, ${changes.deleted.length} suppressions');
     final updatedReports = List<ReportModel>.from(currentReports);
 
     // Traiter les suppressions
@@ -142,45 +156,60 @@ class ReportSyncService {
       await ReportLocalStorageService.removeCachedReports(deletedIds);
     }
 
-    // Traiter les ajouts - l'API renvoie des listes imbriquées
+    // Traiter les ajouts - l'API renvoie directement un tableau d'objets
     final addedReports = <ReportModel>[];
     final addedChecksums = <String, String>{};
-    for (final item in changes.added) {
-      if (item is List && item.isNotEmpty) {
-        // Chaque "added" est une liste contenant un seul signalement avec checksum
-        final reportWithChecksum = item.first as Map<String, dynamic>;
+    debugPrint('🔄 [DIFF_SYNC] Traitement de ${changes.added.length} ajouts');
+    
+    for (int i = 0; i < changes.added.length; i++) {
+      final item = changes.added[i];
+      debugPrint('🔄 [DIFF_SYNC] Ajout $i: type=${item.runtimeType}');
+      
+      if (item is Map<String, dynamic>) {
+        // L'API renvoie directement les signalements avec checksum
+        final reportWithChecksum = item;
         
         // ✅ EXTRAIRE le checksum de l'API (ne pas recalculer)
         final reportId = reportWithChecksum['id'] as String;
         final apiChecksum = reportWithChecksum['checksum'] as String;
         addedChecksums[reportId] = apiChecksum;
+        debugPrint('🔄 [DIFF_SYNC] Signalement ajouté: $reportId, checksum: ${apiChecksum.substring(0, 8)}...');
         
         // Créer le ReportModel (sans le checksum dans les données)
         final reportData = Map<String, dynamic>.from(reportWithChecksum);
         reportData.remove('checksum'); // Supprimer checksum des données signalement
         addedReports.add(ReportModel.fromJson(reportData));
+      } else {
+        debugPrint('⚠️ [DIFF_SYNC] Format d\'ajout inattendu: ${item.runtimeType} - $item');
       }
     }
+    
+    debugPrint('🔄 [DIFF_SYNC] ${addedReports.length} signalements traités pour ajout');
     
     updatedReports.addAll(addedReports);
 
     // Traiter les mises à jour - même structure
     final updatedReportsList = <ReportModel>[];
     final updatedChecksums = <String, String>{};
+    debugPrint('🔄 [DIFF_SYNC] Traitement de ${changes.updated.length} mises à jour');
+    
     for (final item in changes.updated) {
-      if (item is List && item.isNotEmpty) {
-        // Chaque "updated" est une liste contenant un seul signalement avec checksum
-        final reportWithChecksum = item.first as Map<String, dynamic>;
+      if (item is Map<String, dynamic>) {
+        // L'API renvoie directement les signalements avec checksum
+        final reportWithChecksum = item;
         
         // ✅ EXTRAIRE le checksum de l'API (ne pas recalculer)
         final reportId = reportWithChecksum['id'] as String;
         final apiChecksum = reportWithChecksum['checksum'] as String;
         updatedChecksums[reportId] = apiChecksum;
+        debugPrint('🔄 [DIFF_SYNC] Signalement modifié: $reportId, checksum: ${apiChecksum.substring(0, 8)}...');
         
         // Créer le ReportModel (sans le checksum dans les données)
         final reportData = Map<String, dynamic>.from(reportWithChecksum);
         reportData.remove('checksum'); // Supprimer checksum des données signalement
         updatedReportsList.add(ReportModel.fromJson(reportData));
+      } else {
+        debugPrint('⚠️ [DIFF_SYNC] Format de mise à jour inattendu: ${item.runtimeType} - $item');
       }
     }
 
@@ -205,6 +234,7 @@ class ReportSyncService {
     // ✅ FUSION INTELLIGENTE: Sauvegarder TOUS les signalements (anciens + nouveaux)
     await _saveMergedReports(updatedReports, allChangedReports);
 
+    debugPrint('🔄 [DIFF_SYNC] Résultat final: ${updatedReports.length} signalements au total');
     return ReportSyncResult(
       operation: ReportSyncOperation.checkSync,
       hasChanges: true,
@@ -240,6 +270,7 @@ class ReportSyncService {
 
   /// Sauvegarde les checksums des signalements ET les signalements complets (méthode legacy - recalcule)
   static Future<void> _saveReportChecksums(List<ReportModel> reports) async {
+    debugPrint('💾 [SAVE_CHECKSUMS] Début sauvegarde de ${reports.length} checksums');
     final checksums = <String, String>{};
     
     for (int i = 0; i < reports.length; i++) {
@@ -248,13 +279,23 @@ class ReportSyncService {
       final checksum = ReportChecksumService.calculateReportChecksum(reportJson);
       checksums[report.id] = checksum;
     }
+    debugPrint('💾 [SAVE_CHECKSUMS] ${checksums.length} checksums calculés');
 
     if (checksums.isNotEmpty) {
       // Sauvegarder les checksums AVEC l'ordre de réception
+      debugPrint('💾 [SAVE_CHECKSUMS] Sauvegarde des checksums en cours...');
       await ReportLocalStorageService.saveReportChecksumsWithOrder(reports, checksums);
       
       // Pour full sync : remplacement complet
+      debugPrint('💾 [SAVE_CHECKSUMS] Sauvegarde du cache complet en cours...');
       await ReportLocalStorageService.saveCachedReports(reports, replaceAll: true);
+      
+      // Vérification post-sauvegarde
+      final savedCount = await ReportLocalStorageService.getChecksumsCount();
+      final cachedCount = await ReportLocalStorageService.getCachedReportsCount();
+      debugPrint('✅ [SAVE_CHECKSUMS] Terminé - Checksums: $savedCount, Cache: $cachedCount');
+    } else {
+      debugPrint('⚠️ [SAVE_CHECKSUMS] Aucun checksum à sauvegarder');
     }
   }
 
