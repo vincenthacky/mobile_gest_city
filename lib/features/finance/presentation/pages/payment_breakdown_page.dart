@@ -6,6 +6,7 @@ import '../widgets/payment_table.dart';
 import '../widgets/summary_card.dart';
 import '../../services/pdf_export_service.dart';
 import '../../controllers/payment_breakdown_controller.dart';
+import '../../../../core/widgets/sync_notification.dart';
 
 class PaymentBreakdownPage extends StatefulWidget {
   const PaymentBreakdownPage({super.key});
@@ -20,6 +21,9 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
   final GlobalKey _downloadButtonKey = GlobalKey();
+  
+  // État pour contrôler l'affichage de la notification info
+  bool _showInfoNotification = true;
 
   @override
   void initState() {
@@ -148,6 +152,25 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
                   ),
                 ],
               ),
+            ),
+            
+            // Notification d'information pour sélectionner un mois
+            Consumer<PaymentBreakdownController>(
+              builder: (context, controller, child) {
+                // Afficher la notification si elle n'a pas été masquée manuellement
+                if (_showInfoNotification) {
+                  return SyncNotification(
+                    type: SyncNotificationType.info,
+                    customMessage: 'Sélectionnez un mois dans le segment ci-dessus pour afficher son bilan',
+                    onDismiss: () {
+                      setState(() {
+                        _showInfoNotification = false;
+                      });
+                    },
+                  );
+                }
+                return const SizedBox.shrink();
+              },
             ),
             
             // En-tête du tableau

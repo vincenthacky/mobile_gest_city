@@ -5,6 +5,7 @@ enum SyncNotificationType {
   syncing,       // Synchronisation en cours
   syncComplete,  // Synchronisation terminée
   upToDate,      // Données déjà à jour (pas de sync nécessaire)
+  info,          // Information générale
   none,          // Aucune notification
 }
 
@@ -175,7 +176,8 @@ class _SyncNotificationState extends State<SyncNotification>
                   // Bouton fermer pour certains types
                   if (widget.type == SyncNotificationType.offline ||
                       widget.type == SyncNotificationType.syncComplete ||
-                      widget.type == SyncNotificationType.upToDate)
+                      widget.type == SyncNotificationType.upToDate ||
+                      widget.type == SyncNotificationType.info)
                     GestureDetector(
                       onTap: _dismiss,
                       child: Container(
@@ -227,6 +229,9 @@ class _SyncNotificationState extends State<SyncNotification>
       case SyncNotificationType.upToDate:
         iconData = Icons.refresh;
         break;
+      case SyncNotificationType.info:
+        iconData = Icons.info_outline;
+        break;
       case SyncNotificationType.none:
         iconData = Icons.refresh;
         break;
@@ -249,6 +254,8 @@ class _SyncNotificationState extends State<SyncNotification>
         return const Color(0xFFDCFDF7); // Vert très clair
       case SyncNotificationType.upToDate:
         return const Color(0xFFEBF8FF); // Bleu très clair
+      case SyncNotificationType.info:
+        return const Color(0xFFF0F9FF); // Bleu info très clair
       case SyncNotificationType.none:
         return const Color(0xFFF3F4F6);
     }
@@ -264,6 +271,8 @@ class _SyncNotificationState extends State<SyncNotification>
         return const Color(0xFF10B981); // Vert
       case SyncNotificationType.upToDate:
         return const Color(0xFF3B82F6); // Bleu
+      case SyncNotificationType.info:
+        return const Color(0xFF0EA5E9); // Bleu info
       case SyncNotificationType.none:
         return const Color(0xFFE5E7EB);
     }
@@ -279,6 +288,8 @@ class _SyncNotificationState extends State<SyncNotification>
         return const Color(0xFF10B981); // Vert
       case SyncNotificationType.upToDate:
         return const Color(0xFF3B82F6); // Bleu
+      case SyncNotificationType.info:
+        return const Color(0xFF0EA5E9); // Bleu info
       case SyncNotificationType.none:
         return const Color(0xFF6B7280);
     }
@@ -298,6 +309,8 @@ class _SyncNotificationState extends State<SyncNotification>
         return const Color(0xFF047857); // Vert foncé
       case SyncNotificationType.upToDate:
         return const Color(0xFF1E40AF); // Bleu foncé
+      case SyncNotificationType.info:
+        return const Color(0xFF0C4A6E); // Bleu info foncé
       case SyncNotificationType.none:
         return const Color(0xFF374151);
     }
@@ -313,6 +326,8 @@ class _SyncNotificationState extends State<SyncNotification>
         return 'Données synchronisées avec succès';
       case SyncNotificationType.upToDate:
         return 'Données à jour • Aucune synchronisation nécessaire';
+      case SyncNotificationType.info:
+        return 'Information';
       case SyncNotificationType.none:
         return '';
     }
