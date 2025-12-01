@@ -16,7 +16,7 @@ class InformationDataSource {
   }) async {
     try {
       final queryParams = <String, dynamic>{};
-      
+
       if (status != null) queryParams['status'] = status;
       if (priority != null) queryParams['priority'] = priority;
       if (reportType != null) queryParams['report_type'] = reportType;
@@ -39,7 +39,9 @@ class InformationDataSource {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        final errorMessage = e.response?.data['message'] ?? 'Erreur lors de la récupération des informations';
+        final errorMessage =
+            e.response?.data['message'] ??
+            'Erreur lors de la récupération des informations';
         throw DioException(
           requestOptions: e.requestOptions,
           response: e.response,
@@ -88,11 +90,7 @@ class InformationDataSource {
       final response = await _dio.post(
         '/information',
         data: formData,
-        options: Options(
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        ),
+        options: Options(headers: {'Content-Type': 'multipart/form-data'}),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -106,7 +104,9 @@ class InformationDataSource {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        final errorMessage = e.response?.data['message'] ?? 'Erreur lors de la création de l\'information';
+        final errorMessage =
+            e.response?.data['message'] ??
+            'Erreur lors de la création de l\'information';
         throw DioException(
           requestOptions: e.requestOptions,
           response: e.response,
@@ -124,11 +124,13 @@ class InformationDataSource {
   }
 
   /// Synchronise les informations avec le serveur
-  Future<InformationSyncResponse> syncInformation(InformationSyncRequest request) async {
+  Future<InformationSyncResponse> syncInformation(
+    InformationSyncRequest request,
+  ) async {
     try {
       final data = request.toJson();
-      
-      final response = await _dio.get(
+
+      final response = await _dio.post(
         '/information/sync',
         queryParameters: data,
       );
@@ -144,7 +146,9 @@ class InformationDataSource {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        final errorMessage = e.response?.data['message'] ?? 'Erreur lors de la synchronisation des informations';
+        final errorMessage =
+            e.response?.data['message'] ??
+            'Erreur lors de la synchronisation des informations';
         throw DioException(
           requestOptions: e.requestOptions,
           response: e.response,

@@ -1,25 +1,10 @@
 import 'package:flutter/material.dart';
 
-enum ProjectStatus {
-  voteNotOpen,
-  voteOpen,
-  voteClosed,
-  accepted,
-  rejected,
-}
+enum ProjectStatus { voteNotOpen, voteOpen, voteClosed, accepted, rejected }
 
-enum VoteChoice {
-  yes,
-  no,
-  yesWithReserve,
-  blank,
-}
+enum VoteChoice { yes, no, yesWithReserve, blank }
 
-enum ImplementationType {
-  withTender,
-  knownProvider,
-  withoutProvider,
-}
+enum ImplementationType { withTender, knownProvider, withoutProvider }
 
 class ProjectModel {
   final String id;
@@ -35,7 +20,7 @@ class ProjectModel {
   final double? providerAmount;
   final List<String> attachments;
   final ProjectStatus status;
-  final DateTime? voteCloseDate;
+  final DateTime? votingOpenedAt;
   final int votesYes;
   final int votesNo;
   final int votesYesWithReserve;
@@ -63,7 +48,7 @@ class ProjectModel {
     this.providerAmount,
     this.attachments = const [],
     required this.status,
-    this.voteCloseDate,
+    this.votingOpenedAt,
     this.votesYes = 0,
     this.votesNo = 0,
     this.votesYesWithReserve = 0,
@@ -79,16 +64,23 @@ class ProjectModel {
   });
 
   int get totalVotes => votesYes + votesNo + votesYesWithReserve + votesBlank;
-  
+
   double get yesPercentage => totalVotes > 0 ? votesYes / totalVotes : 0.0;
   double get noPercentage => totalVotes > 0 ? votesNo / totalVotes : 0.0;
-  double get yesWithReservePercentage => totalVotes > 0 ? votesYesWithReserve / totalVotes : 0.0;
+  double get yesWithReservePercentage =>
+      totalVotes > 0 ? votesYesWithReserve / totalVotes : 0.0;
   double get blankPercentage => totalVotes > 0 ? votesBlank / totalVotes : 0.0;
 
   bool get hasUserVoted => userVote != null;
   bool get canVote => status == ProjectStatus.voteOpen && !hasUserVoted;
   bool get hasAttachments => attachments.isNotEmpty;
-  
+
+  // Calcule la date de fermeture du vote (8 jours après l'ouverture)
+  DateTime? get voteCloseDate {
+    if (votingOpenedAt == null) return null;
+    return votingOpenedAt!.add(const Duration(days: 8));
+  }
+
   List<String> get imageAttachments {
     final imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
     return attachments.where((attachment) {
@@ -96,7 +88,7 @@ class ProjectModel {
       return imageExtensions.any((ext) => lowercaseAttachment.endsWith(ext));
     }).toList();
   }
-  
+
   bool get hasImages => imageAttachments.isNotEmpty;
   int get imageCount => imageAttachments.length;
 
@@ -182,20 +174,27 @@ class ProjectModel {
   }
 
   String get formattedEstimatedAmount {
-    if (estimatedAmount >= 1000000) {
-      return '${(estimatedAmount / 1000000).toStringAsFixed(1)}M FCFA';
-    } else if (estimatedAmount >= 1000) {
-      return '${(estimatedAmount / 1000).toStringAsFixed(1)}k FCFA';
-    } else {
-      return '${estimatedAmount.toStringAsFixed(0)} FCFA';
+    // Format le montant avec séparateur de milliers
+    final amount = estimatedAmount.toStringAsFixed(0);
+    final parts = <String>[];
+    var remaining = amount;
+
+    while (remaining.length > 3) {
+      parts.insert(0, remaining.substring(remaining.length - 3));
+      remaining = remaining.substring(0, remaining.length - 3);
     }
+    if (remaining.isNotEmpty) {
+      parts.insert(0, remaining);
+    }
+
+    return '${parts.join(' ')} FCFA';
   }
 
   String get formattedVoteCloseDate {
     if (voteCloseDate == null) return 'Non définie';
     final now = DateTime.now();
     final difference = voteCloseDate!.difference(now);
-    
+
     if (difference.isNegative) {
       return 'Terminé';
     } else if (difference.inDays > 0) {
@@ -227,7 +226,7 @@ class ProjectModel {
     final votes = json['votes'] as Map<String, dynamic>? ?? {};
     final user = json['user'] as Map<String, dynamic>? ?? {};
     final images = json['images'] as List<dynamic>? ?? [];
-    
+
     // Mapping des statuts de l'API vers les statuts du modèle
     ProjectStatus mapStatus(String apiStatus) {
       switch (apiStatus) {
@@ -250,7 +249,7 @@ class ProjectModel {
     ImplementationType getImplementationType() {
       final withTender = json['with_call_for_tenders'] as bool? ?? false;
       final withProvider = json['with_service_provider'] as bool? ?? false;
-      
+
       if (withTender) {
         return ImplementationType.withTender;
       } else if (withProvider) {
@@ -263,7 +262,7 @@ class ProjectModel {
     // Mapper le vote utilisateur depuis l'API
     VoteChoice? mapUserVote(dynamic userVoteData) {
       if (userVoteData == null) return null;
-      
+
       // L'API retourne directement une string pour user_vote
       if (userVoteData is String) {
         switch (userVoteData) {
@@ -282,7 +281,7 @@ class ProjectModel {
             return null;
         }
       }
-      
+
       // Fallback si c'est un objet vote avec le type
       if (userVoteData is Map<String, dynamic>) {
         final voteType = userVoteData['vote_type'] as String?;
@@ -301,30 +300,48 @@ class ProjectModel {
       }
       return null;
     }
-    
+
     return ProjectModel(
       id: json['id']?.toString() ?? '',
       title: json['title'] ?? '',
       shortDescription: json['brief_description'] ?? '',
       longDescription: json['detailed_description'] ?? '',
-      startDate: json['start_date'] != null ? DateTime.parse(json['start_date']) : null,
-      endDate: json['estimated_completion_date'] != null ? DateTime.parse(json['estimated_completion_date']) : null,
-      deadlineDate: json['date_lapses'] != null ? DateTime.parse(json['date_lapses']) : null,
-      estimatedAmount: double.tryParse(json['estimated_budget']?.toString() ?? '0') ?? 0.0,
+      startDate: json['start_date'] != null
+          ? DateTime.parse(json['start_date'])
+          : null,
+      endDate: json['estimated_completion_date'] != null
+          ? DateTime.parse(json['estimated_completion_date'])
+          : null,
+      deadlineDate: json['date_lapses'] != null
+          ? DateTime.parse(json['date_lapses'])
+          : null,
+      estimatedAmount:
+          double.tryParse(json['estimated_budget']?.toString() ?? '0') ?? 0.0,
       implementationType: getImplementationType(),
       providerName: json['service_provider_name'],
-      providerAmount: double.tryParse(json['service_provider_budget']?.toString() ?? '0'),
-      attachments: images.map((img) => img['url'] as String? ?? '').where((url) => url.isNotEmpty).toList(),
+      providerAmount: double.tryParse(
+        json['service_provider_budget']?.toString() ?? '0',
+      ),
+      attachments: images
+          .map((img) => img['url'] as String? ?? '')
+          .where((url) => url.isNotEmpty)
+          .toList(),
       status: mapStatus(json['status'] ?? 'vote_not_open'),
-      voteCloseDate: json['date_lapses'] != null ? DateTime.parse(json['date_lapses']) : null,
+      votingOpenedAt: json['voting_opened_at'] != null
+          ? DateTime.parse(json['voting_opened_at'])
+          : null,
       votesYes: votes['positive_votes'] ?? 0,
       votesNo: votes['negative_votes'] ?? 0,
       votesYesWithReserve: votes['yes_to_subject_votes'] ?? 0,
       votesBlank: votes['neutral_votes'] ?? 0,
       userVote: mapUserVote(votes['user_vote']),
       userVoteJustification: votes['user_vote_justification'],
-      createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(json['updated_at'] ?? DateTime.now().toIso8601String()),
+      createdAt: DateTime.parse(
+        json['created_at'] ?? DateTime.now().toIso8601String(),
+      ),
+      updatedAt: DateTime.parse(
+        json['updated_at'] ?? DateTime.now().toIso8601String(),
+      ),
       authorId: json['created_by']?.toString() ?? '',
       authorName: user['full_name'] ?? '',
       authorIsAnonymous: user['anonymity'] ?? false,
@@ -342,12 +359,15 @@ class ProjectModel {
       'estimated_completion_date': endDate?.toIso8601String(),
       'date_lapses': deadlineDate?.toIso8601String(),
       'estimated_budget': estimatedAmount.toString(),
-      'with_call_for_tenders': implementationType == ImplementationType.withTender,
-      'with_service_provider': implementationType == ImplementationType.knownProvider,
+      'with_call_for_tenders':
+          implementationType == ImplementationType.withTender,
+      'with_service_provider':
+          implementationType == ImplementationType.knownProvider,
       'service_provider_name': providerName,
       'service_provider_budget': providerAmount?.toString(),
       'images': attachments.map((url) => {'url': url}).toList(),
       'status': _statusToApiFormat(status),
+      'voting_opened_at': votingOpenedAt?.toIso8601String(),
       'votes': {
         'positive_votes': votesYes,
         'negative_votes': votesNo,
@@ -362,7 +382,9 @@ class ProjectModel {
       'user': {
         'full_name': authorName,
         'anonymity': authorIsAnonymous,
-        'villa': authorVillaNumber != null ? {'number': authorVillaNumber} : null,
+        'villa': authorVillaNumber != null
+            ? {'number': authorVillaNumber}
+            : null,
       },
     };
   }
@@ -381,7 +403,7 @@ class ProjectModel {
     double? providerAmount,
     List<String>? attachments,
     ProjectStatus? status,
-    DateTime? voteCloseDate,
+    DateTime? votingOpenedAt,
     int? votesYes,
     int? votesNo,
     int? votesYesWithReserve,
@@ -409,13 +431,14 @@ class ProjectModel {
       providerAmount: providerAmount ?? this.providerAmount,
       attachments: attachments ?? this.attachments,
       status: status ?? this.status,
-      voteCloseDate: voteCloseDate ?? this.voteCloseDate,
+      votingOpenedAt: votingOpenedAt ?? this.votingOpenedAt,
       votesYes: votesYes ?? this.votesYes,
       votesNo: votesNo ?? this.votesNo,
       votesYesWithReserve: votesYesWithReserve ?? this.votesYesWithReserve,
       votesBlank: votesBlank ?? this.votesBlank,
       userVote: userVote ?? this.userVote,
-      userVoteJustification: userVoteJustification ?? this.userVoteJustification,
+      userVoteJustification:
+          userVoteJustification ?? this.userVoteJustification,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       authorId: authorId ?? this.authorId,

@@ -11,7 +11,7 @@ import '../services/contribution_local_storage_service.dart';
 import '../services/payment_sync_listener_service.dart';
 import '../../../core/services/connectivity_service.dart';
 import '../../../core/storage/secure_storage.dart';
-import '../../authentication/model/user_model.dart';
+import '../../authentification/model/user_model.dart';
 
 enum ContributionStatus { initial, loading, loaded, error }
 

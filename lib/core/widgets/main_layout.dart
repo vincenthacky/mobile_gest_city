@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../features/authentication/controller/auth_controller.dart';
+import '../../features/authentification/controller/auth_controller.dart';
 
 class MainLayout extends StatelessWidget {
   final Widget child;

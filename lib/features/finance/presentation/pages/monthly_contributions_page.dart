@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../controllers/contribution_controller.dart';
-import '../../../authentication/controller/auth_controller.dart';
+import '../../../authentification/controller/auth_controller.dart';
 import 'cotisation/widgets/widgets.dart';
 import 'cotisation/widgets/unified_payment_items_widget.dart';
 

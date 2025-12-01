@@ -14,17 +14,14 @@ class ReportDataSource {
   }) async {
     try {
       final queryParams = <String, dynamic>{};
-      
+
       if (status != null) queryParams['status'] = status;
       if (priority != null) queryParams['priority'] = priority;
       if (reportType != null) queryParams['report_type'] = reportType;
       queryParams['per_page'] = perPage.toString();
       queryParams['page'] = page.toString();
 
-      final response = await _dio.get(
-        '/reports',
-        queryParameters: queryParams,
-      );
+      final response = await _dio.get('/reports', queryParameters: queryParams);
 
       if (response.statusCode == 200) {
         return response.data as Map<String, dynamic>;
@@ -37,7 +34,9 @@ class ReportDataSource {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        final errorMessage = e.response?.data['message'] ?? 'Erreur lors de la récupération des signalements';
+        final errorMessage =
+            e.response?.data['message'] ??
+            'Erreur lors de la récupération des signalements';
         throw DioException(
           requestOptions: e.requestOptions,
           response: e.response,
@@ -58,11 +57,8 @@ class ReportDataSource {
   Future<ReportSyncResponse> syncReports(ReportSyncRequest request) async {
     try {
       final data = request.toJson();
-      
-      final response = await _dio.get(
-        '/reports/sync',
-        queryParameters: data,
-      );
+
+      final response = await _dio.post('/reports/sync', queryParameters: data);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return ReportSyncResponse.fromJson(response.data);
@@ -75,7 +71,9 @@ class ReportDataSource {
       }
     } on DioException catch (e) {
       if (e.response != null) {
-        final errorMessage = e.response?.data['message'] ?? 'Erreur lors de la synchronisation des signalements';
+        final errorMessage =
+            e.response?.data['message'] ??
+            'Erreur lors de la synchronisation des signalements';
         throw DioException(
           requestOptions: e.requestOptions,
           response: e.response,

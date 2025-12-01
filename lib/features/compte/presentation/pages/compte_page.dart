@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../authentication/controller/auth_controller.dart';
+import '../../../authentification/controller/auth_controller.dart';
 import '../../../../core/services/security_settings_service.dart';
 
 class ComptePage extends StatefulWidget {
