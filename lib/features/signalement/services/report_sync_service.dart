@@ -130,9 +130,16 @@ class ReportSyncService {
     final updatedReports = List<ReportModel>.from(currentReports);
 
     // Traiter les suppressions
+    final deletedIds = <String>[];
     for (final deletedId in changes.deleted) {
       updatedReports.removeWhere((report) => report.id == deletedId);
       await ReportLocalStorageService.deleteReportChecksum(deletedId);
+      deletedIds.add(deletedId);
+    }
+    
+    // Supprimer les signalements supprimés du cache
+    if (deletedIds.isNotEmpty) {
+      await ReportLocalStorageService.removeCachedReports(deletedIds);
     }
 
     // Traiter les ajouts - l'API renvoie des listes imbriquées
@@ -194,6 +201,9 @@ class ReportSyncService {
     
     // ✅ UTILISER les checksums de l'API (ne pas recalculer)
     await _saveReportChecksumsWithApiData(allChangedReports, allApiChecksums);
+    
+    // ✅ FUSION INTELLIGENTE: Sauvegarder TOUS les signalements (anciens + nouveaux)
+    await _saveMergedReports(updatedReports, allChangedReports);
 
     return ReportSyncResult(
       operation: ReportSyncOperation.checkSync,

@@ -299,4 +299,11 @@ class ReportLocalStorageService {
     final box = await reportsBox;
     return box.length;
   }
+
+  /// Supprime une liste de signalements du cache
+  static Future<void> removeCachedReports(List<String> reportIds) async {
+    final box = await reportsBox;
+    await box.deleteAll(reportIds);
+    print('🗑️ [CACHE] ${reportIds.length} signalements supprimés du cache');
+  }
 }
