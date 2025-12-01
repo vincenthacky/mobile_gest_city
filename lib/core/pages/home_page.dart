@@ -1,9 +1,62 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../widgets/app_header.dart';
+import '../controllers/member_overview_controller.dart';
+import '../services/connectivity_service.dart';
+import '../widgets/sync_notification.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  late MemberOverviewController _overviewController;
+  final ConnectivityService _connectivityService = ConnectivityService();
+
+  @override
+  void initState() {
+    super.initState();
+    _overviewController = MemberOverviewController();
+    _loadOverviewData();
+    _checkConnectivityAndNotify();
+  }
+
+  @override
+  void dispose() {
+    _overviewController.dispose();
+    super.dispose();
+  }
+
+  /// Charge les données overview au démarrage
+  Future<void> _loadOverviewData() async {
+    await _overviewController.initialize();
+  }
+
+  /// Rafraîchit les données overview
+  Future<void> _refreshOverviewData() async {
+    await _overviewController.refresh(showNotifications: true);
+  }
+
+  /// Vérifie la connectivité et affiche les notifications appropriées
+  void _checkConnectivityAndNotify() {
+    // Vérifier la connectivité après le chargement initial
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (_connectivityService.isConnected) {
+        // Connecté : synchronisation avec notifications
+        if (_overviewController.hasData) {
+          await _overviewController.loadOverview(showNotifications: true);
+        }
+      } else {
+        // Pas de connexion : afficher notification hors ligne si on a des données en cache
+        if (_overviewController.hasData) {
+          _overviewController.showOfflineNotification();
+        }
+      }
+    });
+  }
 
   // Méthode pour calculer le ratio d'aspect selon la taille d'écran
   double _getChildAspectRatio(BuildContext context) {
@@ -91,9 +144,29 @@ class HomePage extends StatelessWidget {
               ),
             ),
             
+            // Notification de synchronisation
+            AnimatedBuilder(
+              animation: _overviewController,
+              builder: (context, child) {
+                return SyncNotification(
+                  type: _overviewController.notificationType,
+                  customMessage: _overviewController.notificationMessage,
+                  onDismiss: () => _overviewController.clearNotification(),
+                  onRetrySync: () {
+                    // Ressayer la synchronisation
+                    _overviewController.refresh(showNotifications: true);
+                  },
+                );
+              },
+            ),
+            
             Expanded(
-              child: CustomScrollView(
-                slivers: [
+              child: RefreshIndicator(
+                onRefresh: _refreshOverviewData,
+                color: const Color(0xFF4F46E5),
+                backgroundColor: Colors.white,
+                child: CustomScrollView(
+                  slivers: [
             
             // Grid des fonctionnalités responsive
             SliverPadding(
@@ -174,7 +247,8 @@ class HomePage extends StatelessWidget {
             
             // Actions rapides
            
-                ],
+                  ],
+                ),
               ),
             ),
           ],
@@ -202,7 +276,7 @@ class HomePage extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: gradient.colors.first.withOpacity(0.3),
+                color: gradient.colors.first.withValues(alpha: 0.3),
                 blurRadius: 12,
                 offset: const Offset(0, 6),
               ),
@@ -257,80 +331,150 @@ class HomePage extends StatelessWidget {
   }
 
   Widget _buildQuickStatsCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _buildStatItem(
-                  label: 'Villa inscrits',
-                  value: '156',
-                  icon: Icons.home,
-                  color: const Color(0xFF10B981),
+    return AnimatedBuilder(
+      animation: _overviewController,
+      builder: (context, child) {
+        // Afficher un loader si les données sont en cours de chargement
+        if (_overviewController.isLoading && !_overviewController.hasData) {
+          return Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
                 ),
-              ),
-              Container(
-                width: 1,
-                height: 40,
-                color: Colors.grey.shade200,
-              ),
-              Expanded(
-                child: _buildStatItem(
-                  label: 'Projets en cours',
-                  value: '8',
-                  icon: Icons.construction,
-                  color: const Color(0xFF3B82F6),
-                ),
+              ],
+            ),
+            child: const Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          Container(
-            height: 1,
-            color: Colors.grey.shade200,
-          ),
-          const SizedBox(height: 16),
-          Row(
+          child: Column(
             children: [
-              Expanded(
-                child: _buildStatItem(
-                  label: 'Vigilance',
-                  value: '12',
-                  icon: Icons.security,
-                  color: const Color(0xFFF59E0B),
+              // Indicateur de statut des données
+              if (_overviewController.hasData && !_overviewController.overview!.isRecent)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.access_time,
+                        size: 16,
+                        color: Colors.orange.shade600,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Données hors ligne',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.orange.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const Spacer(),
+                      InkWell(
+                        onTap: _refreshOverviewData,
+                        child: Icon(
+                          Icons.refresh,
+                          size: 16,
+                          color: Colors.orange.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+              
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStatItem(
+                      label: 'Villa inscrits',
+                      value: _overviewController.villaInscrit.toString(),
+                      icon: Icons.home,
+                      color: const Color(0xFF10B981),
+                    ),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 40,
+                    color: Colors.grey.shade200,
+                  ),
+                  Expanded(
+                    child: _buildStatItem(
+                      label: 'Projets en cours',
+                      value: _overviewController.projetEnCours.toString(),
+                      icon: Icons.construction,
+                      color: const Color(0xFF3B82F6),
+                    ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 16),
               Container(
-                width: 1,
-                height: 40,
+                height: 1,
                 color: Colors.grey.shade200,
               ),
-              Expanded(
-                child: _buildStatItem(
-                  label: 'Solde de la caisse',
-                  value: '2.4M',
-                  icon: Icons.account_balance,
-                  color: const Color(0xFF8B5CF6),
-                ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStatItem(
+                      label: 'Vigilance',
+                      value: _overviewController.vigilance.toString(),
+                      icon: Icons.security,
+                      color: const Color(0xFFF59E0B),
+                    ),
+                  ),
+                  Container(
+                    width: 1,
+                    height: 40,
+                    color: Colors.grey.shade200,
+                  ),
+                  Expanded(
+                    child: _buildStatItem(
+                      label: 'Solde de la caisse',
+                      value: _formatSolde(_overviewController.solde),
+                      icon: Icons.account_balance,
+                      color: const Color(0xFF8B5CF6),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
+  }
+
+  /// Formate le solde pour l'affichage (ex: 180000 → 180K)
+  String _formatSolde(int solde) {
+    if (solde >= 1000000) {
+      return '${(solde / 1000000).toStringAsFixed(1)}M';
+    } else if (solde >= 1000) {
+      return '${(solde / 1000).toStringAsFixed(0)}K';
+    } else {
+      return solde.toString();
+    }
   }
 
   Widget _buildStatItem({

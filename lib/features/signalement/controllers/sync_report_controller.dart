@@ -190,6 +190,11 @@ class SyncReportController extends ChangeNotifier {
         }
         _applyLocalFilters(); // Filtrage local
         _pagination = null; // Reset pagination après sync
+      } else {
+        // ✅ CORRECTION: Si pas de changements mais _allReports est vide, charger depuis le cache
+        if (_allReports.isEmpty) {
+          await _loadFromCacheIfNeeded();
+        }
       }
 
       _setSyncMessage(result.message);

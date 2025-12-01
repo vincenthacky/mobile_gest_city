@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../data_sources/signalement_data_source.dart';
 import '../../../core/services/connectivity_service.dart';
 import '../../../core/services/unified_sync_service.dart';
+import 'sync_report_controller.dart';
 
 enum SignalementSubmissionStatus { initial, loading, success, error }
 
@@ -15,6 +16,9 @@ class SignalementController extends ChangeNotifier {
   final ImagePicker _imagePicker = ImagePicker();
   final ConnectivityService _connectivityService = ConnectivityService();
   final UnifiedSyncService _unifiedSyncService = UnifiedSyncService();
+  
+  // Contrôleur de synchronisation pour mettre à jour le cache après création
+  SyncReportController? _syncReportController;
   
   SignalementSubmissionStatus _status = SignalementSubmissionStatus.initial;
   String? _errorMessage;
@@ -125,6 +129,20 @@ class SignalementController extends ChangeNotifier {
         if (response.success) {
           _setStatus(SignalementSubmissionStatus.success);
           _selectedImages.clear();
+          
+          // ✅ SYNCHRONISER les données après création pour maintenir la cohérence (comme le module Projet)
+          try {
+            if (_syncReportController != null) {
+              await _syncReportController!.syncReports(showNotifications: false);
+              debugPrint('✅ [SIGNALEMENT] Synchronisation post-création réussie');
+            } else {
+              debugPrint('⚠️ [SIGNALEMENT] Pas de contrôleur de sync disponible');
+            }
+          } catch (e) {
+            debugPrint('⚠️ [SIGNALEMENT] Erreur sync post-création: $e');
+            // Ne pas faire échouer la création pour autant
+          }
+          
           return true;
         } else {
           _setError(response.message);
@@ -189,5 +207,10 @@ class SignalementController extends ChangeNotifier {
     _status = SignalementSubmissionStatus.initial;
     _clearError();
     notifyListeners();
+  }
+
+  /// Injecte le contrôleur de synchronisation pour permettre la mise à jour du cache après création
+  void setSyncController(SyncReportController syncController) {
+    _syncReportController = syncController;
   }
 }

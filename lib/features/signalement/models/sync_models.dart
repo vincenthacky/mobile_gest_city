@@ -99,25 +99,28 @@ class ReportSyncRequest {
   });
 
   Map<String, dynamic> toJson() {
-    final Map<String, dynamic> json = {};
+    final Map<String, dynamic> payload = {};
     
     if (isInitializing != null) {
-      json['is_initializing'] = isInitializing.toString();
+      payload['is_initializing'] = isInitializing.toString();
     }
     
     if (globalChecksum != null) {
-      json['global_checksum'] = globalChecksum;
+      payload['global_checksum'] = globalChecksum;
     }
     
     if (itemsChecksums != null) {
-      json['items_checksums'] = itemsChecksums;
+      payload['items_checksums'] = itemsChecksums;
     }
     
     if (filters != null && !filters!.isEmpty) {
-      json['filters'] = filters!.toJson();
+      payload['filters'] = filters!.toJson();
     }
     
-    return json;
+    // ✅ CORRECTION: Envelopper dans une clé 'data' comme attendu par le serveur
+    return {
+      'data': payload,
+    };
   }
 }
 

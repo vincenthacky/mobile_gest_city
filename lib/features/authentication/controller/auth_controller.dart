@@ -7,9 +7,9 @@ import '../../../core/services/biometric_auth_service.dart';
 import '../../../core/services/crypto_service.dart';
 import '../../../core/services/security_settings_service.dart';
 import '../../../core/services/app_lock_service.dart';
+import '../../../core/services/hive_cleanup_service.dart';
 import '../data_source/auth_data_source.dart';
 import '../model/user_model.dart';
-import '../../projets/services/local_storage_service.dart';
 
 enum AuthStatus { initial, loading, authenticated, unauthenticated, error, biometricRequired }
 
@@ -372,12 +372,12 @@ class AuthController extends ChangeNotifier {
       // Nettoyer TOUS les secrets (device + classique)
       await _resetAllSecrets();
       
-      // ✅ NOUVEAU : Nettoyer toutes les données locales des projets
+      // ✅ NOUVEAU : Nettoyer TOUTES les données locales Hive de TOUS les modules
       try {
-        await LocalStorageService.clearAllProjectData();
-        debugPrint('🧹 [LOGOUT] Données locales des projets nettoyées');
+        await HiveCleanupService.clearAllLocalData();
+        debugPrint('🧹 [LOGOUT] Toutes les données locales Hive nettoyées');
       } catch (e) {
-        debugPrint('❌ [LOGOUT] Erreur nettoyage données projets: $e');
+        debugPrint('❌ [LOGOUT] Erreur nettoyage données Hive: $e');
         // Ne pas faire échouer la déconnexion pour autant
       }
       
@@ -452,12 +452,12 @@ class AuthController extends ChangeNotifier {
     _user = null;
     _clearError();
     
-    // ✅ NOUVEAU : Nettoyer aussi les données projets lors d'un force logout
+    // ✅ NOUVEAU : Nettoyer TOUTES les données locales Hive lors d'un force logout
     try {
-      await LocalStorageService.clearAllProjectData();
-      debugPrint('🧹 [FORCE-LOGOUT] Données locales des projets nettoyées');
+      await HiveCleanupService.clearAllLocalData();
+      debugPrint('🧹 [FORCE-LOGOUT] Toutes les données locales Hive nettoyées');
     } catch (e) {
-      debugPrint('❌ [FORCE-LOGOUT] Erreur nettoyage données projets: $e');
+      debugPrint('❌ [FORCE-LOGOUT] Erreur nettoyage données Hive: $e');
     }
     
     _setStatus(AuthStatus.unauthenticated);
