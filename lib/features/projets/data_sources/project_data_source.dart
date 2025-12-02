@@ -342,8 +342,13 @@ class ProjectDataSource {
     }
   }
 
-  Future<ApiResponse> prioritizeProjects(List<int> projectIds) async {
+  Future<ApiResponse> prioritizeProjects(List<String> projectIds) async {
     try {
+      print('🔥 DEBUG - Envoi priorisation:');
+      print('🔥 projectIds: $projectIds');
+      print('🔥 URL: /projects/prioritize');
+      print('🔥 Data: ${{'projects': projectIds}}');
+      
       final response = await _dio.post(
         '/projects/prioritize',
         data: {'projects': projectIds},
@@ -353,6 +358,9 @@ class ProjectDataSource {
           },
         ),
       );
+      
+      print('🔥 Response status: ${response.statusCode}');
+      print('🔥 Response data: ${response.data}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         return ApiResponse.fromJson(response.data);
@@ -364,6 +372,11 @@ class ProjectDataSource {
         );
       }
     } on DioException catch (e) {
+      print('🔥 DEBUG - DioException:');
+      print('🔥 Status code: ${e.response?.statusCode}');
+      print('🔥 Response data: ${e.response?.data}');
+      print('🔥 Error: $e');
+      
       if (e.response != null) {
         final errorMessage = e.response?.data['message'] ?? 'Erreur lors de la priorisation des projets';
         throw DioException(
@@ -378,6 +391,7 @@ class ProjectDataSource {
         );
       }
     } catch (e) {
+      print('🔥 DEBUG - Exception générique: $e');
       throw Exception('Erreur inattendue: $e');
     }
   }

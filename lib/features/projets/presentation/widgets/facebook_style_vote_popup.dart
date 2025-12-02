@@ -103,40 +103,8 @@ class _FacebookStyleVotePopupState extends State<FacebookStyleVotePopup>
     });
   }
 
-  RenderBox _getButtonRenderBox() {
-    return widget.buttonKey.currentContext!.findRenderObject() as RenderBox;
-  }
-
-  Offset _getButtonPosition() {
-    final renderBox = _getButtonRenderBox();
-    return renderBox.localToGlobal(Offset.zero);
-  }
-
-  Size _getButtonSize() {
-    final renderBox = _getButtonRenderBox();
-    return renderBox.size;
-  }
 
   OverlayEntry _createOverlayEntry(bool isCommentMode) {
-    final buttonPosition = _getButtonPosition();
-    final buttonSize = _getButtonSize();
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-    
-    // Calculer la largeur du popup
-    final popupWidth = isCommentMode ? 350.0 : 400.0;
-    
-    // Centrer horizontalement par rapport au bouton, mais s'assurer que ça reste dans l'écran
-    double leftPosition = buttonPosition.dx + (buttonSize.width / 2) - (popupWidth / 2);
-    
-    // Corrections pour rester dans l'écran
-    const margin = 20.0;
-    if (leftPosition < margin) {
-      leftPosition = margin;
-    } else if (leftPosition + popupWidth > screenWidth - margin) {
-      leftPosition = screenWidth - popupWidth - margin;
-    }
-    
     return OverlayEntry(
       builder: (context) => Material(
         color: Colors.transparent,
@@ -158,18 +126,12 @@ class _FacebookStyleVotePopupState extends State<FacebookStyleVotePopup>
             ),
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-              child: Stack(
-              children: [
-                Positioned(
-                  left: leftPosition,
-                  bottom: screenHeight - buttonPosition.dy + 10,
-                  child: GestureDetector(
-                    onTap: () {}, // Prevent closing when tapping on the popup
-                    child: isCommentMode ? _buildCommentField() : _buildReactionsContainer(),
-                  ),
+              child: Center(
+                child: GestureDetector(
+                  onTap: () {}, // Prevent closing when tapping on the popup
+                  child: isCommentMode ? _buildCommentField() : _buildReactionsContainer(),
                 ),
-              ],
-            ),
+              ),
             ),
           ),
         ),

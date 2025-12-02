@@ -289,9 +289,8 @@ class _ProjetsPageState extends State<ProjetsPage> {
       builder: (context) => PriorityModal(
         projects: yesVotedProjects,
         onPrioritySubmitted: (projectIds) async {
-          final intProjectIds = projectIds.map((id) => int.parse(id)).toList();
           final scaffoldMessenger = ScaffoldMessenger.of(context);
-          final success = await _projectController.prioritizeProjects(intProjectIds);
+          final success = await _projectController.prioritizeProjects(projectIds);
           if (mounted) {
             scaffoldMessenger.showSnackBar(
               SnackBar(

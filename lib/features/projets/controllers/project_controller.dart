@@ -569,24 +569,30 @@ class ProjectController extends ChangeNotifier {
   }
 
   // Méthodes pour la priorisation
-  Future<bool> prioritizeProjects(List<int> projectIds) async {
+  Future<bool> prioritizeProjects(List<String> projectIds) async {
+    print('🚀 Controller - prioritizeProjects appelée avec: $projectIds');
     _setPrioritizationStatus(PrioritizationStatus.loading);
     _clearPrioritizationError();
 
     try {
+      print('🚀 Controller - Appel vers DataSource...');
       final response = await _projectDataSource.prioritizeProjects(projectIds);
       
+      print('🚀 Controller - Réponse reçue: ${response.success}');
       if (response.success) {
         _setPrioritizationStatus(PrioritizationStatus.success);
+        print('🚀 Controller - Succès, rafraîchissement des projets...');
         // Rafraîchir la liste des projets après priorisation
         await fetchProjects();
         return true;
       } else {
+        print('🚀 Controller - Échec: ${response.message}');
         _setPrioritizationError(response.message);
         _setPrioritizationStatus(PrioritizationStatus.error);
         return false;
       }
     } catch (e) {
+      print('🚀 Controller - Exception: $e');
       _setPrioritizationError(e.toString());
       _setPrioritizationStatus(PrioritizationStatus.error);
       return false;
@@ -638,7 +644,7 @@ class ProjectController extends ChangeNotifier {
       return PrioritizationAction.none;
     } else if (projectCount == 1) {
       // Priorisation automatique pour un seul projet
-      final success = await prioritizeProjects([int.parse(_userProjectsVotedYes.first.id)]);
+      final success = await prioritizeProjects([_userProjectsVotedYes.first.id]);
       return success ? PrioritizationAction.autoCompleted : PrioritizationAction.error;
     } else {
       // Afficher le modal pour prioriser plusieurs projets
