@@ -327,18 +327,30 @@ class _ProjetsPageState extends State<ProjetsPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Détection du thème système iOS/Android (comme WhatsApp)
+    final platformBrightness = MediaQuery.platformBrightnessOf(context);
+    final isDarkMode = platformBrightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
-      body: SafeArea(
-        child: Column(
-          children: [
+      body: Container(
+        decoration: BoxDecoration(
+          // Fond adaptatif selon le thème système
+          color: isDarkMode ? Colors.black87 : Colors.grey.shade300,
+          image: const DecorationImage(
+            image: AssetImage('assets/images/bg-image.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
             Container(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
               decoration: BoxDecoration(
-                color: const Color(0xFFF9FAFB),
+                color: Colors.white.withValues(alpha: 0.9),
                 border: Border(
                   bottom: BorderSide(
-                    color: Colors.grey.shade200,
+                    color: Colors.grey.shade300,
                     width: 1,
                   ),
                 ),
@@ -432,7 +444,7 @@ class _ProjetsPageState extends State<ProjetsPage> {
                           Expanded(
                             child: Container(
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: Colors.white.withValues(alpha: 0.9),
                                 borderRadius: BorderRadius.circular(10),
                                 boxShadow: [
                                   BoxShadow(
@@ -469,7 +481,7 @@ class _ProjetsPageState extends State<ProjetsPage> {
                                     borderSide: BorderSide.none,
                                   ),
                                   filled: true,
-                                  fillColor: Colors.white,
+                                  fillColor: Colors.transparent,
                                   contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 12,
                                     vertical: 8,
@@ -522,7 +534,7 @@ class _ProjetsPageState extends State<ProjetsPage> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(40),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: Colors.white.withValues(alpha: 0.9),
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
@@ -644,7 +656,8 @@ class _ProjetsPageState extends State<ProjetsPage> {
                 ),
               ),
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );
