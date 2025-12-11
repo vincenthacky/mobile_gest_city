@@ -76,14 +76,24 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
       builder: (context, child) {
+        final platformBrightness = MediaQuery.platformBrightnessOf(context);
+        final isDarkMode = platformBrightness == Brightness.dark;
+        
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF3B82F6),
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Color(0xFF1F2937),
-            ),
+            colorScheme: isDarkMode 
+                ? const ColorScheme.dark(
+                    primary: Color(0xFF60A5FA),
+                    onPrimary: Colors.white,
+                    surface: Color(0xFF1E293B),
+                    onSurface: Color(0xFFE1E7ED),
+                  )
+                : const ColorScheme.light(
+                    primary: Color(0xFF3B82F6),
+                    onPrimary: Colors.white,
+                    surface: Colors.white,
+                    onSurface: Color(0xFF1F2937),
+                  ),
           ),
           child: child!,
         );
@@ -178,18 +188,22 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Détection du thème système
+    final platformBrightness = MediaQuery.platformBrightnessOf(context);
+    final isDarkMode = platformBrightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: isDarkMode ? const Color(0xFF0D1418) : const Color(0xFFF9FAFB),
       body: SafeArea(
         child: Column(
           children: [
             Container(
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
               decoration: BoxDecoration(
-                color: const Color(0xFFF9FAFB),
+                color: isDarkMode ? const Color(0xFF0D1418) : const Color(0xFFF9FAFB),
                 border: Border(
                   bottom: BorderSide(
-                    color: Colors.grey.shade200,
+                    color: isDarkMode ? const Color(0xFF334155) : Colors.grey.shade200,
                     width: 1,
                   ),
                 ),
@@ -198,19 +212,19 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                 children: [
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.arrow_back_ios,
-                      color: Color(0xFF1F2937),
+                      color: isDarkMode ? const Color(0xFFE1E7ED) : const Color(0xFF1F2937),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       _isEditing ? 'Modifier le projet' : 'Nouveau projet',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF1F2937),
+                        color: isDarkMode ? const Color(0xFFE1E7ED) : const Color(0xFF1F2937),
                         fontFamily: 'Poppins',
                       ),
                       overflow: TextOverflow.ellipsis,

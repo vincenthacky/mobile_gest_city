@@ -174,20 +174,24 @@ class ProjectModel {
   }
 
   String get formattedEstimatedAmount {
-    // Format le montant avec séparateur de milliers
-    final amount = estimatedAmount.toStringAsFixed(0);
-    final parts = <String>[];
-    var remaining = amount;
-
-    while (remaining.length > 3) {
-      parts.insert(0, remaining.substring(remaining.length - 3));
-      remaining = remaining.substring(0, remaining.length - 3);
+    // Format compact : K pour milliers, M pour millions + FCFA
+    if (estimatedAmount >= 1000000) {
+      final millions = estimatedAmount / 1000000;
+      if (millions == millions.toInt()) {
+        return '${millions.toInt()}M FCFA';
+      } else {
+        return '${millions.toStringAsFixed(1)}M FCFA';
+      }
+    } else if (estimatedAmount >= 1000) {
+      final thousands = estimatedAmount / 1000;
+      if (thousands == thousands.toInt()) {
+        return '${thousands.toInt()}K FCFA';
+      } else {
+        return '${thousands.toStringAsFixed(1)}K FCFA';
+      }
+    } else {
+      return '${estimatedAmount.toInt()} FCFA';
     }
-    if (remaining.isNotEmpty) {
-      parts.insert(0, remaining);
-    }
-
-    return '${parts.join(' ')} FCFA';
   }
 
   String get formattedVoteCloseDate {

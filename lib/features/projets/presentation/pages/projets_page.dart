@@ -453,15 +453,17 @@ class _ProjetsPageState extends State<ProjetsPage> {
                             Expanded(
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.9),
+                                  color: isDarkMode ? const Color(0xFF1E293B) : Colors.white.withValues(alpha: 0.9),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: const Color(0xFFE5E7EB),
+                                    color: isDarkMode ? const Color(0xFF334155) : const Color(0xFFE5E7EB),
                                     width: 1.5,
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.05),
+                                      color: isDarkMode 
+                                          ? Colors.black.withValues(alpha: 0.2)
+                                          : Colors.black.withValues(alpha: 0.05),
                                       blurRadius: 4,
                                       offset: const Offset(0, 2),
                                     ),
@@ -469,23 +471,23 @@ class _ProjetsPageState extends State<ProjetsPage> {
                                 ),
                                 child: TextField(
                                   controller: _searchController,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
                                     fontFamily: 'Nunito',
-                                    color: Color(0xFF374151),
+                                    color: isDarkMode ? const Color(0xFFE1E7ED) : const Color(0xFF374151),
                                   ),
                                   decoration: InputDecoration(
                                     hintText: 'Rechercher...',
-                                    hintStyle: const TextStyle(
-                                      color: Color(0xFF6B7280),
+                                    hintStyle: TextStyle(
+                                      color: isDarkMode ? const Color(0xFF8696A0) : const Color(0xFF6B7280),
                                       fontFamily: 'Nunito',
                                       fontSize: 12,
                                     ),
-                                    prefixIcon: const Padding(
-                                      padding: EdgeInsets.only(left: 8, right: 4),
+                                    prefixIcon: Padding(
+                                      padding: const EdgeInsets.only(left: 8, right: 4),
                                       child: Icon(
                                         Icons.search,
-                                        color: Color(0xFF6B7280),
+                                        color: isDarkMode ? const Color(0xFF8696A0) : const Color(0xFF6B7280),
                                         size: 14,
                                       ),
                                     ),
@@ -500,10 +502,10 @@ class _ProjetsPageState extends State<ProjetsPage> {
                                               onTap: () {
                                                 _searchController.clear();
                                               },
-                                              child: const Icon(
+                                              child: Icon(
                                                 Icons.clear,
                                                 size: 14,
-                                                color: Color(0xFF6B7280),
+                                                color: isDarkMode ? const Color(0xFF8696A0) : const Color(0xFF6B7280),
                                               ),
                                             ),
                                           )

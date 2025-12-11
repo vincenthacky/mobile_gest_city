@@ -154,7 +154,7 @@ class ProjectCard extends StatelessWidget {
             Row(
               children: [
                 _pillWithIcon(
-                  icon: Icons.euro,
+                  icon: Icons.account_balance_wallet,
                   label: project.formattedEstimatedAmount,
                   color: const Color(0xFF10B981),
                 ),
@@ -201,7 +201,7 @@ class ProjectCard extends StatelessWidget {
                   Expanded(
                     flex: 1,
                     child: SizedBox(
-                      height: 36,
+                      height: 40,
                       child: ElevatedButton(
                         key: buttonKey,
                         onPressed: onVote != null ? () {
@@ -219,10 +219,18 @@ class ProjectCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         ),
                         child: const Text(
                           'Voter',
-                          style: TextStyle(fontSize: 14, fontFamily: 'Poppins', fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            fontSize: 14, 
+                            fontFamily: 'Poppins', 
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
                       ),
                     ),

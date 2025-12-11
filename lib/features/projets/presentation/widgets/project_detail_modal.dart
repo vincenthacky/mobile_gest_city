@@ -48,13 +48,17 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
     final screenHeight = screenSize.height;
     final screenWidth = screenSize.width;
     
+    // Détection du thème système
+    final platformBrightness = MediaQuery.platformBrightnessOf(context);
+    final isDarkMode = platformBrightness == Brightness.dark;
+    
     // Hauteur fixe: 83% pour tous les écrans
     final modalHeight = screenHeight * 0.83;
     
     return Container(
       height: modalHeight,
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
+        color: isDarkMode ? const Color(0xFF0D1418) : const Color(0xFFF9FAFB),
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(screenWidth > 500 ? 24 : 20),
           topRight: Radius.circular(screenWidth > 500 ? 24 : 20),
@@ -70,7 +74,7 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
               bottom: screenHeight > 700 ? 20 : 16,
             ),
             decoration: BoxDecoration(
-              color: const Color(0xFFE5E7EB),
+              color: isDarkMode ? const Color(0xFF334155) : const Color(0xFFE5E7EB),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -85,18 +89,18 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildProjectHeader(),
+                  _buildProjectHeader(isDarkMode),
                   SizedBox(height: screenHeight > 700 ? 24 : 20),
-                  _buildDescriptionSection(),
+                  _buildDescriptionSection(isDarkMode),
                   SizedBox(height: screenHeight > 700 ? 20 : 16),
                   if (widget.project.hasImages) ...[
-                    _buildImagesSection(),
+                    _buildImagesSection(isDarkMode),
                     SizedBox(height: screenHeight > 700 ? 20 : 16),
                   ],
-                  _buildProjectInfoSection(),
+                  _buildProjectInfoSection(isDarkMode),
                   SizedBox(height: screenHeight > 700 ? 20 : 16),
                   if (widget.project.totalVotes > 0) ...[
-                    _buildVoteResultsSection(),
+                    _buildVoteResultsSection(isDarkMode),
                     SizedBox(height: screenHeight > 700 ? 20 : 16),
                   ],
                   Consumer<ProjectController>(
@@ -104,7 +108,7 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
                       if (controller.voters.isNotEmpty) {
                         return Column(
                           children: [
-                            _buildVotersSection(controller.voters),
+                            _buildVotersSection(controller.voters, isDarkMode),
                             SizedBox(height: screenHeight > 700 ? 20 : 16),
                           ],
                         );
@@ -113,9 +117,9 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
                     },
                   ),
                   if (widget.project.canVote) ...[
-                    _buildVoteSection(),
+                    _buildVoteSection(isDarkMode),
                   ] else if (widget.project.hasUserVoted) ...[
-                    _buildUserVoteStatus(),
+                    _buildUserVoteStatus(isDarkMode),
                   ],
                 ],
               ),
@@ -126,7 +130,7 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
     );
   }
 
-  Widget _buildProjectHeader() {
+  Widget _buildProjectHeader(bool isDarkMode) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -136,12 +140,12 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                color: const Color(0xFF3B82F6).withValues(alpha: isDarkMode ? 0.2 : 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.account_balance,
-                color: Color(0xFF3B82F6),
+                color: isDarkMode ? const Color(0xFF60A5FA) : const Color(0xFF3B82F6),
                 size: 24,
               ),
             ),
@@ -152,10 +156,10 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
                 children: [
                   Text(
                     widget.project.title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF1F2937),
+                      color: isDarkMode ? const Color(0xFFE1E7ED) : const Color(0xFF1F2937),
                       fontFamily: 'Poppins',
                     ),
                     maxLines: 2,
@@ -202,32 +206,39 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
     );
   }
 
-  Widget _buildDescriptionSection() {
+  Widget _buildDescriptionSection(bool isDarkMode) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
+          colors: isDarkMode ? [
+            const Color(0xFF1E293B).withValues(alpha: 0.95),
+            const Color(0xFF1E293B).withValues(alpha: 0.85),
+          ] : [
             Colors.white.withValues(alpha: 0.95),
             Colors.white.withValues(alpha: 0.85),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.4),
+          color: isDarkMode 
+              ? const Color(0xFF334155).withValues(alpha: 0.4)
+              : Colors.white.withValues(alpha: 0.4),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: Colors.black.withValues(alpha: isDarkMode ? 0.3 : 0.08),
             blurRadius: 15,
             offset: const Offset(0, 6),
             spreadRadius: 1,
           ),
           BoxShadow(
-            color: Colors.white.withValues(alpha: 0.9),
+            color: isDarkMode 
+                ? const Color(0xFF1E293B).withValues(alpha: 0.9)
+                : Colors.white.withValues(alpha: 0.9),
             blurRadius: 8,
             offset: const Offset(-1, -1),
           ),
@@ -260,32 +271,39 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
     );
   }
 
-  Widget _buildImagesSection() {
+  Widget _buildImagesSection(bool isDarkMode) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
+          colors: isDarkMode ? [
+            const Color(0xFF1E293B).withValues(alpha: 0.95),
+            const Color(0xFF1E293B).withValues(alpha: 0.85),
+          ] : [
             Colors.white.withValues(alpha: 0.95),
             Colors.white.withValues(alpha: 0.85),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.4),
+          color: isDarkMode 
+              ? const Color(0xFF334155).withValues(alpha: 0.4)
+              : Colors.white.withValues(alpha: 0.4),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: Colors.black.withValues(alpha: isDarkMode ? 0.3 : 0.08),
             blurRadius: 15,
             offset: const Offset(0, 6),
             spreadRadius: 1,
           ),
           BoxShadow(
-            color: Colors.white.withValues(alpha: 0.9),
+            color: isDarkMode 
+                ? const Color(0xFF1E293B).withValues(alpha: 0.9)
+                : Colors.white.withValues(alpha: 0.9),
             blurRadius: 8,
             offset: const Offset(-1, -1),
           ),
@@ -377,9 +395,9 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
                                   color: Colors.black.withValues(alpha: 0.6),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
-                                child: const Icon(
+                                child: Icon(
                                   Icons.zoom_in,
-                                  color: Colors.white,
+                                  color: isDarkMode ? const Color(0xFF1E293B) : Colors.white,
                                   size: 12,
                                 ),
                               ),
@@ -399,6 +417,9 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
   }
 
   void _showFullScreenImage(BuildContext context, String imagePath) {
+    final platformBrightness = MediaQuery.platformBrightnessOf(context);
+    final isDarkMode = platformBrightness == Brightness.dark;
+    
     showDialog(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.9),
@@ -457,7 +478,9 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.9),
+                  color: isDarkMode 
+                ? const Color(0xFF1E293B).withValues(alpha: 0.9)
+                : Colors.white.withValues(alpha: 0.9),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -473,32 +496,39 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
     );
   }
 
-  Widget _buildProjectInfoSection() {
+  Widget _buildProjectInfoSection(bool isDarkMode) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
+          colors: isDarkMode ? [
+            const Color(0xFF1E293B).withValues(alpha: 0.95),
+            const Color(0xFF1E293B).withValues(alpha: 0.85),
+          ] : [
             Colors.white.withValues(alpha: 0.95),
             Colors.white.withValues(alpha: 0.85),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.4),
+          color: isDarkMode 
+              ? const Color(0xFF334155).withValues(alpha: 0.4)
+              : Colors.white.withValues(alpha: 0.4),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: Colors.black.withValues(alpha: isDarkMode ? 0.3 : 0.08),
             blurRadius: 15,
             offset: const Offset(0, 6),
             spreadRadius: 1,
           ),
           BoxShadow(
-            color: Colors.white.withValues(alpha: 0.9),
+            color: isDarkMode 
+                ? const Color(0xFF1E293B).withValues(alpha: 0.9)
+                : Colors.white.withValues(alpha: 0.9),
             blurRadius: 8,
             offset: const Offset(-1, -1),
           ),
@@ -528,32 +558,39 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
     );
   }
 
-  Widget _buildVoteResultsSection() {
+  Widget _buildVoteResultsSection(bool isDarkMode) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
+          colors: isDarkMode ? [
+            const Color(0xFF1E293B).withValues(alpha: 0.95),
+            const Color(0xFF1E293B).withValues(alpha: 0.85),
+          ] : [
             Colors.white.withValues(alpha: 0.95),
             Colors.white.withValues(alpha: 0.85),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.4),
+          color: isDarkMode 
+              ? const Color(0xFF334155).withValues(alpha: 0.4)
+              : Colors.white.withValues(alpha: 0.4),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: Colors.black.withValues(alpha: isDarkMode ? 0.3 : 0.08),
             blurRadius: 15,
             offset: const Offset(0, 6),
             spreadRadius: 1,
           ),
           BoxShadow(
-            color: Colors.white.withValues(alpha: 0.9),
+            color: isDarkMode 
+                ? const Color(0xFF1E293B).withValues(alpha: 0.9)
+                : Colors.white.withValues(alpha: 0.9),
             blurRadius: 8,
             offset: const Offset(-1, -1),
           ),
@@ -572,16 +609,16 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
             ),
           ),
           const SizedBox(height: 16),
-          _buildVoteResult(Icons.thumb_up, 'Oui', widget.project.votesYes, widget.project.yesPercentage, const Color(0xFF10B981)),
-          _buildVoteResult(Icons.thumb_down, 'Non', widget.project.votesNo, widget.project.noPercentage, const Color(0xFFEF4444)),
-          _buildVoteResult(Icons.edit_note, 'Oui sous réserve', widget.project.votesYesWithReserve, widget.project.yesWithReservePercentage, const Color(0xFFF97316)),
-          _buildVoteResult(Icons.radio_button_unchecked, 'Neutre', widget.project.votesBlank, widget.project.blankPercentage, const Color(0xFF6B7280)),
+          _buildVoteResult(Icons.thumb_up, 'Oui', widget.project.votesYes, widget.project.yesPercentage, const Color(0xFF10B981), isDarkMode),
+          _buildVoteResult(Icons.thumb_down, 'Non', widget.project.votesNo, widget.project.noPercentage, const Color(0xFFEF4444), isDarkMode),
+          _buildVoteResult(Icons.edit_note, 'Oui sous réserve', widget.project.votesYesWithReserve, widget.project.yesWithReservePercentage, const Color(0xFFF97316), isDarkMode),
+          _buildVoteResult(Icons.radio_button_unchecked, 'Neutre', widget.project.votesBlank, widget.project.blankPercentage, const Color(0xFF6B7280), isDarkMode),
         ],
       ),
     );
   }
 
-  Widget _buildVotersSection(List<VoterModel> voters) {
+  Widget _buildVotersSection(List<VoterModel> voters, bool isDarkMode) {
     if (voters.isEmpty) return const SizedBox.shrink();
     
     return Container(
@@ -633,7 +670,7 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
     );
   }
 
-  Widget _buildVoteSection() {
+  Widget _buildVoteSection(bool isDarkMode) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -641,25 +678,32 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
+          colors: isDarkMode ? [
+            const Color(0xFF1E293B).withValues(alpha: 0.95),
+            const Color(0xFF1E293B).withValues(alpha: 0.85),
+          ] : [
             Colors.white.withValues(alpha: 0.95),
             Colors.white.withValues(alpha: 0.85),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.4),
+          color: isDarkMode 
+              ? const Color(0xFF334155).withValues(alpha: 0.4)
+              : Colors.white.withValues(alpha: 0.4),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: Colors.black.withValues(alpha: isDarkMode ? 0.3 : 0.08),
             blurRadius: 15,
             offset: const Offset(0, 6),
             spreadRadius: 1,
           ),
           BoxShadow(
-            color: Colors.white.withValues(alpha: 0.9),
+            color: isDarkMode 
+                ? const Color(0xFF1E293B).withValues(alpha: 0.9)
+                : Colors.white.withValues(alpha: 0.9),
             blurRadius: 8,
             offset: const Offset(-1, -1),
           ),
@@ -709,7 +753,7 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
     );
   }
 
-  Widget _buildUserVoteStatus() {
+  Widget _buildUserVoteStatus(bool isDarkMode) {
     return GestureDetector(
       onTap: () {
         Navigator.pop(context);
@@ -740,7 +784,9 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
               spreadRadius: 1,
             ),
             BoxShadow(
-              color: Colors.white.withValues(alpha: 0.9),
+              color: isDarkMode 
+                ? const Color(0xFF1E293B).withValues(alpha: 0.9)
+                : Colors.white.withValues(alpha: 0.9),
               blurRadius: 8,
               offset: const Offset(-1, -1),
             ),
@@ -856,7 +902,7 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
     );
   }
 
-  Widget _buildVoteResult(IconData icon, String label, int votes, double percentage, Color color) {
+  Widget _buildVoteResult(IconData icon, String label, int votes, double percentage, Color color, bool isDarkMode) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -870,7 +916,7 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
             ),
             child: Icon(
               icon,
-              color: Colors.white,
+              color: isDarkMode ? const Color(0xFF1E293B) : Colors.white,
               size: 16,
             ),
           ),

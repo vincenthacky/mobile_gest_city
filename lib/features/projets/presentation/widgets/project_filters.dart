@@ -13,6 +13,10 @@ class ProjectFilters extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Détection du thème système
+    final platformBrightness = MediaQuery.platformBrightnessOf(context);
+    final isDarkMode = platformBrightness == Brightness.dark;
+    
     return SizedBox(
       height: 32,
       child: ListView(
@@ -23,6 +27,7 @@ class ProjectFilters extends StatelessWidget {
             null,
             selectedStatus == null,
             Icons.apps,
+            isDarkMode,
           ),
           const SizedBox(width: 8),
           _buildFilterChip(
@@ -30,6 +35,7 @@ class ProjectFilters extends StatelessWidget {
             ProjectStatus.voteOpen,
             selectedStatus == ProjectStatus.voteOpen,
             Icons.how_to_vote,
+            isDarkMode,
           ),
           const SizedBox(width: 8),
           _buildFilterChip(
@@ -37,6 +43,7 @@ class ProjectFilters extends StatelessWidget {
             ProjectStatus.voteNotOpen,
             selectedStatus == ProjectStatus.voteNotOpen,
             Icons.schedule,
+            isDarkMode,
           ),
           const SizedBox(width: 8),
           _buildFilterChip(
@@ -44,6 +51,7 @@ class ProjectFilters extends StatelessWidget {
             ProjectStatus.voteClosed,
             selectedStatus == ProjectStatus.voteClosed,
             Icons.lock_clock,
+            isDarkMode,
           ),
           const SizedBox(width: 8),
           _buildFilterChip(
@@ -51,6 +59,7 @@ class ProjectFilters extends StatelessWidget {
             ProjectStatus.accepted,
             selectedStatus == ProjectStatus.accepted,
             Icons.check_circle,
+            isDarkMode,
           ),
           const SizedBox(width: 8),
           _buildFilterChip(
@@ -58,6 +67,7 @@ class ProjectFilters extends StatelessWidget {
             ProjectStatus.rejected,
             selectedStatus == ProjectStatus.rejected,
             Icons.cancel,
+            isDarkMode,
           ),
         ],
       ),
@@ -69,6 +79,7 @@ class ProjectFilters extends StatelessWidget {
     ProjectStatus? status,
     bool isSelected,
     IconData icon,
+    bool isDarkMode,
   ) {
     return GestureDetector(
       onTap: () => onFilterChanged(status),
@@ -76,12 +87,18 @@ class ProjectFilters extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF3B82F6) : Colors.white,
+          color: isSelected 
+              ? const Color(0xFF3B82F6) 
+              : isDarkMode 
+                  ? const Color(0xFF1E293B)
+                  : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected 
                 ? const Color(0xFF3B82F6) 
-                : const Color(0xFFE5E7EB),
+                : isDarkMode
+                    ? const Color(0xFF334155)
+                    : const Color(0xFFE5E7EB),
             width: 1.5,
           ),
           boxShadow: isSelected
@@ -94,7 +111,9 @@ class ProjectFilters extends StatelessWidget {
                 ]
               : [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
+                    color: isDarkMode
+                        ? Colors.black.withValues(alpha: 0.2)
+                        : Colors.black.withValues(alpha: 0.05),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -106,7 +125,11 @@ class ProjectFilters extends StatelessWidget {
             Icon(
               icon,
               size: 14,
-              color: isSelected ? Colors.white : const Color(0xFF6B7280),
+              color: isSelected 
+                  ? Colors.white 
+                  : isDarkMode 
+                      ? const Color(0xFF8696A0)
+                      : const Color(0xFF6B7280),
             ),
             const SizedBox(width: 4),
             Text(
@@ -114,7 +137,11 @@ class ProjectFilters extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : const Color(0xFF374151),
+                color: isSelected 
+                    ? Colors.white 
+                    : isDarkMode 
+                        ? const Color(0xFFE1E7ED)
+                        : const Color(0xFF374151),
                 fontFamily: 'Nunito',
               ),
             ),
