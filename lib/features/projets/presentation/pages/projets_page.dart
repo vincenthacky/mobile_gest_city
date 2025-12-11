@@ -334,11 +334,18 @@ class _ProjetsPageState extends State<ProjetsPage> {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          // Fond adaptatif selon le thème système
-          color: isDarkMode ? Colors.black87 : Colors.grey.shade300,
-          image: const DecorationImage(
-            image: AssetImage('assets/images/bg-image.png'),
+          // Fond WhatsApp: clair #E5DDD5 / sombre #0D1418
+          color: isDarkMode ? const Color(0xFF0D1418) : const Color(0xFFE5DDD5),
+          image: DecorationImage(
+            image: const AssetImage('assets/images/bg-image.png'),
             fit: BoxFit.cover,
+            // Réduire l'opacité en mode sombre pour atténuer les motifs comme WhatsApp
+            colorFilter: isDarkMode 
+                ? ColorFilter.mode(
+                    Colors.black.withValues(alpha: 0.65), 
+                    BlendMode.darken,
+                  )
+                : null,
           ),
         ),
         child: SafeArea(
