@@ -445,96 +445,125 @@ class _ProjetsPageState extends State<ProjetsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Barre de recherche et bouton ajouter
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Container(
+                      // Barre de recherche et bouton ajouter - même hauteur que les filtres
+                      SizedBox(
+                        height: 32, // Même hauteur que les boutons de filtre
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: const Color(0xFFE5E7EB),
+                                    width: 1.5,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.05),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: TextField(
+                                  controller: _searchController,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontFamily: 'Nunito',
+                                    color: Color(0xFF374151),
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: 'Rechercher...',
+                                    hintStyle: const TextStyle(
+                                      color: Color(0xFF6B7280),
+                                      fontFamily: 'Nunito',
+                                      fontSize: 12,
+                                    ),
+                                    prefixIcon: const Padding(
+                                      padding: EdgeInsets.only(left: 8, right: 4),
+                                      child: Icon(
+                                        Icons.search,
+                                        color: Color(0xFF6B7280),
+                                        size: 14,
+                                      ),
+                                    ),
+                                    prefixIconConstraints: const BoxConstraints(
+                                      minWidth: 26,
+                                      minHeight: 14,
+                                    ),
+                                    suffixIcon: _searchController.text.isNotEmpty
+                                        ? Padding(
+                                            padding: const EdgeInsets.only(right: 8),
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                _searchController.clear();
+                                              },
+                                              child: const Icon(
+                                                Icons.clear,
+                                                size: 14,
+                                                color: Color(0xFF6B7280),
+                                              ),
+                                            ),
+                                          )
+                                        : null,
+                                    suffixIconConstraints: const BoxConstraints(
+                                      minWidth: 22,
+                                      minHeight: 14,
+                                    ),
+                                    border: InputBorder.none,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 4,
+                                      vertical: 8,
+                                    ),
+                                    isDense: true,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              height: 32,
+                              width: 32,
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.9),
-                                borderRadius: BorderRadius.circular(10),
+                                color: const Color(0xFF3B82F6),
+                                borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.05),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
+                                    color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
                                   ),
                                 ],
                               ),
-                              child: TextField(
-                                controller: _searchController,
-                                decoration: InputDecoration(
-                                  hintText: 'Rechercher un projet (2+ caractères)...',
-                                  hintStyle: const TextStyle(
-                                    color: Color(0xFF6B7280),
-                                    fontFamily: 'Nunito',
-                                    fontSize: 14,
-                                  ),
-                                  prefixIcon: const Icon(
-                                    Icons.search,
-                                    color: Color(0xFF6B7280),
-                                    size: 20,
-                                  ),
-                                  suffixIcon: _searchController.text.isNotEmpty
-                                      ? IconButton(
-                                          icon: const Icon(Icons.clear, size: 18),
-                                          onPressed: () {
-                                            _searchController.clear();
-                                          },
-                                        )
-                                      : null,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.transparent,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
-                                  ),
+                              child: IconButton(
+                                padding: EdgeInsets.zero,
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const CreateProjectPage(),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(
+                                  Icons.add,
+                                  color: Colors.white,
+                                  size: 14,
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF3B82F6),
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.08),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: IconButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const CreateProjectPage(),
-                                  ),
-                                );
-                              },
-                              icon: const Icon(
-                                Icons.add,
-                                color: Colors.white,
-                                size: 18,
-                              ),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
                       
                       ProjectFilters(
                         selectedStatus: _statusFilter,
                         onFilterChanged: _onFilterChanged,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
                       
                       if (_filteredProjects.isEmpty)
                         Container(

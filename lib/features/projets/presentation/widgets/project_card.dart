@@ -22,26 +22,32 @@ class ProjectCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final GlobalKey buttonKey = GlobalKey();
     final GlobalKey statusKey = GlobalKey();
+    
+    // Détection du thème système comme WhatsApp
+    final platformBrightness = MediaQuery.platformBrightnessOf(context);
+    final isDarkMode = platformBrightness == Brightness.dark;
+    
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.symmetric(horizontal: 2),
         decoration: BoxDecoration(
-          color: const Color(0xFFFAFBFC), // Fond légèrement off-white pour meilleur contraste
-          borderRadius: BorderRadius.circular(20),
+          // Couleurs : blanc pur en mode clair, bleu sombre dérivé en mode sombre
+          color: isDarkMode ? const Color(0xFF1E293B) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
           border: project.hasUserVoted
               ? Border.all(
-                  color: project.voteChoiceColor.withOpacity(0.18),
+                  color: project.voteChoiceColor.withValues(alpha: isDarkMode ? 0.4 : 0.3),
                   width: 1.5,
                 )
-              : Border.all(
-                  color: const Color(0xFFE2E8F0), // Bordure subtile pour définir la carte
-                  width: 0.5,
-                ),
+              : null,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 6,
+              color: isDarkMode 
+                  ? Colors.black.withValues(alpha: 0.3)
+                  : Colors.black.withValues(alpha: 0.08),
+              blurRadius: isDarkMode ? 8 : 4,
               offset: const Offset(0, 2),
             ),
           ],
@@ -56,12 +62,12 @@ class ProjectCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF3B82F6).withOpacity(0.08),
+                    color: const Color(0xFF3B82F6).withValues(alpha: isDarkMode ? 0.2 : 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.account_balance,
-                    color: Color(0xFF3B82F6),
+                    color: isDarkMode ? const Color(0xFF60A5FA) : const Color(0xFF3B82F6),
                     size: 20,
                   ),
                 ),
@@ -72,10 +78,10 @@ class ProjectCard extends StatelessWidget {
                     children: [
                       Text(
                         project.title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF1F2937),
+                          color: isDarkMode ? const Color(0xFFE1E7ED) : const Color(0xFF1F2937),
                           fontFamily: 'Poppins',
                         ),
                         maxLines: 1,
@@ -84,14 +90,18 @@ class ProjectCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.person, size: 12, color: Color(0xFF475569)),
+                          Icon(
+                            Icons.person, 
+                            size: 12, 
+                            color: isDarkMode ? const Color(0xFF8696A0) : const Color(0xFF475569),
+                          ),
                           const SizedBox(width: 4),
                           Flexible(
                             child: Text(
                               project.displayAuthorName,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11,
-                                color: Color(0xFF475569),
+                                color: isDarkMode ? const Color(0xFF8696A0) : const Color(0xFF475569),
                                 fontFamily: 'Nunito',
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -128,9 +138,9 @@ class ProjectCard extends StatelessWidget {
             // DESCRIPTION
             Text(
               project.shortDescription,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: Color(0xFF374151), // Couleur plus foncée pour meilleure lisibilité
+                color: isDarkMode ? const Color(0xFFB8C6D0) : const Color(0xFF374151),
                 height: 1.5,
                 fontFamily: 'Nunito',
               ),
@@ -167,13 +177,15 @@ class ProjectCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF475569).withValues(alpha: 0.12), // Fond plus contrasté
+                      color: isDarkMode 
+                          ? const Color(0xFF8696A0).withValues(alpha: 0.15)
+                          : const Color(0xFF475569).withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.attach_file,
                       size: 16,
-                      color: Color(0xFF475569), // Couleur plus foncée
+                      color: isDarkMode ? const Color(0xFF8696A0) : const Color(0xFF475569),
                     ),
                   ),
               ],
@@ -201,7 +213,7 @@ class ProjectCard extends StatelessWidget {
                           );
                         } : null,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF3B82F6),
+                          backgroundColor: isDarkMode ? const Color(0xFF60A5FA) : const Color(0xFF3B82F6),
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -220,7 +232,7 @@ class ProjectCard extends StatelessWidget {
                   // Voir plus aligné à droite
                   GestureDetector(
                     onTap: onTap,
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
@@ -228,12 +240,16 @@ class ProjectCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF3B82F6),
+                            color: isDarkMode ? const Color(0xFF60A5FA) : const Color(0xFF3B82F6),
                             fontFamily: 'Poppins',
                           ),
                         ),
-                        SizedBox(width: 6),
-                        Icon(Icons.arrow_forward_ios, size: 12, color: Color(0xFF3B82F6)),
+                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.arrow_forward_ios, 
+                          size: 12, 
+                          color: isDarkMode ? const Color(0xFF60A5FA) : const Color(0xFF3B82F6),
+                        ),
                       ],
                     ),
                   ),
@@ -252,10 +268,10 @@ class ProjectCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _voteItemWithIcon('Votes Oui', Icons.thumb_up, project.votesYes, const Color(0xFF10B981)),
-                  _voteItemWithIcon('Oui sous réserve', Icons.edit_note, project.votesYesWithReserve, const Color(0xFFF97316)),
-                  _voteItemWithIcon('Neutres', Icons.radio_button_unchecked, project.votesBlank, const Color(0xFF6B7280)),
-                  _voteItemWithIcon('Votes Non', Icons.thumb_down, project.votesNo, const Color(0xFFEF4444)),
+                  _voteItemWithIcon(context, 'Votes Oui', Icons.thumb_up, project.votesYes, const Color(0xFF10B981)),
+                  _voteItemWithIcon(context, 'Oui sous réserve', Icons.edit_note, project.votesYesWithReserve, const Color(0xFFF97316)),
+                  _voteItemWithIcon(context, 'Neutres', Icons.radio_button_unchecked, project.votesBlank, const Color(0xFF6B7280)),
+                  _voteItemWithIcon(context, 'Votes Non', Icons.thumb_down, project.votesNo, const Color(0xFFEF4444)),
                 ],
               ),
           ],
@@ -289,11 +305,21 @@ class ProjectCard extends StatelessWidget {
     );
   }
 
-  Widget _voteItemWithIcon(String label, IconData icon, int value, Color color) {
+  Widget _voteItemWithIcon(BuildContext context, String label, IconData icon, int value, Color color) {
+    final platformBrightness = MediaQuery.platformBrightnessOf(context);
+    final isDarkMode = platformBrightness == Brightness.dark;
+    
     return Expanded(
       child: Column(
         children: [
-          Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF475569), fontFamily: 'Nunito')), // Couleur plus foncée
+          Text(
+            label, 
+            style: TextStyle(
+              fontSize: 11, 
+              color: isDarkMode ? const Color(0xFF8696A0) : const Color(0xFF475569), 
+              fontFamily: 'Nunito',
+            ),
+          ),
           const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -317,6 +343,9 @@ class ProjectCard extends StatelessWidget {
   }
 
   Widget _statusMessage(BuildContext context, ProjectModel project, GlobalKey statusKey) {
+    final platformBrightness = MediaQuery.platformBrightnessOf(context);
+    final isDarkMode = platformBrightness == Brightness.dark;
+    
     // Trois cas principaux : vote pas encore ouvert, vote terminé, utilisateur a voté
     if (project.hasUserVoted) {
       // Affiche type de vote choisi par l'utilisateur - CLIQUABLE pour modifier
@@ -394,14 +423,18 @@ class ProjectCard extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.schedule, size: 18, color: Colors.orange.shade600), // Couleur plus foncée
+            Icon(
+              Icons.schedule, 
+              size: 18, 
+              color: isDarkMode ? Colors.orange.shade400 : Colors.orange.shade600,
+            ),
             const SizedBox(width: 8),
             Text(
               'Vote pas encore ouvert',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
-                color: Colors.orange.shade600, // Couleur plus foncée pour meilleure lisibilité
+                color: isDarkMode ? Colors.orange.shade400 : Colors.orange.shade600,
                 fontFamily: 'Poppins',
               ),
             ),
@@ -415,20 +448,26 @@ class ProjectCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF475569).withValues(alpha: 0.12), // Fond plus contrasté
+        color: isDarkMode 
+            ? const Color(0xFF8696A0).withValues(alpha: 0.15)
+            : const Color(0xFF475569).withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.how_to_vote_outlined, size: 18, color: Color(0xFF475569)), // Couleur plus foncée
+          Icon(
+            Icons.how_to_vote_outlined, 
+            size: 18, 
+            color: isDarkMode ? const Color(0xFF8696A0) : const Color(0xFF475569),
+          ),
           const SizedBox(width: 8),
           Text(
             'Vote terminé',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF475569), // Couleur plus foncée pour meilleure lisibilité
+              color: isDarkMode ? const Color(0xFF8696A0) : const Color(0xFF475569),
               fontFamily: 'Poppins',
             ),
           ),
