@@ -28,12 +28,12 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Cette application a besoin d'accéder à l'appareil photo pour prendre des photos de preuve de paiement.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Cette application utilise Face ID pour sécuriser votre accès et protéger vos données personnelles.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Cette application a besoin d'accéder à la galerie photo pour sauvegarder des images de preuve de paiement.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Cette application a besoin d'accéder à la galerie photo pour sélectionner des images de preuve de paiement.</string>
-	<key>NSFaceIDUsageDescription</key>
-	<string>Cette application utilise Face ID pour sécuriser votre accès et protéger vos données personnelles.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

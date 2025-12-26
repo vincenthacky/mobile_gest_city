@@ -21,6 +21,7 @@ class _QrScanPageState extends State<QrScanPage> with TickerProviderStateMixin {
   late Animation<double> _scanAnimation;
 
   bool _isScanning = true;
+  bool _isProcessing = false; // Flag pour éviter les détections multiples
 
   @override
   void initState() {
@@ -51,6 +52,8 @@ class _QrScanPageState extends State<QrScanPage> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    // Stopper la caméra avant de disposer pour libérer les ressources
+    cameraController.stop();
     cameraController.dispose();
     _fadeController.dispose();
     _scanController.dispose();
@@ -58,14 +61,18 @@ class _QrScanPageState extends State<QrScanPage> with TickerProviderStateMixin {
   }
 
   void _onDetect(BarcodeCapture capture) {
-    if (!_isScanning) return;
+    // CRITIQUE : Éviter le traitement multiple et la surcharge de frames
+    if (!_isScanning || _isProcessing) return;
 
     final List<Barcode> barcodes = capture.barcodes;
     for (final barcode in barcodes) {
       if (barcode.rawValue != null) {
-        setState(() {
-          _isScanning = false;
-        });
+        // Marquer immédiatement comme en cours de traitement
+        _isProcessing = true;
+        _isScanning = false;
+
+        // ESSENTIEL : Stopper la caméra IMMÉDIATEMENT pour libérer les frames
+        cameraController.stop();
 
         // Simulation : après scan, naviguer vers register avec les données
         _showSuccessAndNavigate(barcode.rawValue!);
@@ -157,11 +164,19 @@ class _QrScanPageState extends State<QrScanPage> with TickerProviderStateMixin {
   }
 
   void _resetScanning() {
-    Future.delayed(const Duration(milliseconds: 2000), () {
+    Future.delayed(const Duration(milliseconds: 2000), () async {
       if (mounted) {
         setState(() {
           _isScanning = true;
+          _isProcessing = false;
         });
+
+        // Redémarrer la caméra pour scanner à nouveau
+        try {
+          await cameraController.start();
+        } catch (e) {
+          debugPrint('Erreur lors du redémarrage de la caméra: $e');
+        }
       }
     });
   }
