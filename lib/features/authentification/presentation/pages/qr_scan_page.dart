@@ -26,7 +26,13 @@ class _QrScanPageState extends State<QrScanPage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    cameraController = MobileScannerController();
+    // Configuration optimisée pour Android
+    cameraController = MobileScannerController(
+      detectionSpeed: DetectionSpeed.noDuplicates, // Évite les détections en double
+      facing: CameraFacing.back,
+      torchEnabled: false,
+      returnImage: false, // CRITIQUE : Ne pas retourner l'image pour économiser la mémoire
+    );
 
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 800),
@@ -60,24 +66,32 @@ class _QrScanPageState extends State<QrScanPage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  void _onDetect(BarcodeCapture capture) {
+  void _onDetect(BarcodeCapture capture) async {
     // CRITIQUE : Éviter le traitement multiple et la surcharge de frames
     if (!_isScanning || _isProcessing) return;
 
     final List<Barcode> barcodes = capture.barcodes;
-    for (final barcode in barcodes) {
-      if (barcode.rawValue != null) {
-        // Marquer immédiatement comme en cours de traitement
-        _isProcessing = true;
-        _isScanning = false;
+    if (barcodes.isEmpty) return;
 
-        // ESSENTIEL : Stopper la caméra IMMÉDIATEMENT pour libérer les frames
-        cameraController.stop();
+    final barcode = barcodes.first;
+    if (barcode.rawValue == null || barcode.rawValue!.isEmpty) return;
 
-        // Simulation : après scan, naviguer vers register avec les données
-        _showSuccessAndNavigate(barcode.rawValue!);
-        break;
-      }
+    // Marquer immédiatement comme en cours de traitement AVANT tout autre traitement
+    setState(() {
+      _isProcessing = true;
+      _isScanning = false;
+    });
+
+    // ESSENTIEL : Stopper la caméra IMMÉDIATEMENT et ATTENDRE qu'elle s'arrête
+    try {
+      await cameraController.stop();
+    } catch (e) {
+      debugPrint('Erreur lors de l\'arrêt de la caméra: $e');
+    }
+
+    // Traiter le code QR après l'arrêt de la caméra
+    if (mounted) {
+      _showSuccessAndNavigate(barcode.rawValue!);
     }
   }
 
