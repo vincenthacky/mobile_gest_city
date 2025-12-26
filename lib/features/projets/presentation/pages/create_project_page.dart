@@ -414,14 +414,17 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
   }
 
   Widget _buildSection(String title, IconData icon, List<Widget> children) {
+    final platformBrightness = MediaQuery.platformBrightnessOf(context);
+    final isDarkMode = platformBrightness == Brightness.dark;
+    
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDarkMode ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: isDarkMode ? 0.3 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -447,10 +450,10 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
               const SizedBox(width: 12),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1F2937),
+                  color: isDarkMode ? const Color(0xFFE1E7ED) : const Color(0xFF1F2937),
                   fontFamily: 'Poppins',
                 ),
               ),
@@ -726,13 +729,18 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
             children: _attachments.asMap().entries.map((entry) {
               int index = entry.key;
               String fileName = entry.value;
+              final platformBrightness = MediaQuery.platformBrightnessOf(context);
+              final isDarkMode = platformBrightness == Brightness.dark;
+              
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDarkMode ? const Color(0xFF334155) : Colors.white,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                  border: Border.all(
+                    color: isDarkMode ? const Color(0xFF475569) : const Color(0xFFE5E7EB),
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -953,17 +961,20 @@ class _AttachmentDialogState extends State<_AttachmentDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final platformBrightness = MediaQuery.platformBrightnessOf(context);
+    final isDarkMode = platformBrightness == Brightness.dark;
+    
     return Dialog(
       backgroundColor: Colors.transparent,
       child: Container(
         margin: const EdgeInsets.all(20),
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDarkMode ? const Color(0xFF1E293B) : Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
+              color: Colors.black.withValues(alpha: isDarkMode ? 0.3 : 0.1),
               blurRadius: 20,
               offset: const Offset(0, 8),
             ),
