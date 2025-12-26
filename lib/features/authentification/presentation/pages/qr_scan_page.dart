@@ -13,153 +13,120 @@ class QrScanPage extends StatefulWidget {
   State<QrScanPage> createState() => _QrScanPageState();
 }
 
-class _QrScanPageState extends State<QrScanPage> with TickerProviderStateMixin {
-  late MobileScannerController cameraController;
-  late AnimationController _fadeController;
-  late AnimationController _scanController;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _scanAnimation;
-
-  bool _isScanning = true;
-  bool _isProcessing = false; // Flag pour éviter les détections multiples
+class _QrScanPageState extends State<QrScanPage> {
+  MobileScannerController? controller;
+  bool isProcessing = false;
 
   @override
   void initState() {
     super.initState();
-    // Configuration optimisée pour Android
-    cameraController = MobileScannerController(
-      detectionSpeed: DetectionSpeed.noDuplicates, // Évite les détections en double
+    _initializeScanner();
+  }
+
+  void _initializeScanner() {
+    controller = MobileScannerController(
+      detectionSpeed: DetectionSpeed.noDuplicates,
       facing: CameraFacing.back,
       torchEnabled: false,
-      returnImage: false, // CRITIQUE : Ne pas retourner l'image pour économiser la mémoire
+      returnImage: false,
     );
-
-    _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-
-    _scanController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
-      vsync: this,
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
-    );
-
-    _scanAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _scanController, curve: Curves.easeInOut),
-    );
-
-    _fadeController.forward();
-    _scanController.repeat();
   }
 
   @override
   void dispose() {
-    // Stopper la caméra avant de disposer pour libérer les ressources
-    cameraController.stop();
-    cameraController.dispose();
-    _fadeController.dispose();
-    _scanController.dispose();
+    controller?.dispose();
     super.dispose();
   }
 
-  void _onDetect(BarcodeCapture capture) async {
-    // CRITIQUE : Éviter le traitement multiple et la surcharge de frames
-    if (!_isScanning || _isProcessing) return;
+  Future<void> _handleBarcode(BarcodeCapture barcodes) async {
+    // Protection contre le traitement multiple
+    if (isProcessing) return;
 
-    final List<Barcode> barcodes = capture.barcodes;
-    if (barcodes.isEmpty) return;
+    final barcode = barcodes.barcodes.firstOrNull;
+    if (barcode == null || barcode.rawValue == null) return;
 
-    final barcode = barcodes.first;
-    if (barcode.rawValue == null || barcode.rawValue!.isEmpty) return;
+    // Verrouiller immédiatement
+    isProcessing = true;
 
-    // Marquer immédiatement comme en cours de traitement AVANT tout autre traitement
-    setState(() {
-      _isProcessing = true;
-      _isScanning = false;
-    });
+    // Arrêter le scanner
+    await controller?.stop();
 
-    // ESSENTIEL : Stopper la caméra IMMÉDIATEMENT et ATTENDRE qu'elle s'arrête
-    try {
-      await cameraController.stop();
-    } catch (e) {
-      debugPrint('Erreur lors de l\'arrêt de la caméra: $e');
-    }
+    if (!mounted) return;
 
-    // Traiter le code QR après l'arrêt de la caméra
-    if (mounted) {
-      _showSuccessAndNavigate(barcode.rawValue!);
-    }
+    final code = barcode.rawValue!;
+    await _processQrCode(code);
   }
 
-  void _showSuccessAndNavigate(String code) async {
+  Future<void> _processQrCode(String code) async {
     final authController = Provider.of<AuthController>(context, listen: false);
 
     try {
-      // Parser le QR code au nouveau format {"villa_code":"","villa_number":"Villa-360"}
+      // Parser le QR code
       String villaNumber = code;
       try {
         final qrData = json.decode(code);
-        if (qrData is Map<String, dynamic> &&
-            qrData.containsKey('villa_number')) {
+        if (qrData is Map<String, dynamic> && qrData.containsKey('villa_number')) {
           villaNumber = qrData['villa_number'];
         }
       } catch (e) {
-        // Si ce n'est pas du JSON, utiliser le code tel quel
         villaNumber = code;
       }
 
-      // Appeler l'API pour vérifier le code villa avec le nouveau format
+      // Vérifier le code villa
       final response = await authController.verifyVilla(villaNumber);
 
       if (!mounted) return;
 
       if (response != null && response['success'] == true) {
-        // Succès - naviguer vers register avec villa_id de la réponse API
         final villaId = response['data']['villa_id'];
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Code QR scanné avec succès ! 🎉',
-              style: GoogleFonts.nunito(
-                fontWeight: FontWeight.w500,
-                color: Colors.white,
-              ),
-            ),
-            backgroundColor: const Color(0xFF10B981),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.all(16),
-          ),
-        );
+        _showSuccessSnackbar();
 
-        // Attendre un peu puis naviguer vers register avec villa_id
-        Future.delayed(const Duration(milliseconds: 1500), () {
-          if (mounted) {
-            context.go('/register?villa_id=$villaId');
-          }
-        });
+        // Navigation après un court délai
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) {
+          context.go('/register?villa_id=$villaId');
+        }
       } else {
-        // Échec - afficher message d'erreur
-        _showErrorMessage('QR code incorrect.');
-        _resetScanning();
+        _showErrorSnackbar('Code QR invalide');
+        await _resetScanner();
       }
     } catch (e) {
-      // Erreur - afficher message d'erreur
       if (mounted) {
-        _showErrorMessage('QR code incorrect.');
-        _resetScanning();
+        _showErrorSnackbar('Erreur de vérification');
+        await _resetScanner();
       }
     }
   }
 
-  void _showErrorMessage(String message) {
+  Future<void> _resetScanner() async {
+    await Future.delayed(const Duration(seconds: 2));
+    if (mounted) {
+      isProcessing = false;
+      await controller?.start();
+    }
+  }
+
+  void _showSuccessSnackbar() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Code QR scanné avec succès',
+          style: GoogleFonts.nunito(
+            fontWeight: FontWeight.w500,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: const Color(0xFF10B981),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(milliseconds: 1500),
+      ),
+    );
+  }
+
+  void _showErrorSnackbar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -177,306 +144,211 @@ class _QrScanPageState extends State<QrScanPage> with TickerProviderStateMixin {
     );
   }
 
-  void _resetScanning() {
-    Future.delayed(const Duration(milliseconds: 2000), () async {
-      if (mounted) {
-        setState(() {
-          _isScanning = true;
-          _isProcessing = false;
-        });
-
-        // Redémarrer la caméra pour scanner à nouveau
-        try {
-          await cameraController.start();
-        } catch (e) {
-          debugPrint('Erreur lors du redémarrage de la caméra: $e');
-        }
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-    final screenHeight = mediaQuery.size.height;
+    final screenHeight = MediaQuery.of(context).size.height;
     final scanAreaSize = screenHeight * 0.3;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
       body: SafeArea(
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: Column(
-            children: [
-              // Header avec bouton retour
-              Container(
-                height: 64,
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => context.go('/onboarding/choice'),
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        color: Color(0xFF6B7280),
-                      ),
-                      style: IconButton.styleFrom(
-                        backgroundColor: const Color(0xFFF3F4F6),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(50),
-                        ),
+        child: Column(
+          children: [
+            // Header
+            Container(
+              height: 64,
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => context.go('/onboarding/choice'),
+                    icon: const Icon(Icons.arrow_back, color: Color(0xFF6B7280)),
+                    style: IconButton.styleFrom(
+                      backgroundColor: const Color(0xFFF3F4F6),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(50),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
 
-              const SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-              // Zone de scan avec caméra (en haut maintenant)
-              Expanded(
-                flex: 1,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: Stack(
-                      children: [
-                        // Caméra
+            // Zone de scan
+            Expanded(
+              flex: 1,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Stack(
+                    children: [
+                      // Scanner
+                      if (controller != null)
                         MobileScanner(
-                          controller: cameraController,
-                          onDetect: _onDetect,
+                          controller: controller!,
+                          onDetect: _handleBarcode,
                         ),
 
-                        // Overlay avec zone de scan
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.5),
-                          ),
-                          child: Stack(
-                            children: [
-                              // Zone transparente pour le scan
-                              Center(
-                                child: Container(
-                                  width: scanAreaSize,
-                                  height: scanAreaSize,
-                                  decoration: BoxDecoration(
-                                    border: Border.all(
-                                      color: const Color(0xFF3B82F6),
-                                      width: 3,
-                                    ),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Stack(
-                                    children: [
-                                      // Animation de scan
-                                      AnimatedBuilder(
-                                        animation: _scanAnimation,
-                                        builder: (context, child) {
-                                          return Positioned(
-                                            top:
-                                                scanAreaSize *
-                                                    _scanAnimation.value -
-                                                2,
-                                            left: 0,
-                                            right: 0,
-                                            child: Container(
-                                              height: 2,
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFF3B82F6),
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: const Color(
-                                                      0xFF3B82F6,
-                                                    ).withValues(alpha: 0.5),
-                                                    blurRadius: 8,
-                                                    spreadRadius: 2,
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-
-                                      // Coins de la zone de scan
-                                      ...List.generate(4, (index) {
-                                        late Alignment alignment;
-                                        late Widget corner;
-
-                                        switch (index) {
-                                          case 0: // Top-left
-                                            alignment = Alignment.topLeft;
-                                            corner = const _ScanCorner(
-                                              isTopLeft: true,
-                                            );
-                                            break;
-                                          case 1: // Top-right
-                                            alignment = Alignment.topRight;
-                                            corner = const _ScanCorner(
-                                              isTopRight: true,
-                                            );
-                                            break;
-                                          case 2: // Bottom-left
-                                            alignment = Alignment.bottomLeft;
-                                            corner = const _ScanCorner(
-                                              isBottomLeft: true,
-                                            );
-                                            break;
-                                          case 3: // Bottom-right
-                                            alignment = Alignment.bottomRight;
-                                            corner = const _ScanCorner(
-                                              isBottomRight: true,
-                                            );
-                                            break;
-                                        }
-
-                                        return Align(
-                                          alignment: alignment,
-                                          child: corner,
-                                        );
-                                      }),
-                                    ],
-                                  ),
-                                ),
+                      // Overlay
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.5),
+                        ),
+                        child: Center(
+                          child: Container(
+                            width: scanAreaSize,
+                            height: scanAreaSize,
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: const Color(0xFF3B82F6),
+                                width: 3,
                               ),
-
-                              // Instruction en bas
-                              Positioned(
-                                bottom: 40,
-                                left: 0,
-                                right: 0,
-                                child: Center(
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20,
-                                      vertical: 12,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.7,
-                                      ),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Text(
-                                      'Positionne le QR code dans le cadre',
-                                      style: GoogleFonts.nunito(
-                                        fontSize: 14,
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Stack(
+                              children: [
+                                // Coins
+                                ..._buildCorners(),
+                              ],
+                            ),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+
+                      // Instruction
+                      Positioned(
+                        bottom: 40,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.7),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              'Positionne le QR code dans le cadre',
+                              style: GoogleFonts.nunito(
+                                fontSize: 14,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
+            ),
 
-              const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-              // Titre et description (juste en dessous du cadre)
-              Padding(
+            // Titre et description
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
+                  Text(
+                    'Scanne ton code QR',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.poppins(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1F2937),
+                      height: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Scanne le code QR de ta villa pour rejoindre ta communauté',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.nunito(
+                      fontSize: 15,
+                      color: const Color(0xFF6B7280),
+                      height: 1.4,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Illustration
+            Expanded(
+              flex: 1,
+              child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  children: [
-                    Text(
-                      'Scanne ton code QR',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF1F2937),
-                        height: 1.2,
+                child: Image.asset(
+                  'assets/images/QR-Code-amico.png',
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: const Color(0xFFF9FAFB),
+                      child: Icon(
+                        Icons.qr_code_scanner,
+                        size: 80,
+                        color: Colors.grey[400],
                       ),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    Text(
-                      'Scanne le code QR de ta villa pour rejoindre ta communauté',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.nunito(
-                        fontSize: 15,
-                        color: const Color(0xFF6B7280),
-                        height: 1.4,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
+            ),
 
-              const SizedBox(height: 20),
-
-              // Illustration Storyset (agrandie intelligemment)
-              Expanded(
-                flex: 1,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Image.asset(
-                    'assets/images/QR-Code-amico.png',
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: const Color(0xFFF9FAFB),
-                        child: Icon(
-                          Icons.qr_code_scanner,
-                          size: 80,
-                          color: Colors.grey[400],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-            ],
-          ),
+            const SizedBox(height: 16),
+          ],
         ),
       ),
     );
   }
-}
 
-class _ScanCorner extends StatelessWidget {
-  final bool isTopLeft;
-  final bool isTopRight;
-  final bool isBottomLeft;
-  final bool isBottomRight;
+  List<Widget> _buildCorners() {
+    return [
+      _buildCorner(Alignment.topLeft, true, false, false, false),
+      _buildCorner(Alignment.topRight, false, true, false, false),
+      _buildCorner(Alignment.bottomLeft, false, false, true, false),
+      _buildCorner(Alignment.bottomRight, false, false, false, true),
+    ];
+  }
 
-  const _ScanCorner({
-    this.isTopLeft = false,
-    this.isTopRight = false,
-    this.isBottomLeft = false,
-    this.isBottomRight = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 20,
-      height: 20,
-      decoration: BoxDecoration(
-        border: Border(
-          top: (isTopLeft || isTopRight)
-              ? const BorderSide(color: Color(0xFF3B82F6), width: 4)
-              : BorderSide.none,
-          bottom: (isBottomLeft || isBottomRight)
-              ? const BorderSide(color: Color(0xFF3B82F6), width: 4)
-              : BorderSide.none,
-          left: (isTopLeft || isBottomLeft)
-              ? const BorderSide(color: Color(0xFF3B82F6), width: 4)
-              : BorderSide.none,
-          right: (isTopRight || isBottomRight)
-              ? const BorderSide(color: Color(0xFF3B82F6), width: 4)
-              : BorderSide.none,
+  Widget _buildCorner(
+    Alignment alignment,
+    bool topLeft,
+    bool topRight,
+    bool bottomLeft,
+    bool bottomRight,
+  ) {
+    return Align(
+      alignment: alignment,
+      child: Container(
+        width: 20,
+        height: 20,
+        decoration: BoxDecoration(
+          border: Border(
+            top: (topLeft || topRight)
+                ? const BorderSide(color: Color(0xFF3B82F6), width: 4)
+                : BorderSide.none,
+            bottom: (bottomLeft || bottomRight)
+                ? const BorderSide(color: Color(0xFF3B82F6), width: 4)
+                : BorderSide.none,
+            left: (topLeft || bottomLeft)
+                ? const BorderSide(color: Color(0xFF3B82F6), width: 4)
+                : BorderSide.none,
+            right: (topRight || bottomRight)
+                ? const BorderSide(color: Color(0xFF3B82F6), width: 4)
+                : BorderSide.none,
+          ),
         ),
       ),
     );
