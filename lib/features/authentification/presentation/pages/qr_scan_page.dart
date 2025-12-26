@@ -25,11 +25,14 @@ class _QrScanPageState extends State<QrScanPage> {
 
   void _initializeScanner() {
     controller = MobileScannerController(
-      detectionSpeed: DetectionSpeed.noDuplicates,
+      detectionSpeed: DetectionSpeed.normal, // Changé pour Android
       facing: CameraFacing.back,
       torchEnabled: false,
       returnImage: false,
+      formats: [BarcodeFormat.qrCode], // Uniquement QR codes
     );
+
+    print('🎥 Scanner QR initialisé');
   }
 
   @override
@@ -39,17 +42,34 @@ class _QrScanPageState extends State<QrScanPage> {
   }
 
   Future<void> _handleBarcode(BarcodeCapture barcodes) async {
+    print('📷 Callback appelé - Barcodes détectés: ${barcodes.barcodes.length}');
+
     // Protection contre le traitement multiple
-    if (isProcessing) return;
+    if (isProcessing) {
+      print('⏸️ Déjà en cours de traitement, ignoré');
+      return;
+    }
 
     final barcode = barcodes.barcodes.firstOrNull;
-    if (barcode == null || barcode.rawValue == null) return;
+    if (barcode == null) {
+      print('❌ Aucun barcode valide');
+      return;
+    }
+
+    if (barcode.rawValue == null || barcode.rawValue!.isEmpty) {
+      print('❌ Barcode vide');
+      return;
+    }
+
+    print('✅ QR Code détecté: ${barcode.rawValue}');
 
     // Verrouiller immédiatement
     isProcessing = true;
 
     // Arrêter le scanner
+    print('⏹️ Arrêt du scanner...');
     await controller?.stop();
+    print('⏹️ Scanner arrêté');
 
     if (!mounted) return;
 
@@ -58,6 +78,7 @@ class _QrScanPageState extends State<QrScanPage> {
   }
 
   Future<void> _processQrCode(String code) async {
+    print('🔍 Traitement du code: $code');
     final authController = Provider.of<AuthController>(context, listen: false);
 
     try {
@@ -192,53 +213,57 @@ class _QrScanPageState extends State<QrScanPage> {
                           onDetect: _handleBarcode,
                         ),
 
-                      // Overlay
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.5),
-                        ),
-                        child: Center(
-                          child: Container(
-                            width: scanAreaSize,
-                            height: scanAreaSize,
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: const Color(0xFF3B82F6),
-                                width: 3,
+                      // Overlay (ignorePointer pour ne pas bloquer)
+                      IgnorePointer(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.5),
+                          ),
+                          child: Center(
+                            child: Container(
+                              width: scanAreaSize,
+                              height: scanAreaSize,
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: const Color(0xFF3B82F6),
+                                  width: 3,
+                                ),
+                                borderRadius: BorderRadius.circular(20),
                               ),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Stack(
-                              children: [
-                                // Coins
-                                ..._buildCorners(),
-                              ],
+                              child: Stack(
+                                children: [
+                                  // Coins
+                                  ..._buildCorners(),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
 
                       // Instruction
-                      Positioned(
-                        bottom: 40,
-                        left: 0,
-                        right: 0,
-                        child: Center(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 12,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.7),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              'Positionne le QR code dans le cadre',
-                              style: GoogleFonts.nunito(
-                                fontSize: 14,
-                                color: Colors.white,
-                                fontWeight: FontWeight.w500,
+                      IgnorePointer(
+                        child: Positioned(
+                          bottom: 40,
+                          left: 0,
+                          right: 0,
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.7),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                'Positionne le QR code dans le cadre',
+                                style: GoogleFonts.nunito(
+                                  fontSize: 14,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           ),
