@@ -226,19 +226,31 @@ class PaymentImage {
   final String id;
   final String filepath;
   final String? publicId;
+  final String? imageUrl;
 
-  PaymentImage({required this.id, required this.filepath, this.publicId});
+  PaymentImage({
+    required this.id,
+    required this.filepath,
+    this.publicId,
+    this.imageUrl,
+  });
 
   factory PaymentImage.fromJson(Map<String, dynamic> json) {
     return PaymentImage(
       id: json['id']?.toString() ?? '',
       filepath: json['filepath']?.toString() ?? '',
       publicId: json['public_id']?.toString(),
+      imageUrl: json['image_url']?.toString(),
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'id': id, 'filepath': filepath, 'public_id': publicId};
+    return {
+      'id': id,
+      'filepath': filepath,
+      'public_id': publicId,
+      'image_url': imageUrl,
+    };
   }
 }
 
@@ -345,11 +357,7 @@ class UnpaidPeriod {
   final int month;
   final String period;
 
-  UnpaidPeriod({
-    required this.year,
-    required this.month,
-    required this.period,
-  });
+  UnpaidPeriod({required this.year, required this.month, required this.period});
 
   factory UnpaidPeriod.fromJson(Map<String, dynamic> json) {
     return UnpaidPeriod(
@@ -360,11 +368,7 @@ class UnpaidPeriod {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'year': year,
-      'month': month,
-      'period': period,
-    };
+    return {'year': year, 'month': month, 'period': period};
   }
 }
 

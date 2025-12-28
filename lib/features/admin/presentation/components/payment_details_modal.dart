@@ -204,7 +204,7 @@ class _PaymentDetailsModalState extends State<PaymentDetailsModal> {
                     if (widget.payment.totalProofImages > 0) ...[
                       const SizedBox(height: 24),
                       const Text(
-                        'Preuves de paiement',
+                        'Preuves de paiement envoyées',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -220,14 +220,18 @@ class _PaymentDetailsModalState extends State<PaymentDetailsModal> {
                           separatorBuilder: (_, __) => const SizedBox(width: 8),
                           itemBuilder: (context, index) {
                             final image = widget.payment.allProofImages[index];
-                            final imageUrl = image.filepath;
+                            final imageUrl = image.imageUrl;
 
                             return GestureDetector(
-                              onTap: () => _showFullImage(context, imageUrl),
+                              onTap: () => _showFullImage(
+                                context,
+                                imageUrl ?? "assets/images/image-not-found.png",
+                              ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
                                 child: Image.network(
-                                  imageUrl,
+                                  imageUrl ??
+                                      "assets/images/image-not-found.png",
                                   width: 100,
                                   height: 100,
                                   fit: BoxFit.cover,
@@ -354,8 +358,18 @@ class _PaymentDetailsModalState extends State<PaymentDetailsModal> {
 
   String _formatDate(DateTime date) {
     final months = [
-      'Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin',
-      'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc',
+      'Jan',
+      'Fév',
+      'Mar',
+      'Avr',
+      'Mai',
+      'Juin',
+      'Juil',
+      'Août',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Déc',
     ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
