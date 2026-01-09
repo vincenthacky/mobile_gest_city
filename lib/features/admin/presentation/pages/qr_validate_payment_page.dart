@@ -45,9 +45,7 @@ class _QRValidatePaymentPageState extends State<QRValidatePaymentPage> {
       ),
       body: isLoading
           ? const Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFF4F46E5),
-              ),
+              child: CircularProgressIndicator(color: Color(0xFF4F46E5)),
             )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -80,13 +78,19 @@ class _QRValidatePaymentPageState extends State<QRValidatePaymentPage> {
                           ),
                         ),
                         const SizedBox(height: 20),
-                        _buildDisabledField('Nom complet', widget.userData.fullName),
+                        _buildDisabledField(
+                          'Nom complet',
+                          widget.userData.fullName,
+                        ),
                         const SizedBox(height: 16),
                         _buildDisabledField('Email', widget.userData.email),
                         const SizedBox(height: 16),
                         _buildDisabledField('Téléphone', widget.userData.phone),
                         const SizedBox(height: 16),
-                        _buildDisabledField('Villa', widget.userData.villa.number),
+                        _buildDisabledField(
+                          'Villa',
+                          widget.userData.villa.number,
+                        ),
                       ],
                     ),
                   ),
@@ -110,7 +114,7 @@ class _QRValidatePaymentPageState extends State<QRValidatePaymentPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
+                        Column(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text(
@@ -151,7 +155,9 @@ class _QRValidatePaymentPageState extends State<QRValidatePaymentPage> {
                           Container(
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                              color: const Color(
+                                0xFF10B981,
+                              ).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: const Color(0xFF10B981),
@@ -181,7 +187,9 @@ class _QRValidatePaymentPageState extends State<QRValidatePaymentPage> {
                           )
                         else
                           Column(
-                            children: widget.userData.unpaidPeriods.map((period) {
+                            children: widget.userData.unpaidPeriods.map((
+                              period,
+                            ) {
                               return _buildPeriodCheckbox(period);
                             }).toList(),
                           ),
@@ -231,7 +239,9 @@ class _QRValidatePaymentPageState extends State<QRValidatePaymentPage> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _getSelectedCount() > 0 ? _validatePayment : null,
+                      onPressed: _getSelectedCount() > 0
+                          ? _validatePayment
+                          : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF10B981),
                         foregroundColor: Colors.white,
@@ -245,7 +255,10 @@ class _QRValidatePaymentPageState extends State<QRValidatePaymentPage> {
                       ),
                       child: const Text(
                         'Valider le paiement',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
@@ -276,17 +289,11 @@ class _QRValidatePaymentPageState extends State<QRValidatePaymentPage> {
           decoration: BoxDecoration(
             color: const Color(0xFFF3F4F6),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: const Color(0xFFE5E7EB),
-              width: 1,
-            ),
+            border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
           ),
           child: Text(
             value,
-            style: const TextStyle(
-              fontSize: 15,
-              color: Color(0xFF6B7280),
-            ),
+            style: const TextStyle(fontSize: 15, color: Color(0xFF6B7280)),
           ),
         ),
       ],
@@ -310,7 +317,9 @@ class _QRValidatePaymentPageState extends State<QRValidatePaymentPage> {
               : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? const Color(0xFF4F46E5) : const Color(0xFFE5E7EB),
+            color: isSelected
+                ? const Color(0xFF4F46E5)
+                : const Color(0xFFE5E7EB),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -323,16 +332,14 @@ class _QRValidatePaymentPageState extends State<QRValidatePaymentPage> {
                 color: isSelected ? const Color(0xFF4F46E5) : Colors.white,
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
-                  color: isSelected ? const Color(0xFF4F46E5) : const Color(0xFFD1D5DB),
+                  color: isSelected
+                      ? const Color(0xFF4F46E5)
+                      : const Color(0xFFD1D5DB),
                   width: 2,
                 ),
               ),
               child: isSelected
-                  ? const Icon(
-                      Icons.check,
-                      size: 16,
-                      color: Colors.white,
-                    )
+                  ? const Icon(Icons.check, size: 16, color: Colors.white)
                   : null,
             ),
             const SizedBox(width: 12),
@@ -342,7 +349,9 @@ class _QRValidatePaymentPageState extends State<QRValidatePaymentPage> {
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  color: isSelected ? const Color(0xFF4F46E5) : const Color(0xFF374151),
+                  color: isSelected
+                      ? const Color(0xFF4F46E5)
+                      : const Color(0xFF374151),
                 ),
               ),
             ),
@@ -379,9 +388,7 @@ class _QRValidatePaymentPageState extends State<QRValidatePaymentPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
           children: [
             Icon(Icons.check_circle, color: Color(0xFF10B981), size: 28),
@@ -437,14 +444,19 @@ class _QRValidatePaymentPageState extends State<QRValidatePaymentPage> {
     if (confirmed != true) return;
 
     // Préparer les données pour l'API
-    final periods = selectedPeriodsList.map((period) => period.toJson()).toList();
+    final periods = selectedPeriodsList
+        .map((period) => period.toJson())
+        .toList();
 
     setState(() {
       isLoading = true;
     });
 
     // Appeler l'API
-    final controller = Provider.of<AdminPaymentsController>(context, listen: false);
+    final controller = Provider.of<AdminPaymentsController>(
+      context,
+      listen: false,
+    );
     final response = await controller.validateUserPayments(
       userId: widget.userData.id,
       periods: periods,
@@ -476,7 +488,9 @@ class _QRValidatePaymentPageState extends State<QRValidatePaymentPage> {
             ],
           ),
           backgroundColor: const Color(0xFF10B981),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           behavior: SnackBarBehavior.floating,
           margin: const EdgeInsets.all(16),
         ),
@@ -494,7 +508,8 @@ class _QRValidatePaymentPageState extends State<QRValidatePaymentPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  response?.message ?? 'Erreur lors de la validation du paiement',
+                  response?.message ??
+                      'Erreur lors de la validation du paiement',
                   style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -504,7 +519,9 @@ class _QRValidatePaymentPageState extends State<QRValidatePaymentPage> {
             ],
           ),
           backgroundColor: const Color(0xFFEF4444),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           behavior: SnackBarBehavior.floating,
           margin: const EdgeInsets.all(16),
         ),
