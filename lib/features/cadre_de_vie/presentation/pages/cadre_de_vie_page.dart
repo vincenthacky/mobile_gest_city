@@ -928,29 +928,66 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                                 scrollDirection: Axis.horizontal,
                                 itemCount: information.imageCount,
                                 itemBuilder: (context, index) {
-                                  return Container(
-                                    width: 100,
-                                    height: 100,
-                                    margin: EdgeInsets.only(
-                                      right: index < information.imageCount - 1 ? 12 : 0,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade200,
-                                      borderRadius: BorderRadius.circular(12),
-                                      image: information.images.isNotEmpty && index < information.images.length
-                                          ? DecorationImage(
-                                              image: NetworkImage(information.images[index]),
-                                              fit: BoxFit.cover,
+                                  return GestureDetector(
+                                    onTap: () {
+                                      if (information.images.isNotEmpty && index < information.images.length) {
+                                        _showFullScreenImage(context, information.images[index]);
+                                      }
+                                    },
+                                    child: Container(
+                                      width: 100,
+                                      height: 100,
+                                      margin: EdgeInsets.only(
+                                        right: index < information.imageCount - 1 ? 12 : 0,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade200,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: const Color(0xFF3B82F6).withValues(alpha: 0.2),
+                                          width: 1,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(alpha: 0.08),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                        image: information.images.isNotEmpty && index < information.images.length
+                                            ? DecorationImage(
+                                                image: NetworkImage(information.images[index]),
+                                                fit: BoxFit.cover,
+                                              )
+                                            : null,
+                                      ),
+                                      child: information.images.isEmpty || index >= information.images.length
+                                          ? const Icon(
+                                              Icons.image,
+                                              size: 40,
+                                              color: Color(0xFF6B7280),
                                             )
-                                          : null,
+                                          : Stack(
+                                              children: [
+                                                Positioned(
+                                                  top: 4,
+                                                  right: 4,
+                                                  child: Container(
+                                                    padding: const EdgeInsets.all(4),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.black.withValues(alpha: 0.5),
+                                                      borderRadius: BorderRadius.circular(4),
+                                                    ),
+                                                    child: const Icon(
+                                                      Icons.zoom_in,
+                                                      color: Colors.white,
+                                                      size: 16,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                     ),
-                                    child: information.images.isEmpty || index >= information.images.length
-                                        ? const Icon(
-                                            Icons.image,
-                                            size: 40,
-                                            color: Color(0xFF6B7280),
-                                          )
-                                        : null,
                                   );
                                 },
                               ),
@@ -967,6 +1004,112 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
         ),
       );
       },
+    );
+  }
+
+  void _showFullScreenImage(BuildContext context, String imageUrl) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.9),
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.8,
+                maxWidth: MediaQuery.of(context).size.width * 0.9,
+              ),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: const Color(0xFFF3F4F6),
+                      height: 200,
+                      child: const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.image,
+                              color: Color(0xFF3B82F6),
+                              size: 80,
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'Image de l\'information',
+                              style: TextStyle(
+                                color: Color(0xFF6B7280),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                fontFamily: 'Poppins',
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      height: 200,
+                      color: const Color(0xFFF3F4F6),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                              : null,
+                          color: const Color(0xFF3B82F6),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.white.withValues(alpha: 0.2),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.close, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text(
+                    'Fermer',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Poppins',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
