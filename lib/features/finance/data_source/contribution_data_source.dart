@@ -351,12 +351,50 @@ class ContributionDataSource {
       // Ajouter les images avec le format images[index]
       for (int i = 0; i < request.images.length; i++) {
         final file = request.images[i];
+
+        // Vérifier que le fichier existe
+        if (!await file.exists()) {
+          throw Exception('Le fichier image n\'existe pas: ${file.path}');
+        }
+
+        // Lire les bytes du fichier pour un upload plus fiable
+        final bytes = await file.readAsBytes();
+
+        // Déterminer le nom du fichier et le type MIME
+        final fileName = file.path.split('/').last;
+        final extension = fileName.split('.').last.toLowerCase();
+
+        // Déterminer le type MIME basé sur l'extension
+        String contentType;
+        switch (extension) {
+          case 'jpg':
+          case 'jpeg':
+            contentType = 'image/jpeg';
+            break;
+          case 'png':
+            contentType = 'image/png';
+            break;
+          case 'gif':
+            contentType = 'image/gif';
+            break;
+          case 'webp':
+            contentType = 'image/webp';
+            break;
+          case 'heic':
+          case 'heif':
+            contentType = 'image/heic';
+            break;
+          default:
+            contentType = 'image/jpeg'; // Par défaut
+        }
+
         formData.files.add(
           MapEntry(
             'images[$i]',
-            await MultipartFile.fromFile(
-              file.path,
-              filename: file.path.split('/').last,
+            MultipartFile.fromBytes(
+              bytes,
+              filename: fileName.contains('.') ? fileName : '$fileName.jpg',
+              contentType: DioMediaType.parse(contentType),
             ),
           ),
         );

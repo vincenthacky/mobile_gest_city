@@ -155,10 +155,8 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
         // Synchronisation avec notification
         _syncTransactionController.syncTransactions(showNotifications: true);
       } else {
-        // Afficher notification hors ligne si on a des données en cache
-        if (_syncTransactionController.allTransactions.isNotEmpty) {
-          _syncTransactionController.showOfflineNotification();
-        }
+        // Afficher notification hors ligne
+        _syncTransactionController.showOfflineNotification();
       }
     });
   }
@@ -185,10 +183,8 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
         forceFullSync: false,
       );
     } else {
-      // Pas de connexion : si on a déjà des données, afficher la bannière hors ligne
-      if (_syncTransactionController.allTransactions.isNotEmpty || cashController.hasData) {
-        _syncTransactionController.showOfflineNotification();
-      }
+      // Pas de connexion : afficher la bannière hors ligne
+      _syncTransactionController.showOfflineNotification();
     }
   }
 

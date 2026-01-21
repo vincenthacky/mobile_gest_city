@@ -314,6 +314,7 @@ class ContributionLocalStorageService {
   static Map<String, dynamic> _contributionDataToJson(ContributionData data) {
     return {
       'id': data.id,
+      'checksum': data.checksum,
       'name': data.name,
       'description': data.description,
       'amount_by_person': data.amountByPerson,
@@ -324,6 +325,20 @@ class ContributionLocalStorageService {
       'total_expected_amount_this_month': data.totalExpectedAmountThisMonth,
       'current_period': data.currentPeriod,
     };
+  }
+
+  /// Récupère le checksum stocké localement
+  static String? getStoredChecksum() {
+    final data = getContributionData();
+    return data?.checksum;
+  }
+
+  /// Vérifie si le checksum a changé
+  static bool hasChecksumChanged(String? remoteChecksum) {
+    if (remoteChecksum == null) return true;
+    final localChecksum = getStoredChecksum();
+    if (localChecksum == null) return true;
+    return localChecksum != remoteChecksum;
   }
 
   static ContributionData _contributionDataFromJson(Map<String, dynamic> json) {

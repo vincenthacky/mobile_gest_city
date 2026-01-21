@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../controllers/contribution_controller.dart';
 import '../../../authentification/controller/auth_controller.dart';
+import '../../../../core/widgets/sync_notification.dart';
 import 'cotisation/widgets/widgets.dart';
 import 'cotisation/widgets/unified_payment_items_widget.dart';
 
@@ -93,8 +94,10 @@ class _MonthlyContributionsPageState extends State<MonthlyContributionsPage> wit
       final authController = context.read<AuthController>();
       final userId = authController.user?.id;
       final controller = context.read<ContributionController>();
-      
+
       // ✅ Controller déjà initialisé dans bootstrap.dart
+      // ✅ Configurer le listener de connectivité
+      controller.setupConnectivityListener();
       // ✅ PUIS charger les données
       controller.loadContribution(userId: userId);
     });
@@ -102,6 +105,10 @@ class _MonthlyContributionsPageState extends State<MonthlyContributionsPage> wit
 
   @override
   void dispose() {
+    // Dispose du listener de connectivité
+    final controller = context.read<ContributionController>();
+    controller.disposeConnectivityListener();
+
     _slideController.dispose();
     _fadeController.dispose();
     _scaleController.dispose();
@@ -115,6 +122,16 @@ class _MonthlyContributionsPageState extends State<MonthlyContributionsPage> wit
       body: SafeArea(
         child: Column(
           children: [
+            // Notification de synchronisation
+            Consumer<ContributionController>(
+              builder: (context, controller, _) {
+                return SyncNotification(
+                  type: controller.notificationType,
+                  customMessage: controller.notificationMessage,
+                  onDismiss: controller.clearNotification,
+                );
+              },
+            ),
             Expanded(
               child: RefreshIndicator(
                 color: const Color(0xFF4F46E5),
@@ -204,15 +221,40 @@ class _MonthlyContributionsPageState extends State<MonthlyContributionsPage> wit
 
   Future<void> _handleRefresh() async {
     HapticFeedback.lightImpact();
-    await context.read<ContributionController>().refreshContribution();
-    
+    final controller = context.read<ContributionController>();
+    await controller.refreshContribution();
+
+    // Afficher un message si hors ligne
+    if (controller.isOffline && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.wifi_off, color: Colors.white, size: 20),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Pas de connexion internet. Données locales affichées.',
+                  style: TextStyle(fontFamily: 'Nunito'),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFFF59E0B),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+
     // Restart animations on refresh
     _fadeController.reset();
     _slideController.reset();
     _scaleController.reset();
-    
+
     await Future.delayed(const Duration(milliseconds: 800));
-    
+
     _startAnimations();
     setState(() {});
   }

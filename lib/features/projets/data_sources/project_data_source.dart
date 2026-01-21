@@ -166,12 +166,12 @@ class ProjectDataSource {
     }
   }
 
-  Future<ApiResponse> voteNo(String projectId) async {
+  Future<Map<String, dynamic>> voteNo(String projectId) async {
     try {
       final response = await _dio.post('/projects/$projectId/votes/no');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return ApiResponse.fromJson(response.data);
+        return response.data as Map<String, dynamic>;
       } else {
         throw DioException(
           requestOptions: response.requestOptions,
@@ -198,12 +198,12 @@ class ProjectDataSource {
     }
   }
 
-  Future<ApiResponse> voteNeutral(String projectId) async {
+  Future<Map<String, dynamic>> voteNeutral(String projectId) async {
     try {
       final response = await _dio.post('/projects/$projectId/votes/neutral');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return ApiResponse.fromJson(response.data);
+        return response.data as Map<String, dynamic>;
       } else {
         throw DioException(
           requestOptions: response.requestOptions,

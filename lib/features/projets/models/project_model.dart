@@ -33,6 +33,7 @@ class ProjectModel {
   final String authorName;
   final bool authorIsAnonymous;
   final String? authorVillaNumber;
+  final int totalScore;
 
   ProjectModel({
     required this.id,
@@ -61,6 +62,7 @@ class ProjectModel {
     required this.authorName,
     required this.authorIsAnonymous,
     this.authorVillaNumber,
+    this.totalScore = 0,
   });
 
   int get totalVotes => votesYes + votesNo + votesYesWithReserve + votesBlank;
@@ -346,6 +348,7 @@ class ProjectModel {
       authorName: user['full_name'] ?? '',
       authorIsAnonymous: user['anonymity'] ?? false,
       authorVillaNumber: user['villa']?['number'],
+      totalScore: json['total_score'] ?? 0,
     );
   }
 
@@ -386,6 +389,7 @@ class ProjectModel {
             ? {'number': authorVillaNumber}
             : null,
       },
+      'total_score': totalScore,
     };
   }
 
@@ -416,6 +420,7 @@ class ProjectModel {
     String? authorName,
     bool? authorIsAnonymous,
     String? authorVillaNumber,
+    int? totalScore,
   }) {
     return ProjectModel(
       id: id ?? this.id,
@@ -445,6 +450,7 @@ class ProjectModel {
       authorName: authorName ?? this.authorName,
       authorIsAnonymous: authorIsAnonymous ?? this.authorIsAnonymous,
       authorVillaNumber: authorVillaNumber ?? this.authorVillaNumber,
+      totalScore: totalScore ?? this.totalScore,
     );
   }
 }

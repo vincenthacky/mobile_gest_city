@@ -29,21 +29,23 @@ class _PriorityModalState extends State<PriorityModal>
   @override
   void initState() {
     super.initState();
-    _orderedProjects = List.from(widget.projects);
-    
+    // Trier les projets par total_score décroissant (du plus grand au plus petit)
+    _orderedProjects = List.from(widget.projects)
+      ..sort((a, b) => b.totalScore.compareTo(a.totalScore));
+
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    
+
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
-    
+
     _scaleAnimation = Tween<double>(begin: 0.9, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
-    
+
     _animationController.forward();
   }
 

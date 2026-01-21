@@ -24,10 +24,14 @@ class ContributionResponse {
       rethrow;
     }
   }
+
+  /// Récupère le checksum de la contribution
+  String? get checksum => data.checksum;
 }
 
 class ContributionData {
   final String id;
+  final String? checksum;
   final String name;
   final String? description;
   final double amountByPerson;
@@ -40,6 +44,7 @@ class ContributionData {
 
   ContributionData({
     required this.id,
+    this.checksum,
     required this.name,
     this.description,
     required this.amountByPerson,
@@ -55,6 +60,7 @@ class ContributionData {
     try {
       return ContributionData(
         id: json['id'] ?? '',
+        checksum: json['checksum'],
         name: json['name'] ?? '',
         description: json['description'],
         amountByPerson: (json['amount_by_person'] ?? 0).toDouble(),

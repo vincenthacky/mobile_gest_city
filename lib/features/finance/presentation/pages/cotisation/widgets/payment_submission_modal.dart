@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../../../../models/payment_periods_model.dart';
 import '../../../../models/contribution_model.dart';
 import '../../../../controllers/contribution_controller.dart';
-import '../../../../../authentification/controller/auth_controller.dart';
 
 class PaymentSubmissionModal extends StatefulWidget {
   final ContributionData contributionData;
@@ -168,20 +167,21 @@ class _PaymentSubmissionModalState extends State<PaymentSubmissionModal> {
 
       if (mounted) {
         if (response.success) {
+          // Fermer le modal
           Navigator.of(context).pop();
+
+          // Afficher le message de succès
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Paiement soumis avec succès!'),
               backgroundColor: Colors.green,
             ),
           );
-          
-          // Rafraîchir les données
-          final authController = context.read<AuthController>();
-          final userId = authController.user?.id;
-          if (userId != null) {
-            controller.loadContribution(userId: userId);
-          }
+
+          // Rafraîchir les données avec un délai pour laisser le serveur traiter
+          Future.delayed(const Duration(milliseconds: 500), () {
+            controller.refreshContribution();
+          });
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

@@ -89,6 +89,8 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
                   SizedBox(height: screenHeight > 700 ? 24 : 20),
                   _buildDescriptionSection(),
                   SizedBox(height: screenHeight > 700 ? 20 : 16),
+                  _buildAuthorInfoSection(),
+                  SizedBox(height: screenHeight > 700 ? 20 : 16),
                   if (widget.project.hasImages) ...[
                     _buildImagesSection(),
                     SizedBox(height: screenHeight > 700 ? 20 : 16),
@@ -162,13 +164,42 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    'Par ${widget.project.displayAuthorName}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF6B7280),
-                      fontFamily: 'Nunito',
-                    ),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.person,
+                        size: 14,
+                        color: Color(0xFF6B7280),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Par ${widget.project.displayAuthorName}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF6B7280),
+                          fontFamily: 'Nunito',
+                        ),
+                      ),
+                      if (widget.project.authorVillaNumber != null && widget.project.authorVillaNumber!.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'Villa ${widget.project.authorVillaNumber}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Color(0xFF3B82F6),
+                              fontWeight: FontWeight.w600,
+                              fontFamily: 'Nunito',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
@@ -253,6 +284,128 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
               color: Color(0xFF6B7280),
               height: 1.5,
               fontFamily: 'Nunito',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAuthorInfoSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF3B82F6).withValues(alpha: 0.05),
+            const Color(0xFF8B5CF6).withValues(alpha: 0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFF3B82F6).withValues(alpha: 0.2),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.person,
+                  color: Color(0xFF3B82F6),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Informations sur l\'auteur',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1F2937),
+                  fontFamily: 'Poppins',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (widget.project.authorIsAnonymous) ...[
+            // Si anonyme, afficher seulement le numéro de villa
+            if (widget.project.authorVillaNumber != null && widget.project.authorVillaNumber!.isNotEmpty)
+              _buildAuthorInfoRow(Icons.home, 'Villa', 'N°${widget.project.authorVillaNumber}')
+            else
+              Center(
+                child: Text(
+                  'Auteur anonyme',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade600,
+                    fontFamily: 'Nunito',
+                  ),
+                ),
+              ),
+          ] else ...[
+            // Si non anonyme, afficher toutes les infos
+            _buildAuthorInfoRow(Icons.badge, 'Nom', widget.project.displayAuthorName),
+            if (widget.project.authorVillaNumber != null && widget.project.authorVillaNumber!.isNotEmpty)
+              _buildAuthorInfoRow(Icons.home, 'Villa', 'N°${widget.project.authorVillaNumber}'),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAuthorInfoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            color: const Color(0xFF6B7280),
+            size: 18,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF6B7280),
+                    fontFamily: 'Nunito',
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1F2937),
+                    fontFamily: 'Nunito',
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -519,13 +672,44 @@ class _ProjectDetailModalState extends State<ProjectDetailModal> {
           const SizedBox(height: 16),
           _buildInfoRow(Icons.euro, 'Budget estimé', widget.project.formattedEstimatedAmount, const Color(0xFF10B981)),
           _buildInfoRow(Icons.settings, 'Mise en œuvre', widget.project.implementationTypeText, const Color(0xFF8B5CF6)),
-          if (widget.project.providerName != null)
+          if (widget.project.providerName != null && widget.project.providerName!.isNotEmpty)
             _buildInfoRow(Icons.business, 'Prestataire', widget.project.providerName!, const Color(0xFF3B82F6)),
+          if (widget.project.providerAmount != null && widget.project.providerAmount! > 0)
+            _buildInfoRow(Icons.payments, 'Montant prestation', _formatAmount(widget.project.providerAmount!), const Color(0xFF06B6D4)),
+          if (widget.project.startDate != null)
+            _buildInfoRow(Icons.play_arrow, 'Date de début', _formatDate(widget.project.startDate!), const Color(0xFF14B8A6)),
+          if (widget.project.endDate != null)
+            _buildInfoRow(Icons.stop, 'Date de fin estimée', _formatDate(widget.project.endDate!), const Color(0xFF8B5CF6)),
+          if (widget.project.deadlineDate != null)
+            _buildInfoRow(Icons.warning, 'Date butoir', _formatDate(widget.project.deadlineDate!), const Color(0xFFEF4444)),
           if (widget.project.voteCloseDate != null)
             _buildInfoRow(Icons.schedule, 'Clôture du vote', widget.project.formattedVoteCloseDate, const Color(0xFFF59E0B)),
+          if (widget.project.votingOpenedAt != null)
+            _buildInfoRow(Icons.how_to_vote, 'Vote ouvert le', _formatDate(widget.project.votingOpenedAt!), const Color(0xFF10B981)),
+          _buildInfoRow(Icons.calendar_today, 'Créé le', _formatDate(widget.project.createdAt), const Color(0xFF6B7280)),
         ],
       ),
     );
+  }
+
+  String _formatAmount(double amount) {
+    final amountStr = amount.toStringAsFixed(0);
+    final parts = <String>[];
+    var remaining = amountStr;
+
+    while (remaining.length > 3) {
+      parts.insert(0, remaining.substring(remaining.length - 3));
+      remaining = remaining.substring(0, remaining.length - 3);
+    }
+    if (remaining.isNotEmpty) {
+      parts.insert(0, remaining);
+    }
+
+    return '${parts.join(' ')} FCFA';
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
   Widget _buildVoteResultsSection() {

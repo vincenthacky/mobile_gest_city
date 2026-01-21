@@ -12,6 +12,8 @@ import '../../../../core/widgets/app_header.dart';
 import '../../../../core/widgets/sync_notification.dart';
 import '../../../../core/services/connectivity_service.dart';
 
+export '../widgets/project_filters.dart' show VoteFilter;
+
 class ProjetsPage extends StatefulWidget {
   const ProjetsPage({super.key});
 
@@ -23,7 +25,8 @@ class _ProjetsPageState extends State<ProjetsPage> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   String _searchQuery = '';
-  ProjectStatus? _statusFilter;
+  ProjectStatus? _statusFilter = ProjectStatus.voteOpen;
+  VoteFilter? _voteFilter;
   late ProjectController _projectController;
   late ConnectivityService _connectivityService;
   Timer? _searchTimer;
@@ -149,8 +152,38 @@ class _ProjetsPageState extends State<ProjetsPage> {
   // Méthode _mapStatusToApi supprimée - plus besoin avec filtrage local
 
   List<ProjectModel> get _filteredProjects {
-    // Filtrage local comme WhatsApp - pas d'appel API
-    return _projectController.projects;
+    // Récupérer tous les projets (pas encore filtrés par le controller si on utilise les filtres de vote)
+    var projects = _voteFilter != null
+        ? _projectController.allProjects  // Utiliser tous les projets si on filtre par vote
+        : _projectController.projects;     // Sinon utiliser les projets déjà filtrés par statut
+
+    // Appliquer le filtre de vote si actif
+    if (_voteFilter != null) {
+      if (_voteFilter == VoteFilter.notVoted) {
+        // Filtrer pour afficher uniquement les projets non votés avec vote ouvert
+        projects = projects.where((p) => !p.hasUserVoted && p.status == ProjectStatus.voteOpen).toList();
+      } else if (_voteFilter == VoteFilter.alreadyVoted) {
+        // Filtrer pour afficher uniquement les projets déjà votés (tous statuts)
+        projects = projects.where((p) => p.hasUserVoted).toList();
+      }
+    }
+
+    // Tri spécial pour "Vote ouvert" : projets non votés d'abord (plus récent en haut), puis votés en bas
+    if (_statusFilter == ProjectStatus.voteOpen && _voteFilter == null) {
+      final notVoted = projects.where((p) => !p.hasUserVoted).toList();
+      final voted = projects.where((p) => p.hasUserVoted).toList();
+
+      // Trier les non votés par date décroissante (plus récent en haut)
+      notVoted.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      // Trier les votés par date décroissante aussi
+      voted.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      // Retourner non votés d'abord, puis votés
+      return [...notVoted, ...voted];
+    }
+
+    return projects;
   }
 
   @override
@@ -165,9 +198,18 @@ class _ProjetsPageState extends State<ProjetsPage> {
   void _onFilterChanged(ProjectStatus? status) {
     setState(() {
       _statusFilter = status;
+      _voteFilter = null; // Reset vote filter when status filter changes
     });
     // Filtrage local instantané (style WhatsApp)
     _projectController.applyStatusFilter(status);
+  }
+
+  void _onVoteFilterChanged(VoteFilter? filter) {
+    setState(() {
+      _voteFilter = filter;
+      _statusFilter = null; // Reset status filter when vote filter changes
+    });
+    // Le filtrage se fait dans _filteredProjects getter
   }
 
 
@@ -329,24 +371,26 @@ class _ProjetsPageState extends State<ProjetsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF9FAFB),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF9FAFB),
-                border: Border(
-                  bottom: BorderSide(
-                    color: Colors.grey.shade200,
-                    width: 1,
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9FAFB),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.grey.shade200,
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: const AppHeader(
+                    title: 'Projets de la cité',
                   ),
                 ),
-              ),
-              child: const AppHeader(
-                title: 'Projets de la cité',
-              ),
-            ),
             
             // Notification de synchronisation
             Consumer<ProjectController>(
@@ -513,7 +557,9 @@ class _ProjetsPageState extends State<ProjetsPage> {
                       
                       ProjectFilters(
                         selectedStatus: _statusFilter,
+                        selectedVoteFilter: _voteFilter,
                         onFilterChanged: _onFilterChanged,
+                        onVoteFilterChanged: _onVoteFilterChanged,
                       ),
                       const SizedBox(height: 12),
                       
@@ -568,28 +614,10 @@ class _ProjetsPageState extends State<ProjetsPage> {
                             ..._filteredProjects.map((project) {
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 10),
-                                child: Stack(
-                                  children: [
-                                    ProjectCard(
-                                      project: project,
-                                      onTap: () => _showProjectDetails(project),
-                                      onVote: (choice, justification) => _handleVoteSubmitted(project, choice, justification),
-                                    ),
-                                    if (projectController.isVoting)
-                                      Positioned.fill(
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            color: Colors.black.withValues(alpha: 0.3),
-                                            borderRadius: BorderRadius.circular(20),
-                                          ),
-                                          child: const Center(
-                                            child: CircularProgressIndicator(
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                  ],
+                                child: ProjectCard(
+                                  project: project,
+                                  onTap: () => _showProjectDetails(project),
+                                  onVote: (choice, justification) => _handleVoteSubmitted(project, choice, justification),
                                 ),
                               );
                             }),
@@ -646,6 +674,40 @@ class _ProjetsPageState extends State<ProjetsPage> {
             ),
           ],
         ),
+      ),
+      // Loader centralisé pour le vote
+      Consumer<ProjectController>(
+        builder: (context, projectController, child) {
+          if (projectController.isVoting) {
+            return Container(
+              color: Colors.black.withValues(alpha: 0.5),
+              child: const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 3,
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'Vote en cours...',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        fontFamily: 'Poppins',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+          return const SizedBox.shrink();
+        },
+      ),
+        ],
       ),
     );
   }

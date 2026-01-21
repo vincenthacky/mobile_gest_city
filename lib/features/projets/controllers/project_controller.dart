@@ -291,10 +291,10 @@ class ProjectController extends ChangeNotifier {
           response = await _projectDataSource.voteYes(projectId);
           break;
         case VoteChoice.no:
-          await _projectDataSource.voteNo(projectId);
+          response = await _projectDataSource.voteNo(projectId);
           break;
         case VoteChoice.blank:
-          await _projectDataSource.voteNeutral(projectId);
+          response = await _projectDataSource.voteNeutral(projectId);
           break;
         case VoteChoice.yesWithReserve:
           response = await _projectDataSource.voteYesWithReserve(projectId, justification ?? '');

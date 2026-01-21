@@ -6,6 +6,7 @@ import '../services/payment_statistics_local_storage_service.dart';
 import '../services/payment_overview_local_storage_service.dart';
 import '../services/payment_sync_listener_service.dart';
 import '../../../core/services/connectivity_service.dart';
+import '../../../core/widgets/sync_notification.dart';
 import 'dart:async';
 
 enum PaymentBreakdownStatus { initial, loading, loaded, error }
@@ -27,6 +28,15 @@ class PaymentBreakdownController extends ChangeNotifier {
   // Subscription pour écouter les changements de Transaction sync
   StreamSubscription<bool>? _syncSubscription;
 
+  // Notifications de synchronisation
+  SyncNotificationType _notificationType = SyncNotificationType.none;
+  String? _notificationMessage;
+  bool _isOffline = false;
+
+  // Connectivité
+  bool _wasConnected = true;
+  bool _connectivityListenerSetup = false;
+
   // Getters
   PaymentBreakdownStatus get status => _status;
   List<PaymentOverviewUser> get paymentOverview => _paymentOverview;
@@ -37,6 +47,11 @@ class PaymentBreakdownController extends ChangeNotifier {
   String get selectedSegment => _selectedSegment;
   int? get selectedMonth => _selectedMonth;
   int get annualStatisticsCount => _annualStatistics.length;
+
+  // Getters pour les notifications
+  SyncNotificationType get notificationType => _notificationType;
+  String? get notificationMessage => _notificationMessage;
+  bool get isOffline => _isOffline || !_connectivityService.isConnected;
 
   // Getters pour les données calculées
   List<String> get monthNames => [
@@ -111,6 +126,92 @@ class PaymentBreakdownController extends ChangeNotifier {
     }
   }
 
+  /// Affiche une notification hors ligne
+  void showOfflineNotification() {
+    _notificationType = SyncNotificationType.offline;
+    _notificationMessage = 'Pas de connexion internet • Données locales affichées';
+    notifyListeners();
+  }
+
+  /// Affiche une notification de synchronisation en cours
+  void showSyncingNotification() {
+    _notificationType = SyncNotificationType.syncing;
+    _notificationMessage = 'Synchronisation en cours...';
+    notifyListeners();
+  }
+
+  /// Affiche une notification de synchronisation terminée
+  void showSyncCompleteNotification() {
+    _notificationType = SyncNotificationType.syncComplete;
+    _notificationMessage = 'Ventilation synchronisée';
+    notifyListeners();
+  }
+
+  /// Efface la notification
+  void clearNotification() {
+    _notificationType = SyncNotificationType.none;
+    _notificationMessage = null;
+    notifyListeners();
+  }
+
+  /// Configure le listener de connectivité pour la synchronisation automatique
+  void setupConnectivityListener() {
+    if (_connectivityListenerSetup) return;
+
+    _wasConnected = _connectivityService.isConnected;
+    debugPrint('🔌 [PAYMENT BREAKDOWN] Setup connectivity listener - état initial: ${_wasConnected ? "connecté" : "hors ligne"}');
+
+    _connectivityService.addListener(_onConnectivityChanged);
+    _connectivityListenerSetup = true;
+  }
+
+  /// Gère les changements de connectivité
+  Future<void> _onConnectivityChanged() async {
+    final isConnected = _connectivityService.isConnected;
+    debugPrint('🔌 [PAYMENT BREAKDOWN] Changement connectivité: ${isConnected ? "connecté" : "hors ligne"} (était: ${_wasConnected ? "connecté" : "hors ligne"})');
+
+    if (isConnected && !_wasConnected) {
+      // Connexion restaurée → Synchroniser automatiquement
+      debugPrint('✅ [PAYMENT BREAKDOWN] Connexion restaurée - synchronisation automatique...');
+      _isOffline = false;
+
+      // Notification syncing
+      showSyncingNotification();
+
+      try {
+        await _syncPaymentData();
+
+        // Notification succès
+        showSyncCompleteNotification();
+
+        // Masquer après 3 secondes
+        Future.delayed(const Duration(seconds: 3), () {
+          clearNotification();
+        });
+      } catch (e) {
+        debugPrint('❌ [PAYMENT BREAKDOWN] Erreur sync après reconnexion: $e');
+        clearNotification();
+      }
+    } else if (!isConnected && _wasConnected) {
+      // Connexion perdue → Afficher notification hors ligne
+      debugPrint('📱 [PAYMENT BREAKDOWN] Connexion perdue - mode hors ligne');
+      _isOffline = true;
+      showOfflineNotification();
+    }
+
+    _wasConnected = isConnected;
+    notifyListeners();
+  }
+
+  /// Dispose le listener de connectivité
+  void disposeConnectivityListener() {
+    if (!_connectivityListenerSetup) return;
+
+    debugPrint('🔌 [PAYMENT BREAKDOWN] Dispose connectivity listener');
+    _connectivityService.removeListener(_onConnectivityChanged);
+    _connectivityListenerSetup = false;
+  }
+
   // Initialise le controller et configure l'écoute de sync
   void initialize() {
     debugPrint('🎯 [PAYMENT BREAKDOWN] Initialisation du controller - configuration écoute maître');
@@ -135,10 +236,16 @@ class PaymentBreakdownController extends ChangeNotifier {
   Future<void> loadPaymentBreakdownData() async {
     _setStatus(PaymentBreakdownStatus.loading);
     _clearError();
-    
+    _isOffline = !_connectivityService.isConnected;
+
     try {
       // TOUJOURS charger depuis le cache d'abord
       await _loadFromCache();
+
+      // Afficher notification hors ligne si pas de connexion
+      if (_isOffline) {
+        showOfflineNotification();
+      }
     } catch (e) {
       _setError(e.toString());
       _setStatus(PaymentBreakdownStatus.error);
@@ -252,6 +359,7 @@ class PaymentBreakdownController extends ChangeNotifier {
   @override
   void dispose() {
     _syncSubscription?.cancel();
+    disposeConnectivityListener();
     super.dispose();
   }
   

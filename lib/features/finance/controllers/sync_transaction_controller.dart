@@ -256,8 +256,8 @@ class SyncTransactionController extends ChangeNotifier {
   /// Affiche une notification hors ligne
   void showOfflineNotification() {
     _showNotification(
-      SyncNotificationType.offline, 
-      'Mode hors ligne - ${_allTransactions.length} transactions disponibles'
+      SyncNotificationType.offline,
+      'Pas de connexion internet • Données locales affichées'
     );
   }
 

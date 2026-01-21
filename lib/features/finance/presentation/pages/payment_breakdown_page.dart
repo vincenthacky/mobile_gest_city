@@ -37,6 +37,8 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final controller = context.read<PaymentBreakdownController>();
       // ✅ Controller déjà initialisé dans bootstrap.dart
+      // ✅ Configurer le listener de connectivité
+      controller.setupConnectivityListener();
       // ✅ PUIS charger les données
       controller.loadPaymentBreakdownData();
     });
@@ -94,6 +96,10 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
 
   @override
   void dispose() {
+    // Dispose du listener de connectivité
+    final controller = context.read<PaymentBreakdownController>();
+    controller.disposeConnectivityListener();
+
     _fadeController.dispose();
     _scaleController.dispose();
     super.dispose();
@@ -154,10 +160,18 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
               ),
             ),
             
-            // Notification d'information pour sélectionner un mois
+            // Notification de synchronisation/connectivité
             Consumer<PaymentBreakdownController>(
               builder: (context, controller, child) {
-                // Afficher la notification si elle n'a pas été masquée manuellement
+                // Priorité aux notifications de connectivité
+                if (controller.notificationType != SyncNotificationType.none) {
+                  return SyncNotification(
+                    type: controller.notificationType,
+                    customMessage: controller.notificationMessage,
+                    onDismiss: controller.clearNotification,
+                  );
+                }
+                // Sinon, afficher la notification d'info si elle n'a pas été masquée
                 if (_showInfoNotification) {
                   return SyncNotification(
                     type: SyncNotificationType.info,

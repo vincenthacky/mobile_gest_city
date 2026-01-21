@@ -49,18 +49,22 @@ class _CotisationCardWidgetState extends State<CotisationCardWidget>
   Widget build(BuildContext context) {
     return Consumer<ContributionController>(
       builder: (context, controller, child) {
-        if (controller.isLoading) {
+        if (controller.isLoading && controller.contributionData == null) {
           return _buildLoadingCard();
         }
 
-        if (controller.errorMessage != null) {
-          return _buildErrorCard(controller.errorMessage!);
-        }
-
         final data = controller.contributionData;
+
+        // Si on a des données locales, les afficher même en cas d'erreur
         if (data == null) {
+          if (controller.errorMessage != null) {
+            return _buildErrorCard(controller.errorMessage!);
+          }
           return _buildEmptyCard();
         }
+
+        // Afficher les données avec indicateur hors ligne si nécessaire
+        final isOffline = controller.isOffline;
 
         return GestureDetector(
           onTap: _toggleExpanded,
@@ -82,6 +86,44 @@ class _CotisationCardWidgetState extends State<CotisationCardWidget>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Indicateur hors ligne
+                if (isOffline) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.wifi_off,
+                          color: Color(0xFFF59E0B),
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Mode hors ligne - Données locales',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.orange.shade700,
+                              fontFamily: 'Nunito',
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
                 // En-tête avec icône et titre + bouton expand
                 Row(
                   children: [
