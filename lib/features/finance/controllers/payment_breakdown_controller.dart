@@ -66,23 +66,14 @@ class PaymentBreakdownController extends ChangeNotifier {
   }
 
   List<int> get montantRecuParMois {
-    if (_annualStatistics.isEmpty) {
-      debugPrint('DEBUG: Utilisation des données de fallback pour montantRecuParMois');
-      return _getFallbackMontantRecu();
-    }
-    final result = List.generate(12, (index) {
+    return List.generate(12, (index) {
       final month = index + 1;
       final amount = _annualStatistics[month]?.montantRecuInt ?? 0;
       return amount;
     });
-    debugPrint('DEBUG: montantRecuParMois depuis API: $result');
-    return result;
   }
 
   List<int> get montantReelParMois {
-    if (_annualStatistics.isEmpty) {
-      return _getFallbackMontantReel();
-    }
     return List.generate(12, (index) {
       final month = index + 1;
       return _annualStatistics[month]?.montantReelInt ?? 0;
@@ -90,9 +81,6 @@ class PaymentBreakdownController extends ChangeNotifier {
   }
 
   List<int> get montantRemboursementParMois {
-    if (_annualStatistics.isEmpty) {
-      return _getFallbackMontantRemboursement();
-    }
     return List.generate(12, (index) {
       final month = index + 1;
       return _annualStatistics[month]?.montantRemboursementInt ?? 0;
@@ -100,30 +88,10 @@ class PaymentBreakdownController extends ChangeNotifier {
   }
 
   List<int> get montantAvanceParMois {
-    if (_annualStatistics.isEmpty) {
-      return _getFallbackMontantAvance();
-    }
     return List.generate(12, (index) {
       final month = index + 1;
       return _annualStatistics[month]?.montantAvanceInt ?? 0;
     });
-  }
-  
-  // Données de fallback pour les montants
-  List<int> _getFallbackMontantRecu() {
-    return [90000, 200000, 70000, 120000, 160000, 0, 220000, 40000, 120000, 260000, 60000, 0];
-  }
-  
-  List<int> _getFallbackMontantReel() {
-    return [80000, 120000, 70000, 100000, 130000, 0, 110000, 40000, 100000, 150000, 60000, 0];
-  }
-  
-  List<int> _getFallbackMontantRemboursement() {
-    return [10000, 50000, 0, 20000, 30000, 0, 60000, 0, 20000, 60000, 0, 0];
-  }
-  
-  List<int> _getFallbackMontantAvance() {
-    return [0, 30000, 0, 0, 0, 0, 50000, 0, 0, 50000, 0, 0];
   }
 
   // Méthodes pour gérer la sélection
@@ -353,58 +321,18 @@ class PaymentBreakdownController extends ChangeNotifier {
 
   // Méthode utilitaire pour obtenir les membres au format compatible
   List<Map<String, dynamic>> get membersForTable {
-    if (_paymentOverview.isEmpty) {
-      debugPrint('DEBUG Controller: Aucune donnée dans _paymentOverview, utilisation des données de fallback');
-      return _getFallbackMembers();
-    }
-    
-    debugPrint('DEBUG Controller: ${_paymentOverview.length} membres dans _paymentOverview');
-    
     return _paymentOverview.map((user) {
       final payments = List.generate(12, (index) {
         final monthNumber = index + 1;
         final status = user.getDisplayStatusForMonth(monthNumber);
         return status;
       });
-      
-      debugPrint('DEBUG Controller: Utilisateur ${user.fullName}, payments: $payments');
-      
+
       return {
         'name': user.fullName,
         'villaNumber': user.villaNumber,
         'payments': payments,
       };
     }).toList();
-  }
-  
-  // Données de fallback pour les tests et quand les APIs échouent
-  List<Map<String, dynamic>> _getFallbackMembers() {
-    return [
-      {
-        'name': 'Marie DUPONT',
-        'villaNumber': 'Villa 001',
-        'payments': ['paid', 'paid', 'unpaid', 'paid', 'paid', 'future', 'paid', 'paid', 'paid', 'paid', 'paid', 'future']
-      },
-      {
-        'name': 'Paul MARTIN', 
-        'villaNumber': 'Villa 002',
-        'payments': ['paid', 'paid', 'paid', 'paid', 'unpaid', 'future', 'paid', 'paid', 'paid', 'paid', 'unpaid', 'future']
-      },
-      {
-        'name': 'Jean KOUASSI',
-        'villaNumber': 'Villa 003',
-        'payments': ['unpaid', 'paid', 'paid', 'paid', 'paid', 'future', 'paid', 'paid', 'paid', 'paid', 'paid', 'future']
-      },
-      {
-        'name': 'Sophie BROU',
-        'villaNumber': 'Villa 004',
-        'payments': ['paid', 'unpaid', 'paid', 'unpaid', 'paid', 'future', 'paid', 'unpaid', 'paid', 'unpaid', 'paid', 'future']
-      },
-      {
-        'name': 'Thomas YAO',
-        'villaNumber': 'Villa 005',
-        'payments': ['paid', 'paid', 'paid', 'paid', 'paid', 'future', 'paid', 'paid', 'paid', 'paid', 'paid', 'future']
-      },
-    ];
   }
 }

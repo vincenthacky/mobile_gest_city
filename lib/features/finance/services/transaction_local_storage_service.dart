@@ -14,7 +14,7 @@ class TransactionLocalStorageService {
     try {
       _checksumsBox = await Hive.openBox<TransactionChecksum>(_checksumsBoxName);
       _transactionsBox = await Hive.openBox<CachedTransaction>(_transactionsBoxName);
-      
+
       print('✅ [TRANSACTION STORAGE] Boxes initialisées avec succès');
     } catch (e) {
       print('❌ [TRANSACTION STORAGE] Erreur lors de l\'initialisation: $e');
@@ -22,9 +22,31 @@ class TransactionLocalStorageService {
     }
   }
 
+  /// Ferme les boxes et réinitialise les références
+  /// Appelé lors de la déconnexion pour éviter "Box has already been closed"
+  static Future<void> close() async {
+    try {
+      await _checksumsBox?.close();
+      await _transactionsBox?.close();
+      _checksumsBox = null;
+      _transactionsBox = null;
+      print('✅ [TRANSACTION STORAGE] Boxes fermées avec succès');
+    } catch (e) {
+      print('⚠️ [TRANSACTION STORAGE] Erreur lors de la fermeture: $e');
+      // Réinitialiser quand même les références
+      _checksumsBox = null;
+      _transactionsBox = null;
+    }
+  }
+
+  /// Vérifie si les boxes sont prêtes à l'utilisation
+  static bool get _isReady =>
+      _checksumsBox != null && _checksumsBox!.isOpen &&
+      _transactionsBox != null && _transactionsBox!.isOpen;
+
   /// Sauvegarde les checksums des transactions
   static Future<void> saveChecksums(List<Map<String, dynamic>> transactions, String globalChecksum) async {
-    if (_checksumsBox == null) {
+    if (!_isReady) {
       await initialize();
     }
 
@@ -52,8 +74,8 @@ class TransactionLocalStorageService {
 
   /// Récupère tous les checksums
   static List<TransactionChecksum> getAllChecksums() {
-    if (_checksumsBox == null) return [];
-    
+    if (!_isReady) return [];
+
     final checksums = _checksumsBox!.values.toList();
     checksums.sort((a, b) => a.receptionOrder.compareTo(b.receptionOrder));
     return checksums;
@@ -61,7 +83,7 @@ class TransactionLocalStorageService {
 
   /// Sauvegarde les transactions complètes
   static Future<void> saveTransactions(List<Map<String, dynamic>> transactions) async {
-    if (_transactionsBox == null) {
+    if (!_isReady) {
       await initialize();
     }
 
@@ -89,7 +111,7 @@ class TransactionLocalStorageService {
 
   /// Ajoute de nouvelles transactions au cache
   static Future<void> addTransactions(List<Map<String, dynamic>> transactions) async {
-    if (_transactionsBox == null || _checksumsBox == null) {
+    if (!_isReady) {
       await initialize();
     }
 
@@ -131,7 +153,7 @@ class TransactionLocalStorageService {
 
   /// Met à jour des transactions existantes
   static Future<void> updateTransactions(List<Map<String, dynamic>> transactions) async {
-    if (_transactionsBox == null || _checksumsBox == null) {
+    if (!_isReady) {
       await initialize();
     }
 
@@ -165,7 +187,7 @@ class TransactionLocalStorageService {
 
   /// Supprime des transactions
   static Future<void> deleteTransactions(List<String> transactionIds) async {
-    if (_transactionsBox == null || _checksumsBox == null) {
+    if (!_isReady) {
       await initialize();
     }
 
@@ -184,7 +206,7 @@ class TransactionLocalStorageService {
 
   /// Récupère toutes les transactions du cache
   static List<Map<String, dynamic>> getAllTransactions() {
-    if (_transactionsBox == null) return [];
+    if (!_isReady) return [];
 
     try {
       final transactions = _transactionsBox!.values.toList();
@@ -213,8 +235,12 @@ class TransactionLocalStorageService {
   /// Nettoie le cache
   static Future<void> clearCache() async {
     try {
-      await _checksumsBox?.clear();
-      await _transactionsBox?.clear();
+      if (_checksumsBox != null && _checksumsBox!.isOpen) {
+        await _checksumsBox!.clear();
+      }
+      if (_transactionsBox != null && _transactionsBox!.isOpen) {
+        await _transactionsBox!.clear();
+      }
       print('✅ [TRANSACTION STORAGE] Cache nettoyé');
     } catch (e) {
       print('❌ [TRANSACTION STORAGE] Erreur lors du nettoyage: $e');
@@ -223,6 +249,13 @@ class TransactionLocalStorageService {
 
   /// Statistiques du cache
   static Map<String, dynamic> getCacheStats() {
+    if (!_isReady) {
+      return {
+        'checksums_count': 0,
+        'transactions_count': 0,
+        'last_updated': null,
+      };
+    }
     return {
       'checksums_count': _checksumsBox?.length ?? 0,
       'transactions_count': _transactionsBox?.length ?? 0,

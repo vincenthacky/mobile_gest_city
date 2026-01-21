@@ -219,7 +219,7 @@ class HiveCleanupService {
   /// Ferme proprement tous les services de stockage et leurs boxes
   static Future<void> _closeAllServices() async {
     final List<Future<void>> closeTasks = [];
-    
+
     try {
       // Fermer tous les services qui ont une méthode close
       closeTasks.add(_closeServiceSafely('Report Storage', () => ReportLocalStorageService.close()));
@@ -227,10 +227,11 @@ class HiveCleanupService {
       closeTasks.add(_closeServiceSafely('Finance Totals Storage', () => FinanceTotalsLocalStorageService.close()));
       closeTasks.add(_closeServiceSafely('Project Storage', () => LocalStorageService.close()));
       closeTasks.add(_closeServiceSafely('Overview Member Storage', () => MemberOverviewLocalStorageService.close()));
-      
+      closeTasks.add(_closeServiceSafely('Transaction Storage', () => TransactionLocalStorageService.close()));
+
       await Future.wait(closeTasks);
       debugPrint('✅ [CLEANUP] Tous les services fermés avec succès');
-      
+
     } catch (e) {
       debugPrint('⚠️ [CLEANUP] Erreur lors de la fermeture des services: $e');
     }

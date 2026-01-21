@@ -293,12 +293,13 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
                       ),
                     );
                   }
-                  
+
                   if (controller.errorMessage != null) {
                     return Center(
                       child: Padding(
                         padding: const EdgeInsets.all(40),
                         child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
                               Icons.error_outline,
@@ -328,7 +329,44 @@ class _PaymentBreakdownPageState extends State<PaymentBreakdownPage> with Ticker
                       ),
                     );
                   }
-                  
+
+                  // Vérifier s'il n'y a pas de données
+                  if (controller.membersForTable.isEmpty) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(40),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.inbox_outlined,
+                              size: 64,
+                              color: Colors.grey.shade400,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Aucune donnée disponible',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Tirez vers le bas pour actualiser',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade500,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
                   return FadeTransition(
                     opacity: _fadeAnimation,
                     child: ScaleTransition(
