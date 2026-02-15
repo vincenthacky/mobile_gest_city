@@ -63,8 +63,10 @@ class _QrScanPageState extends State<QrScanPage> {
 
     print('✅ QR Code détecté: ${barcode.rawValue}');
 
-    // Verrouiller immédiatement
-    isProcessing = true;
+    // Verrouiller immédiatement et afficher le loader
+    setState(() {
+      isProcessing = true;
+    });
 
     // Arrêter le scanner
     print('⏹️ Arrêt du scanner...');
@@ -123,7 +125,9 @@ class _QrScanPageState extends State<QrScanPage> {
   Future<void> _resetScanner() async {
     await Future.delayed(const Duration(seconds: 2));
     if (mounted) {
-      isProcessing = false;
+      setState(() {
+        isProcessing = false;
+      });
       await controller?.start();
     }
   }
@@ -206,64 +210,104 @@ class _QrScanPageState extends State<QrScanPage> {
                   borderRadius: BorderRadius.circular(24),
                   child: Stack(
                     children: [
-                      // Scanner
+                      // Scanner avec contraintes explicites
                       if (controller != null)
-                        MobileScanner(
-                          controller: controller!,
-                          onDetect: _handleBarcode,
+                        SizedBox.expand(
+                          child: MobileScanner(
+                            controller: controller!,
+                            onDetect: _handleBarcode,
+                          ),
                         ),
 
                       // Overlay (ignorePointer pour ne pas bloquer)
-                      IgnorePointer(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.5),
-                          ),
-                          child: Center(
-                            child: Container(
-                              width: scanAreaSize,
-                              height: scanAreaSize,
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: const Color(0xFF3B82F6),
-                                  width: 3,
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.5),
+                            ),
+                            child: Center(
+                              child: Container(
+                                width: scanAreaSize,
+                                height: scanAreaSize,
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: isProcessing
+                                        ? const Color(0xFF10B981) // Vert quand en cours
+                                        : const Color(0xFF3B82F6),
+                                    width: 3,
+                                  ),
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Stack(
-                                children: [
-                                  // Coins
-                                  ..._buildCorners(),
-                                ],
+                                child: Stack(
+                                  children: [
+                                    // Coins
+                                    ..._buildCorners(),
+                                    // Loader au centre quand en cours d'analyse
+                                    if (isProcessing)
+                                      Center(
+                                        child: Container(
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withValues(alpha: 0.7),
+                                            borderRadius: BorderRadius.circular(16),
+                                          ),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const SizedBox(
+                                                width: 40,
+                                                height: 40,
+                                                child: CircularProgressIndicator(
+                                                  color: Color(0xFF10B981),
+                                                  strokeWidth: 3,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 12),
+                                              Text(
+                                                'Analyse en cours...',
+                                                style: GoogleFonts.nunito(
+                                                  fontSize: 14,
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
 
-                      // Instruction
-                      IgnorePointer(
-                        child: Positioned(
+                      // Instruction - Masquée pendant l'analyse
+                      if (!isProcessing)
+                        Positioned(
                           bottom: 40,
                           left: 0,
                           right: 0,
-                          child: Center(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 12,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.7),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                'Positionne le QR code dans le cadre',
-                                style: GoogleFonts.nunito(
-                                  fontSize: 14,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w500,
+                          child: IgnorePointer(
+                            child: Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 12,
                                 ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.7),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  'Positionne le QR code dans le cadre',
+                                  style: GoogleFonts.nunito(
+                                    fontSize: 14,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                               ),
                             ),
                           ),

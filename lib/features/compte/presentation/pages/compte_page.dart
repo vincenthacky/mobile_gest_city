@@ -213,21 +213,21 @@ class _ComptePageState extends State<ComptePage> {
                           'Changer le mot de passe',
                           () {},
                         ),
-                        _buildSettingItem(
-                          Icons.notifications,
-                          'Notifications',
-                          () {},
-                        ),
-                        _buildSettingItem(
-                          Icons.help,
-                          'Aide et support',
-                          () {},
-                        ),
-                        _buildSettingItem(
-                          Icons.privacy_tip,
-                          'Confidentialité',
-                          () {},
-                        ),
+                        // _buildSettingItem(
+                        //   Icons.notifications,
+                        //   'Notifications',
+                        //   () {},
+                        // ),
+                        // _buildSettingItem(
+                        //   Icons.help,
+                        //   'Aide et support',
+                        //   () {},
+                        // ),
+                        // _buildSettingItem(
+                        //   Icons.privacy_tip,
+                        //   'Confidentialité',
+                        //   () {},
+                        // ),
                         
                         // Section sécurité (comme WhatsApp)
                         if (_securityPrefs != null) ...[
