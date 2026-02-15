@@ -65,6 +65,16 @@ class ProjectModel {
     this.totalScore = 0,
   });
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ProjectModel &&
+          id == other.id &&
+          updatedAt == other.updatedAt;
+
+  @override
+  int get hashCode => Object.hash(id, updatedAt);
+
   int get totalVotes => votesYes + votesNo + votesYesWithReserve + votesBlank;
 
   double get yesPercentage => totalVotes > 0 ? votesYes / totalVotes : 0.0;

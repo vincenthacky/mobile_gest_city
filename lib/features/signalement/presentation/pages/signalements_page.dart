@@ -20,6 +20,8 @@ class SignalementsPage extends StatefulWidget {
 class _SignalementsPageState extends State<SignalementsPage> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final GlobalKey<SliverAnimatedListState> _listKey = GlobalKey<SliverAnimatedListState>();
+  List<ReportModel> _displayedReports = [];
   SignalementFilter _selectedFilter = SignalementFilter.tous;
   late SyncReportController _reportController;
   late ConnectivityService _connectivityService;
@@ -66,8 +68,8 @@ class _SignalementsPageState extends State<SignalementsPage> {
         _searchQuery = query;
         _searchTimer?.cancel();
 
-        // Démarrer la recherche après 300ms de délai
-        _searchTimer = Timer(const Duration(milliseconds: 300), () {
+        // Recherche locale rapide
+        _searchTimer = Timer(const Duration(milliseconds: 150), () {
           _resetAndSearch();
         });
       }
@@ -157,9 +159,127 @@ class _SignalementsPageState extends State<SignalementsPage> {
     }
   }
 
-  List<ReportModel> get _filteredReports {
-    return _reportController.getFilteredReports(
-      searchQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
+  List<ReportModel> _computeFilteredReports() {
+    final reports = _reportController.reports.toList();
+    // Tri par défaut : plus récent en haut
+    reports.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return reports;
+  }
+
+  /// Synchronise _displayedReports avec la nouvelle liste et anime les différences
+  void _syncDisplayedList(List<ReportModel> newList) {
+    final listState = _listKey.currentState;
+    if (listState == null) {
+      _displayedReports = List.from(newList);
+      return;
+    }
+
+    // 1. Suppressions (à l'envers)
+    for (int i = _displayedReports.length - 1; i >= 0; i--) {
+      final old = _displayedReports[i];
+      if (!newList.any((n) => n.id == old.id)) {
+        final removed = _displayedReports.removeAt(i);
+        listState.removeItem(
+          i,
+          (context, animation) => _buildRemovedCard(removed, animation),
+          duration: const Duration(milliseconds: 200),
+        );
+      }
+    }
+
+    // 2. Ajouts
+    for (int i = 0; i < newList.length; i++) {
+      final newReport = newList[i];
+      if (!_displayedReports.any((d) => d.id == newReport.id)) {
+        final insertIndex = i.clamp(0, _displayedReports.length);
+        _displayedReports.insert(insertIndex, newReport);
+        listState.insertItem(
+          insertIndex,
+          duration: const Duration(milliseconds: 300),
+        );
+      }
+    }
+
+    // 3. Mises à jour in-place
+    for (int i = 0; i < _displayedReports.length; i++) {
+      final displayed = _displayedReports[i];
+      final updated = newList.firstWhere(
+        (n) => n.id == displayed.id,
+        orElse: () => displayed,
+      );
+      if (displayed != updated) {
+        _displayedReports[i] = updated;
+      }
+    }
+
+    // 4. Réordonner
+    final newOrder = <ReportModel>[];
+    for (final n in newList) {
+      final match = _displayedReports.firstWhere(
+        (d) => d.id == n.id,
+        orElse: () => n,
+      );
+      newOrder.add(match);
+    }
+    _displayedReports = newOrder;
+  }
+
+  Widget _buildAnimatedCard(
+    BuildContext context,
+    int index,
+    Animation<double> animation,
+  ) {
+    if (index >= _displayedReports.length) return const SizedBox.shrink();
+    final report = _displayedReports[index];
+    final card = Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: RepaintBoundary(
+        child: _buildSignalementCard(report),
+      ),
+    );
+
+    return SizeTransition(
+      sizeFactor: animation,
+      child: FadeTransition(
+        opacity: animation,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, -0.15),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          )),
+          child: card,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRemovedCard(
+    ReportModel report,
+    Animation<double> animation,
+  ) {
+    return SizeTransition(
+      sizeFactor: animation,
+      child: FadeTransition(
+        opacity: animation,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(-0.3, 0),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeInCubic,
+          )),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: RepaintBoundary(
+              child: _buildSignalementCard(report),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -272,184 +392,182 @@ class _SignalementsPageState extends State<SignalementsPage> {
                       );
                     }
 
-                    return SingleChildScrollView(
+                    // Sync la liste animée avec les nouvelles données
+                    final newFiltered = _computeFilteredReports();
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        _syncDisplayedList(newFiltered);
+                      }
+                    });
+
+                    return CustomScrollView(
                       controller: _scrollController,
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Barre de recherche et bouton ajouter
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(10),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.05,
+                      slivers: [
+                        // Barre de recherche + Filtres
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(10),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(alpha: 0.05),
+                                              blurRadius: 6,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
                                         ),
-                                        blurRadius: 6,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: TextField(
-                                    controller: _searchController,
-                                    decoration: InputDecoration(
-                                      hintText: 'Rechercher un signalement...',
-                                      hintStyle: const TextStyle(
-                                        color: Color(0xFF6B7280),
-                                        fontFamily: 'Nunito',
-                                        fontSize: 14,
-                                      ),
-                                      prefixIcon: const Icon(
-                                        Icons.search,
-                                        color: Color(0xFF6B7280),
-                                        size: 20,
-                                      ),
-                                      suffixIcon:
-                                          _searchController.text.isNotEmpty
-                                          ? IconButton(
-                                              icon: const Icon(
-                                                Icons.clear,
-                                                size: 18,
-                                              ),
-                                              onPressed: () {
-                                                _searchController.clear();
-                                              },
-                                            )
-                                          : null,
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                        borderSide: BorderSide.none,
-                                      ),
-                                      filled: true,
-                                      fillColor: Colors.white,
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 8,
+                                        child: TextField(
+                                          controller: _searchController,
+                                          decoration: InputDecoration(
+                                            hintText: 'Rechercher un signalement...',
+                                            hintStyle: const TextStyle(
+                                              color: Color(0xFF6B7280),
+                                              fontFamily: 'Nunito',
+                                              fontSize: 14,
+                                            ),
+                                            prefixIcon: const Icon(
+                                              Icons.search,
+                                              color: Color(0xFF6B7280),
+                                              size: 20,
+                                            ),
+                                            suffixIcon: _searchController.text.isNotEmpty
+                                                ? IconButton(
+                                                    icon: const Icon(Icons.clear, size: 18),
+                                                    onPressed: () {
+                                                      _searchController.clear();
+                                                    },
+                                                  )
+                                                : null,
+                                            border: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                              borderSide: BorderSide.none,
+                                            ),
+                                            filled: true,
+                                            fillColor: Colors.white,
+                                            contentPadding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 8,
+                                            ),
                                           ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEF4444),
-                                  borderRadius: BorderRadius.circular(8),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.05,
+                                        ),
                                       ),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFEF4444),
+                                        borderRadius: BorderRadius.circular(8),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(alpha: 0.05),
+                                            blurRadius: 4,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: IconButton(
+                                        onPressed: () {
+                                          context.go('/signalements/ajouter');
+                                        },
+                                        icon: const Icon(
+                                          Icons.add,
+                                          color: Colors.white,
+                                          size: 18,
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ),
-                                child: IconButton(
-                                  onPressed: () {
-                                    context.go('/signalements/ajouter');
-                                  },
-                                  icon: const Icon(
-                                    Icons.add,
-                                    color: Colors.white,
-                                    size: 18,
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  height: 32,
+                                  child: ListView(
+                                    scrollDirection: Axis.horizontal,
+                                    children: [
+                                      _buildFilterChip('Tous', SignalementFilter.tous),
+                                      const SizedBox(width: 6),
+                                      _buildFilterChip('En attente', SignalementFilter.nouveaux),
+                                      const SizedBox(width: 6),
+                                      _buildFilterChip('En cours', SignalementFilter.enCours),
+                                      const SizedBox(width: 6),
+                                      _buildFilterChip('Résolus', SignalementFilter.resolus),
+                                      const SizedBox(width: 6),
+                                      _buildFilterChip('Urgents', SignalementFilter.urgents),
+                                    ],
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-
-                          // Filtres
-                          SizedBox(
-                            height: 32,
-                            child: ListView(
-                              scrollDirection: Axis.horizontal,
-                              children: [
-                                _buildFilterChip(
-                                  'Tous',
-                                  SignalementFilter.tous,
-                                ),
-                                const SizedBox(width: 6),
-                                _buildFilterChip(
-                                  'En attente',
-                                  SignalementFilter.nouveaux,
-                                ),
-                                const SizedBox(width: 6),
-                                _buildFilterChip(
-                                  'En cours',
-                                  SignalementFilter.enCours,
-                                ),
-                                const SizedBox(width: 6),
-                                _buildFilterChip(
-                                  'Résolus',
-                                  SignalementFilter.resolus,
-                                ),
-                                const SizedBox(width: 6),
-                                _buildFilterChip(
-                                  'Urgents',
-                                  SignalementFilter.urgents,
-                                ),
+                                const SizedBox(height: 12),
                               ],
                             ),
                           ),
-                          const SizedBox(height: 12),
+                        ),
 
-                          // Liste des signalements
-                          if (_filteredReports.isEmpty)
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade50,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Center(
-                                child: Text(
-                                  'Aucun signalement trouvé',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.grey,
-                                  ),
+                        // Liste animée ou message vide
+                        if (_displayedReports.isEmpty && !reportController.isLoadingReports)
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(24),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                              ),
-                            )
-                          else
-                            Column(
-                              children: [
-                                ..._filteredReports.map((report) {
-                                  return Padding(
-                                    padding: const EdgeInsets.only(bottom: 10),
-                                    child: _buildSignalementCard(report),
-                                  );
-                                }),
-
-                                // Information sur le nombre de signalements
-                                if (_filteredReports.isNotEmpty)
-                                  Container(
-                                    padding: const EdgeInsets.all(20),
-                                    child: Text(
-                                      '${_filteredReports.length} signalement${_filteredReports.length > 1 ? 's' : ''}',
-                                      style: const TextStyle(
-                                        color: Color(0xFF6B7280),
-                                        fontSize: 12,
-                                        fontFamily: 'Nunito',
-                                      ),
-                                      textAlign: TextAlign.center,
+                                child: const Center(
+                                  child: Text(
+                                    'Aucun signalement trouvé',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.grey,
                                     ),
                                   ),
-                              ],
+                                ),
+                              ),
                             ),
-                        ],
-                      ),
+                          )
+                        else
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            sliver: SliverAnimatedList(
+                              key: _listKey,
+                              initialItemCount: _displayedReports.length,
+                              itemBuilder: _buildAnimatedCard,
+                            ),
+                          ),
+
+                        // Compteur + espace en bas
+                        SliverToBoxAdapter(
+                          child: Column(
+                            children: [
+                              if (_displayedReports.isNotEmpty)
+                                Container(
+                                  padding: const EdgeInsets.all(20),
+                                  child: Text(
+                                    '${_displayedReports.length} signalement${_displayedReports.length > 1 ? 's' : ''}',
+                                    style: const TextStyle(
+                                      color: Color(0xFF6B7280),
+                                      fontSize: 12,
+                                      fontFamily: 'Nunito',
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              const SizedBox(height: 96),
+                            ],
+                          ),
+                        ),
+                      ],
                     );
                   },
                 ),

@@ -38,6 +38,11 @@ class ProjectController extends ChangeNotifier {
   ProjectStatus? _currentFilter;
   String? _currentSearch;
 
+  // Tracking des changements pour animations
+  List<String> _recentlyAddedIds = [];
+  List<String> _recentlyUpdatedIds = [];
+  List<String> _recentlyDeletedIds = [];
+
   // Pour les votes
   VoteStatus _voteStatus = VoteStatus.initial;
   String? _voteErrorMessage;
@@ -81,6 +86,17 @@ class ProjectController extends ChangeNotifier {
   String? get currentSearch => _currentSearch;
   int get totalProjectsCount => _allProjects.length;
   int get filteredProjectsCount => _projects.length;
+
+  // Getters pour le tracking des changements
+  List<String> get recentlyAddedIds => List.unmodifiable(_recentlyAddedIds);
+  List<String> get recentlyUpdatedIds => List.unmodifiable(_recentlyUpdatedIds);
+  List<String> get recentlyDeletedIds => List.unmodifiable(_recentlyDeletedIds);
+
+  void clearRecentChanges() {
+    _recentlyAddedIds = [];
+    _recentlyUpdatedIds = [];
+    _recentlyDeletedIds = [];
+  }
 
   // Getters pour les votes
   VoteStatus get voteStatus => _voteStatus;
@@ -381,6 +397,19 @@ class ProjectController extends ChangeNotifier {
   }
 
   void _updateProjectAfterVote(String projectId, VoteChoice choice, String? justification) {
+    // Mettre à jour dans _allProjects (source de vérité)
+    final allIndex = _allProjects.indexWhere((p) => p.id == projectId);
+    if (allIndex != -1) {
+      final project = _allProjects[allIndex];
+      final updatedProject = project.copyWith(
+        userVote: choice,
+        userVoteJustification: justification,
+      );
+      _allProjects[allIndex] = updatedProject;
+      _recentlyUpdatedIds = [projectId];
+    }
+
+    // Mettre à jour aussi dans _projects (liste filtrée affichée)
     final projectIndex = _projects.indexWhere((p) => p.id == projectId);
     if (projectIndex != -1) {
       final project = _projects[projectIndex];
@@ -389,8 +418,8 @@ class ProjectController extends ChangeNotifier {
         userVoteJustification: justification,
       );
       _projects[projectIndex] = updatedProject;
-      notifyListeners();
     }
+    notifyListeners();
   }
 
   // Méthodes utilitaires pour le chargement des projets
@@ -893,46 +922,56 @@ class ProjectController extends ChangeNotifier {
   
   /// Fusionne intelligemment les projets avec les changements
   void _mergeProjectsIntelligently(List<ProjectModel> syncedProjects, SyncChanges? changes) {
+    // Reset tracking
+    _recentlyAddedIds = [];
+    _recentlyUpdatedIds = [];
+    _recentlyDeletedIds = [];
+
     if (changes == null) {
       // Pas de changements spécifiques, utiliser la liste syncée
       _allProjects = syncedProjects;
       return;
     }
-    
+
     // Fusionner intelligemment selon les types de changements
     final updatedProjects = List<ProjectModel>.from(_allProjects);
-    
+
     // Traiter les suppressions
     for (final deletedId in changes.deleted) {
       updatedProjects.removeWhere((project) => project.id == deletedId);
+      _recentlyDeletedIds.add(deletedId);
     }
-    
+
     // Traiter les ajouts et mises à jour
     for (final newProject in syncedProjects) {
       final existingIndex = updatedProjects.indexWhere((p) => p.id == newProject.id);
       if (existingIndex != -1) {
-        // Mettre à jour le projet existant
-        updatedProjects[existingIndex] = newProject;
+        // Mettre à jour le projet existant seulement si changé
+        if (updatedProjects[existingIndex] != newProject) {
+          updatedProjects[existingIndex] = newProject;
+          _recentlyUpdatedIds.add(newProject.id);
+        }
       } else {
         // Ajouter le nouveau projet
         updatedProjects.add(newProject);
+        _recentlyAddedIds.add(newProject.id);
       }
     }
-    
+
     _allProjects = updatedProjects;
   }
   
   /// Applique les filtres localement comme WhatsApp (SANS API)
   void _applyLocalFilters() {
     var filteredProjects = List<ProjectModel>.from(_allProjects);
-    
+
     // Filtrer par statut
     if (_currentFilter != null) {
       filteredProjects = filteredProjects.where((project) {
         return project.status == _currentFilter;
       }).toList();
     }
-    
+
     // Filtrer par recherche
     if (_currentSearch != null && _currentSearch!.length >= 2) {
       final searchLower = _currentSearch!.toLowerCase();
@@ -942,9 +981,22 @@ class ProjectController extends ChangeNotifier {
                project.longDescription.toLowerCase().contains(searchLower);
       }).toList();
     }
-    
-    _projects = filteredProjects;
-    notifyListeners();
+
+    // Ne notifier que si la liste filtrée a réellement changé
+    if (_projects.length != filteredProjects.length ||
+        !_listsEqual(_projects, filteredProjects)) {
+      _projects = filteredProjects;
+      notifyListeners();
+    }
+  }
+
+  /// Compare deux listes de projets en utilisant operator ==
+  bool _listsEqual(List<ProjectModel> a, List<ProjectModel> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   /// Ancienne méthode fetchProjects (fallback)

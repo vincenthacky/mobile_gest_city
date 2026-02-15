@@ -39,6 +39,16 @@ class InformationModel {
     this.userName,
   });
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is InformationModel &&
+          id == other.id &&
+          updatedAt == other.updatedAt;
+
+  @override
+  int get hashCode => Object.hash(id, updatedAt);
+
   factory InformationModel.fromJson(Map<String, dynamic> json) {
     InformationType mapReportType(String apiType) {
       switch (apiType) {

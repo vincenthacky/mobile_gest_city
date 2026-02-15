@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'ajouter_information_page.dart';
@@ -19,9 +20,13 @@ class CadreDeViePage extends StatefulWidget {
 
 class _CadreDeViePageState extends State<CadreDeViePage> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey<SliverAnimatedListState> _listKey = GlobalKey<SliverAnimatedListState>();
+  List<InformationModel> _displayedInformations = [];
   InformationFilter _selectedFilter = InformationFilter.tous;
   late SyncInformationController _informationController;
   late ConnectivityService _connectivityService;
+  Timer? _searchTimer;
 
   @override
   void initState() {
@@ -30,15 +35,27 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
     _connectivityService = ConnectivityService();
     
     _setupConnectivityListener();
-    
-    // Démarrer le monitoring de connectivité
+    _setupSearchListener();
+
+    // Démarrer le monitoring de connectivité + charger les informations
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _connectivityService.startMonitoring();
-    });
-    
-    // Charger les informations après que le widget soit complètement initialisé
-    WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadInformations();
+    });
+  }
+
+  void _setupSearchListener() {
+    _searchController.addListener(() {
+      _searchTimer?.cancel();
+      final query = _searchController.text;
+      if (query.length >= 2 || query.isEmpty) {
+        _searchTimer = Timer(const Duration(milliseconds: 150), () {
+          _informationController.applySearchFilter(
+            query.length >= 2 ? query : null,
+          );
+          setState(() {});
+        });
+      }
     });
   }
 
@@ -71,13 +88,9 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
   }
 
 
-  List<InformationModel> get _filteredInformations {
+  List<InformationModel> _computeFilteredInformations() {
     final allInformations = _informationController.informations;
     List<InformationModel> filtered = allInformations.where((information) {
-      final matchesSearch = _searchController.text.isEmpty ||
-          information.title.toLowerCase().contains(_searchController.text.toLowerCase()) ||
-          information.description.toLowerCase().contains(_searchController.text.toLowerCase());
-      
       bool matchesFilter = true;
       switch (_selectedFilter) {
         case InformationFilter.tous:
@@ -105,16 +118,136 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
           matchesFilter = information.reportType == InformationType.other;
           break;
       }
-      
-      return matchesSearch && matchesFilter;
+      return matchesFilter;
     }).toList();
 
+    // Tri par défaut : plus récent en haut
+    filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return filtered;
+  }
+
+  /// Synchronise _displayedInformations avec la nouvelle liste et anime les différences
+  void _syncDisplayedList(List<InformationModel> newList) {
+    final listState = _listKey.currentState;
+    if (listState == null) {
+      _displayedInformations = List.from(newList);
+      return;
+    }
+
+    // 1. Suppressions (à l'envers)
+    for (int i = _displayedInformations.length - 1; i >= 0; i--) {
+      final old = _displayedInformations[i];
+      if (!newList.any((n) => n.id == old.id)) {
+        final removed = _displayedInformations.removeAt(i);
+        listState.removeItem(
+          i,
+          (context, animation) => _buildRemovedCard(removed, animation),
+          duration: const Duration(milliseconds: 200),
+        );
+      }
+    }
+
+    // 2. Ajouts
+    for (int i = 0; i < newList.length; i++) {
+      final newInfo = newList[i];
+      if (!_displayedInformations.any((d) => d.id == newInfo.id)) {
+        final insertIndex = i.clamp(0, _displayedInformations.length);
+        _displayedInformations.insert(insertIndex, newInfo);
+        listState.insertItem(
+          insertIndex,
+          duration: const Duration(milliseconds: 300),
+        );
+      }
+    }
+
+    // 3. Mises à jour in-place
+    for (int i = 0; i < _displayedInformations.length; i++) {
+      final displayed = _displayedInformations[i];
+      final updated = newList.firstWhere(
+        (n) => n.id == displayed.id,
+        orElse: () => displayed,
+      );
+      if (displayed != updated) {
+        _displayedInformations[i] = updated;
+      }
+    }
+
+    // 4. Réordonner
+    final newOrder = <InformationModel>[];
+    for (final n in newList) {
+      final match = _displayedInformations.firstWhere(
+        (d) => d.id == n.id,
+        orElse: () => n,
+      );
+      newOrder.add(match);
+    }
+    _displayedInformations = newOrder;
+  }
+
+  Widget _buildAnimatedCard(
+    BuildContext context,
+    int index,
+    Animation<double> animation,
+  ) {
+    if (index >= _displayedInformations.length) return const SizedBox.shrink();
+    final information = _displayedInformations[index];
+    final card = Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: RepaintBoundary(
+        child: _buildInformationCard(information),
+      ),
+    );
+
+    return SizeTransition(
+      sizeFactor: animation,
+      child: FadeTransition(
+        opacity: animation,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, -0.15),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          )),
+          child: card,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRemovedCard(
+    InformationModel information,
+    Animation<double> animation,
+  ) {
+    return SizeTransition(
+      sizeFactor: animation,
+      child: FadeTransition(
+        opacity: animation,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(-0.3, 0),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeInCubic,
+          )),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: RepaintBoundary(
+              child: _buildInformationCard(information),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
+    _searchTimer?.cancel();
     _connectivityService.stopMonitoring();
     super.dispose();
   }
@@ -162,235 +295,246 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
                   await _informationController.refreshInformations();
                 },
                 color: const Color(0xFF10B981),
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Barre de recherche et bouton ajouter
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.05),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: TextField(
-                                controller: _searchController,
-                                onChanged: (value) => setState(() {}),
-                                decoration: InputDecoration(
-                                  hintText: 'Rechercher une information...',
-                                  hintStyle: const TextStyle(
-                                    color: Color(0xFF6B7280),
-                                    fontFamily: 'Nunito',
-                                    fontSize: 14,
-                                  ),
-                                  prefixIcon: const Icon(
-                                    Icons.search,
-                                    color: Color(0xFF6B7280),
-                                    size: 20,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.white,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF10B981),
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.08),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: IconButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const AjouterInformationPage(),
-                                  ),
-                                );
-                              },
-                              icon: const Icon(
-                                Icons.add,
-                                color: Colors.white,
-                                size: 18,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      
-                      // Filtres
-                      SizedBox(
-                        height: 32,
-                        child: ListView(
-                          scrollDirection: Axis.horizontal,
+                child: Consumer<SyncInformationController>(
+                  builder: (context, controller, child) {
+                    if (controller.isLoadingInformations && controller.informations.isEmpty) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF10B981),
+                        ),
+                      );
+                    }
+
+                    if (controller.loadingErrorMessage != null && controller.informations.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            _buildFilterChip('Tous', InformationFilter.tous, Icons.apps),
-                            const SizedBox(width: 8),
-                            _buildFilterChip('Récents', InformationFilter.recents, Icons.schedule),
-                            const SizedBox(width: 8),
-                            _buildFilterChip('Sécurité', InformationFilter.security, Icons.security),
-                            const SizedBox(width: 8),
-                            _buildFilterChip('Drogue', InformationFilter.drugs, Icons.medical_services),
-                            const SizedBox(width: 8),
-                            _buildFilterChip('Suspect', InformationFilter.suspect, Icons.person_search),
-                            const SizedBox(width: 8),
-                            _buildFilterChip('Nuisance', InformationFilter.nuisance, Icons.volume_up),
-                            const SizedBox(width: 8),
-                            _buildFilterChip('Infrastructure', InformationFilter.infrastructure, Icons.construction),
-                            const SizedBox(width: 8),
-                            _buildFilterChip('Autres', InformationFilter.autres, Icons.more_horiz),
+                            Icon(Icons.error_outline, size: 48, color: Colors.red.shade400),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Erreur de chargement',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade600,
+                                fontFamily: 'Poppins',
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              controller.loadingErrorMessage!,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade500,
+                                fontFamily: 'Nunito',
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      
-                      // Liste des informations
-                      Consumer<SyncInformationController>(
-                        builder: (context, controller, child) {
-                          if (controller.isLoadingInformations) {
-                            return const Center(
-                              child: CircularProgressIndicator(
-                                color: Color(0xFF10B981),
-                              ),
-                            );
-                          }
+                      );
+                    }
 
-                          if (controller.loadingErrorMessage != null) {
-                            return Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(40),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.05),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                children: [
-                                  Icon(
-                                    Icons.error_outline,
-                                    size: 48,
-                                    color: Colors.red.shade400,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'Erreur de chargement',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.grey.shade600,
-                                      fontFamily: 'Poppins',
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    controller.loadingErrorMessage!,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey.shade500,
-                                      fontFamily: 'Nunito',
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ),
-                            );
-                          }
+                    // Sync la liste animée avec les nouvelles données
+                    final newFiltered = _computeFilteredInformations();
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        _syncDisplayedList(newFiltered);
+                      }
+                    });
 
-                          final filteredInformations = _filteredInformations;
-                          
-                          if (filteredInformations.isEmpty) {
-                            return Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(40),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.05),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                children: [
-                                  Icon(
-                                    Icons.search_off,
-                                    size: 48,
-                                    color: Colors.grey.shade400,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'Aucune information trouvée',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.grey.shade600,
-                                      fontFamily: 'Poppins',
+                    return CustomScrollView(
+                      controller: _scrollController,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      slivers: [
+                        // Barre de recherche + Filtres
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(10),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(alpha: 0.05),
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
+                                        ),
+                                        child: TextField(
+                                          controller: _searchController,
+                                          decoration: InputDecoration(
+                                            hintText: 'Rechercher une information...',
+                                            hintStyle: const TextStyle(
+                                              color: Color(0xFF6B7280),
+                                              fontFamily: 'Nunito',
+                                              fontSize: 14,
+                                            ),
+                                            prefixIcon: const Icon(
+                                              Icons.search,
+                                              color: Color(0xFF6B7280),
+                                              size: 20,
+                                            ),
+                                            suffixIcon: _searchController.text.isNotEmpty
+                                                ? IconButton(
+                                                    icon: const Icon(Icons.clear, size: 18),
+                                                    onPressed: () {
+                                                      _searchController.clear();
+                                                    },
+                                                  )
+                                                : null,
+                                            border: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                              borderSide: BorderSide.none,
+                                            ),
+                                            filled: true,
+                                            fillColor: Colors.white,
+                                            contentPadding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 8,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Essayez de modifier vos filtres de recherche',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey.shade500,
-                                      fontFamily: 'Nunito',
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF10B981),
+                                        borderRadius: BorderRadius.circular(8),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(alpha: 0.08),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: IconButton(
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => const AjouterInformationPage(),
+                                            ),
+                                          );
+                                        },
+                                        icon: const Icon(
+                                          Icons.add,
+                                          color: Colors.white,
+                                          size: 18,
+                                        ),
+                                      ),
                                     ),
-                                    textAlign: TextAlign.center,
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  height: 32,
+                                  child: ListView(
+                                    scrollDirection: Axis.horizontal,
+                                    children: [
+                                      _buildFilterChip('Tous', InformationFilter.tous, Icons.apps),
+                                      const SizedBox(width: 8),
+                                      _buildFilterChip('Récents', InformationFilter.recents, Icons.schedule),
+                                      const SizedBox(width: 8),
+                                      _buildFilterChip('Sécurité', InformationFilter.security, Icons.security),
+                                      const SizedBox(width: 8),
+                                      _buildFilterChip('Drogue', InformationFilter.drugs, Icons.medical_services),
+                                      const SizedBox(width: 8),
+                                      _buildFilterChip('Suspect', InformationFilter.suspect, Icons.person_search),
+                                      const SizedBox(width: 8),
+                                      _buildFilterChip('Nuisance', InformationFilter.nuisance, Icons.volume_up),
+                                      const SizedBox(width: 8),
+                                      _buildFilterChip('Infrastructure', InformationFilter.infrastructure, Icons.construction),
+                                      const SizedBox(width: 8),
+                                      _buildFilterChip('Autres', InformationFilter.autres, Icons.more_horiz),
+                                    ],
                                   ),
-                                ],
+                                ),
+                                const SizedBox(height: 12),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // Liste animée ou message vide
+                        if (_displayedInformations.isEmpty && !controller.isLoadingInformations)
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(40),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.05),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.search_off,
+                                      size: 48,
+                                      color: Colors.grey.shade400,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Aucune information trouvée',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey.shade600,
+                                        fontFamily: 'Poppins',
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Essayez de modifier vos filtres de recherche',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey.shade500,
+                                        fontFamily: 'Nunito',
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
                               ),
-                            );
-                          }
-                          
-                          return Column(
-                            children: filteredInformations.map((information) {
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: _buildInformationCard(information),
-                              );
-                            }).toList(),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
+                            ),
+                          )
+                        else
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            sliver: SliverAnimatedList(
+                              key: _listKey,
+                              initialItemCount: _displayedInformations.length,
+                              itemBuilder: _buildAnimatedCard,
+                            ),
+                          ),
+
+                        // Espace en bas
+                        const SliverToBoxAdapter(
+                          child: SizedBox(height: 20),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),

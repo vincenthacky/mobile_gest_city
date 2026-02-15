@@ -24,6 +24,11 @@ class SyncReportController extends ChangeNotifier {
   ReportType? _currentTypeFilter;
   String? _currentSearch;
 
+  // Tracking des changements pour animations
+  List<String> _recentlyAddedIds = [];
+  List<String> _recentlyUpdatedIds = [];
+  List<String> _recentlyDeletedIds = [];
+
   // Pour la synchronisation
   ReportSyncStatus _syncStatus = ReportSyncStatus.idle;
   String? _syncErrorMessage;
@@ -48,6 +53,17 @@ class SyncReportController extends ChangeNotifier {
   String? get currentSearch => _currentSearch;
   int get totalReportsCount => _allReports.length;
   int get filteredReportsCount => _reports.length;
+
+  // Getters pour le tracking des changements
+  List<String> get recentlyAddedIds => List.unmodifiable(_recentlyAddedIds);
+  List<String> get recentlyUpdatedIds => List.unmodifiable(_recentlyUpdatedIds);
+  List<String> get recentlyDeletedIds => List.unmodifiable(_recentlyDeletedIds);
+
+  void clearRecentChanges() {
+    _recentlyAddedIds = [];
+    _recentlyUpdatedIds = [];
+    _recentlyDeletedIds = [];
+  }
 
   // Getters pour la synchronisation
   ReportSyncStatus get syncStatus => _syncStatus;
@@ -317,60 +333,66 @@ class SyncReportController extends ChangeNotifier {
   
   /// Fusionne intelligemment les signalements avec les changements
   void _mergeReportsIntelligently(List<ReportModel> syncedReports, ReportSyncChanges? changes) {
+    // Reset tracking
+    _recentlyAddedIds = [];
+    _recentlyUpdatedIds = [];
+    _recentlyDeletedIds = [];
+
     if (changes == null) {
-      // Pas de changements spécifiques, utiliser la liste syncée
       _allReports = syncedReports;
       return;
     }
-    
-    // Fusionner intelligemment selon les types de changements
+
     final updatedReports = List<ReportModel>.from(_allReports);
-    
+
     // Traiter les suppressions
     for (final deletedId in changes.deleted) {
       updatedReports.removeWhere((report) => report.id == deletedId);
+      _recentlyDeletedIds.add(deletedId);
     }
-    
+
     // Traiter les ajouts et mises à jour
     for (final newReport in syncedReports) {
       final existingIndex = updatedReports.indexWhere((r) => r.id == newReport.id);
       if (existingIndex != -1) {
-        // Mettre à jour le signalement existant
-        updatedReports[existingIndex] = newReport;
+        if (updatedReports[existingIndex] != newReport) {
+          updatedReports[existingIndex] = newReport;
+          _recentlyUpdatedIds.add(newReport.id);
+        }
       } else {
-        // Ajouter le nouveau signalement
         updatedReports.add(newReport);
+        _recentlyAddedIds.add(newReport.id);
       }
     }
-    
+
     _allReports = updatedReports;
   }
   
   /// Applique les filtres localement comme WhatsApp (SANS API)
   void _applyLocalFilters() {
     var filteredReports = List<ReportModel>.from(_allReports);
-    
+
     // Filtrer par statut
     if (_currentStatusFilter != null) {
       filteredReports = filteredReports.where((report) {
         return report.status == _currentStatusFilter;
       }).toList();
     }
-    
+
     // Filtrer par priorité
     if (_currentPriorityFilter != null) {
       filteredReports = filteredReports.where((report) {
         return report.priority == _currentPriorityFilter;
       }).toList();
     }
-    
+
     // Filtrer par type
     if (_currentTypeFilter != null) {
       filteredReports = filteredReports.where((report) {
         return report.reportType == _currentTypeFilter;
       }).toList();
     }
-    
+
     // Filtrer par recherche
     if (_currentSearch != null && _currentSearch!.length >= 2) {
       final searchLower = _currentSearch!.toLowerCase();
@@ -380,9 +402,22 @@ class SyncReportController extends ChangeNotifier {
                (report.place?.toLowerCase().contains(searchLower) ?? false);
       }).toList();
     }
-    
-    _reports = filteredReports;
-    notifyListeners();
+
+    // Ne notifier que si la liste filtrée a réellement changé
+    if (_reports.length != filteredReports.length ||
+        !_listsEqual(_reports, filteredReports)) {
+      _reports = filteredReports;
+      notifyListeners();
+    }
+  }
+
+  /// Compare deux listes de signalements en utilisant operator ==
+  bool _listsEqual(List<ReportModel> a, List<ReportModel> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   /// Ancienne méthode fetchReports (fallback)

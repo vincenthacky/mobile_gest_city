@@ -24,6 +24,11 @@ class SyncInformationController extends ChangeNotifier {
   InformationType? _currentTypeFilter;
   String? _currentSearch;
 
+  // Tracking des changements pour animations
+  List<String> _recentlyAddedIds = [];
+  List<String> _recentlyUpdatedIds = [];
+  List<String> _recentlyDeletedIds = [];
+
   // Pour la synchronisation
   InformationSyncStatus _syncStatus = InformationSyncStatus.idle;
   String? _syncErrorMessage;
@@ -48,6 +53,17 @@ class SyncInformationController extends ChangeNotifier {
   String? get currentSearch => _currentSearch;
   int get totalInformationsCount => _allInformations.length;
   int get filteredInformationsCount => _informations.length;
+
+  // Getters pour le tracking des changements
+  List<String> get recentlyAddedIds => List.unmodifiable(_recentlyAddedIds);
+  List<String> get recentlyUpdatedIds => List.unmodifiable(_recentlyUpdatedIds);
+  List<String> get recentlyDeletedIds => List.unmodifiable(_recentlyDeletedIds);
+
+  void clearRecentChanges() {
+    _recentlyAddedIds = [];
+    _recentlyUpdatedIds = [];
+    _recentlyDeletedIds = [];
+  }
 
   // Getters pour la synchronisation
   InformationSyncStatus get syncStatus => _syncStatus;
@@ -312,60 +328,66 @@ class SyncInformationController extends ChangeNotifier {
   
   /// Fusionne intelligemment les informations avec les changements
   void _mergeInformationsIntelligently(List<InformationModel> syncedInformations, InformationSyncChanges? changes) {
+    // Reset tracking
+    _recentlyAddedIds = [];
+    _recentlyUpdatedIds = [];
+    _recentlyDeletedIds = [];
+
     if (changes == null) {
-      // Pas de changements spécifiques, utiliser la liste syncée
       _allInformations = syncedInformations;
       return;
     }
-    
-    // Fusionner intelligemment selon les types de changements
+
     final updatedInformations = List<InformationModel>.from(_allInformations);
-    
+
     // Traiter les suppressions
     for (final deletedId in changes.deleted) {
       updatedInformations.removeWhere((information) => information.id == deletedId);
+      _recentlyDeletedIds.add(deletedId);
     }
-    
+
     // Traiter les ajouts et mises à jour
     for (final newInformation in syncedInformations) {
       final existingIndex = updatedInformations.indexWhere((i) => i.id == newInformation.id);
       if (existingIndex != -1) {
-        // Mettre à jour l'information existante
-        updatedInformations[existingIndex] = newInformation;
+        if (updatedInformations[existingIndex] != newInformation) {
+          updatedInformations[existingIndex] = newInformation;
+          _recentlyUpdatedIds.add(newInformation.id);
+        }
       } else {
-        // Ajouter la nouvelle information
         updatedInformations.add(newInformation);
+        _recentlyAddedIds.add(newInformation.id);
       }
     }
-    
+
     _allInformations = updatedInformations;
   }
   
   /// Applique les filtres localement comme WhatsApp (SANS API)
   void _applyLocalFilters() {
     var filteredInformations = List<InformationModel>.from(_allInformations);
-    
+
     // Filtrer par statut
     if (_currentStatusFilter != null) {
       filteredInformations = filteredInformations.where((information) {
         return information.status == _currentStatusFilter;
       }).toList();
     }
-    
+
     // Filtrer par priorité
     if (_currentPriorityFilter != null) {
       filteredInformations = filteredInformations.where((information) {
         return information.priority == _currentPriorityFilter;
       }).toList();
     }
-    
+
     // Filtrer par type
     if (_currentTypeFilter != null) {
       filteredInformations = filteredInformations.where((information) {
         return information.reportType == _currentTypeFilter;
       }).toList();
     }
-    
+
     // Filtrer par recherche
     if (_currentSearch != null && _currentSearch!.length >= 2) {
       final searchLower = _currentSearch!.toLowerCase();
@@ -375,9 +397,22 @@ class SyncInformationController extends ChangeNotifier {
                (information.place?.toLowerCase().contains(searchLower) ?? false);
       }).toList();
     }
-    
-    _informations = filteredInformations;
-    notifyListeners();
+
+    // Ne notifier que si la liste filtrée a réellement changé
+    if (_informations.length != filteredInformations.length ||
+        !_listsEqual(_informations, filteredInformations)) {
+      _informations = filteredInformations;
+      notifyListeners();
+    }
+  }
+
+  /// Compare deux listes d'informations en utilisant operator ==
+  bool _listsEqual(List<InformationModel> a, List<InformationModel> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   /// Ancienne méthode fetchInformations (fallback)

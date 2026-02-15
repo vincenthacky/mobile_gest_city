@@ -24,6 +24,8 @@ class ProjetsPage extends StatefulWidget {
 class _ProjetsPageState extends State<ProjetsPage> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final GlobalKey<SliverAnimatedListState> _listKey = GlobalKey<SliverAnimatedListState>();
+  List<ProjectModel> _displayedProjects = [];
   String _searchQuery = '';
   ProjectStatus? _statusFilter = ProjectStatus.voteOpen;
   VoteFilter? _voteFilter;
@@ -73,7 +75,7 @@ class _ProjetsPageState extends State<ProjetsPage> {
         
         // Recherche locale instantanée comme WhatsApp
         if (query.length >= 2 || query.isEmpty) {
-          _searchTimer = Timer(const Duration(milliseconds: 300), () {
+          _searchTimer = Timer(const Duration(milliseconds: 150), () {
             _resetAndSearch(); // Maintenant c'est du filtrage local
           });
         }
@@ -151,7 +153,7 @@ class _ProjetsPageState extends State<ProjetsPage> {
 
   // Méthode _mapStatusToApi supprimée - plus besoin avec filtrage local
 
-  List<ProjectModel> get _filteredProjects {
+  List<ProjectModel> _computeFilteredProjects() {
     // Récupérer tous les projets (pas encore filtrés par le controller si on utilise les filtres de vote)
     var projects = _voteFilter != null
         ? _projectController.allProjects  // Utiliser tous les projets si on filtre par vote
@@ -160,10 +162,8 @@ class _ProjetsPageState extends State<ProjetsPage> {
     // Appliquer le filtre de vote si actif
     if (_voteFilter != null) {
       if (_voteFilter == VoteFilter.notVoted) {
-        // Filtrer pour afficher uniquement les projets non votés avec vote ouvert
         projects = projects.where((p) => !p.hasUserVoted && p.status == ProjectStatus.voteOpen).toList();
       } else if (_voteFilter == VoteFilter.alreadyVoted) {
-        // Filtrer pour afficher uniquement les projets déjà votés (tous statuts)
         projects = projects.where((p) => p.hasUserVoted).toList();
       }
     }
@@ -172,18 +172,145 @@ class _ProjetsPageState extends State<ProjetsPage> {
     if (_statusFilter == ProjectStatus.voteOpen && _voteFilter == null) {
       final notVoted = projects.where((p) => !p.hasUserVoted).toList();
       final voted = projects.where((p) => p.hasUserVoted).toList();
-
-      // Trier les non votés par date décroissante (plus récent en haut)
       notVoted.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-      // Trier les votés par date décroissante aussi
       voted.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-      // Retourner non votés d'abord, puis votés
       return [...notVoted, ...voted];
     }
 
-    return projects;
+    // Tri par défaut : plus récent en haut
+    final sorted = projects.toList();
+    sorted.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return sorted;
+  }
+
+  /// Synchronise _displayedProjects avec la nouvelle liste et anime les différences
+  void _syncDisplayedList(List<ProjectModel> newList) {
+    final listState = _listKey.currentState;
+    if (listState == null) {
+      // Première construction, initialiser directement
+      _displayedProjects = List.from(newList);
+      return;
+    }
+
+    // 1. Détection des suppressions (parcourir à l'envers)
+    for (int i = _displayedProjects.length - 1; i >= 0; i--) {
+      final oldProject = _displayedProjects[i];
+      final existsInNew = newList.any((p) => p.id == oldProject.id);
+      if (!existsInNew) {
+        final removed = _displayedProjects.removeAt(i);
+        listState.removeItem(
+          i,
+          (context, animation) => _buildRemovedCard(removed, animation),
+          duration: const Duration(milliseconds: 200),
+        );
+      }
+    }
+
+    // 2. Détection des ajouts
+    for (int i = 0; i < newList.length; i++) {
+      final newProject = newList[i];
+      final existsInOld = _displayedProjects.any((p) => p.id == newProject.id);
+      if (!existsInOld) {
+        final insertIndex = i.clamp(0, _displayedProjects.length);
+        _displayedProjects.insert(insertIndex, newProject);
+        listState.insertItem(
+          insertIndex,
+          duration: const Duration(milliseconds: 300),
+        );
+      }
+    }
+
+    // 3. Détection des mises à jour (remplacer le ProjectModel in-place)
+    for (int i = 0; i < _displayedProjects.length; i++) {
+      final displayed = _displayedProjects[i];
+      final updated = newList.firstWhere(
+        (p) => p.id == displayed.id,
+        orElse: () => displayed,
+      );
+      if (displayed != updated) {
+        _displayedProjects[i] = updated;
+      }
+    }
+
+    // 4. Réordonner si nécessaire (les IDs dans newList définissent l'ordre)
+    final newOrder = <ProjectModel>[];
+    for (final p in newList) {
+      final match = _displayedProjects.firstWhere(
+        (d) => d.id == p.id,
+        orElse: () => p,
+      );
+      newOrder.add(match);
+    }
+    _displayedProjects = newOrder;
+  }
+
+  Widget _buildAnimatedCard(
+    BuildContext context,
+    int index,
+    Animation<double> animation,
+  ) {
+    if (index >= _displayedProjects.length) return const SizedBox.shrink();
+    final project = _displayedProjects[index];
+    final card = Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: RepaintBoundary(
+        child: ProjectCard(
+          key: ValueKey(project.id),
+          project: project,
+          onTap: () => _showProjectDetails(project),
+          onVote: (choice, justification) =>
+              _handleVoteSubmitted(project, choice, justification),
+        ),
+      ),
+    );
+
+    return SizeTransition(
+      sizeFactor: animation,
+      child: FadeTransition(
+        opacity: animation,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, -0.15),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+          )),
+          child: card,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRemovedCard(
+    ProjectModel project,
+    Animation<double> animation,
+  ) {
+    return SizeTransition(
+      sizeFactor: animation,
+      child: FadeTransition(
+        opacity: animation,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(-0.3, 0),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeInCubic,
+          )),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: RepaintBoundary(
+              child: ProjectCard(
+                key: ValueKey(project.id),
+                project: project,
+                onTap: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -463,211 +590,229 @@ class _ProjetsPageState extends State<ProjetsPage> {
                       );
                     }
 
-                    return SingleChildScrollView(
-                  controller: _scrollController,
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Barre de recherche et bouton ajouter
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.05),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: TextField(
-                                controller: _searchController,
-                                decoration: InputDecoration(
-                                  hintText: 'Rechercher un projet (2+ caractères)...',
-                                  hintStyle: const TextStyle(
-                                    color: Color(0xFF6B7280),
-                                    fontFamily: 'Nunito',
-                                    fontSize: 14,
-                                  ),
-                                  prefixIcon: const Icon(
-                                    Icons.search,
-                                    color: Color(0xFF6B7280),
-                                    size: 20,
-                                  ),
-                                  suffixIcon: _searchController.text.isNotEmpty
-                                      ? IconButton(
-                                          icon: const Icon(Icons.clear, size: 18),
-                                          onPressed: () {
-                                            _searchController.clear();
-                                          },
-                                        )
-                                      : null,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.white,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF3B82F6),
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.08),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: IconButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const CreateProjectPage(),
-                                  ),
-                                );
-                              },
-                              icon: const Icon(
-                                Icons.add,
-                                color: Colors.white,
-                                size: 18,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      
-                      ProjectFilters(
-                        selectedStatus: _statusFilter,
-                        selectedVoteFilter: _voteFilter,
-                        onFilterChanged: _onFilterChanged,
-                        onVoteFilterChanged: _onVoteFilterChanged,
-                      ),
-                      const SizedBox(height: 12),
-                      
-                      if (_filteredProjects.isEmpty)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(40),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.search_off,
-                                size: 48,
-                                color: Colors.grey.shade400,
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Aucun projet trouvé',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey.shade600,
-                                  fontFamily: 'Poppins',
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Essayez de modifier vos filtres de recherche',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey.shade500,
-                                  fontFamily: 'Nunito',
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        )
-                      else
-                        Column(
-                          children: [
-                            ..._filteredProjects.map((project) {
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: ProjectCard(
-                                  project: project,
-                                  onTap: () => _showProjectDetails(project),
-                                  onVote: (choice, justification) => _handleVoteSubmitted(project, choice, justification),
-                                ),
-                              );
-                            }),
-                            
-                            // Indicateur de chargement pour la pagination
-                            if (_isLoadingMore)
-                              Container(
-                                padding: const EdgeInsets.all(20),
-                                child: const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
+                    // Sync la liste animée avec les nouvelles données
+                    final newFiltered = _computeFilteredProjects();
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        _syncDisplayedList(newFiltered);
+                      }
+                    });
+
+                    return CustomScrollView(
+                      controller: _scrollController,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      slivers: [
+                        // Barre de recherche + Filtres
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
                                   children: [
-                                    SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        color: Color(0xFF3B82F6),
-                                        strokeWidth: 2,
+                                    Expanded(
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(10),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(alpha: 0.05),
+                                              blurRadius: 10,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
+                                        ),
+                                        child: TextField(
+                                          controller: _searchController,
+                                          decoration: InputDecoration(
+                                            hintText: 'Rechercher un projet (2+ caractères)...',
+                                            hintStyle: const TextStyle(
+                                              color: Color(0xFF6B7280),
+                                              fontFamily: 'Nunito',
+                                              fontSize: 14,
+                                            ),
+                                            prefixIcon: const Icon(
+                                              Icons.search,
+                                              color: Color(0xFF6B7280),
+                                              size: 20,
+                                            ),
+                                            suffixIcon: _searchController.text.isNotEmpty
+                                                ? IconButton(
+                                                    icon: const Icon(Icons.clear, size: 18),
+                                                    onPressed: () {
+                                                      _searchController.clear();
+                                                    },
+                                                  )
+                                                : null,
+                                            border: OutlineInputBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                              borderSide: BorderSide.none,
+                                            ),
+                                            filled: true,
+                                            fillColor: Colors.white,
+                                            contentPadding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 8,
+                                            ),
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                    SizedBox(width: 12),
-                                    Text(
-                                      'Chargement...',
-                                      style: TextStyle(
-                                        color: Color(0xFF6B7280),
-                                        fontFamily: 'Nunito',
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF3B82F6),
+                                        borderRadius: BorderRadius.circular(8),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(alpha: 0.08),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: IconButton(
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => const CreateProjectPage(),
+                                            ),
+                                          );
+                                        },
+                                        icon: const Icon(
+                                          Icons.add,
+                                          color: Colors.white,
+                                          size: 18,
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ),
-                              ),
-                            
-                            // Information sur la pagination
-                            if (projectController.pagination != null && !_isLoadingMore)
-                              Container(
-                                padding: const EdgeInsets.all(20),
-                                child: Text(
-                                  '${projectController.pagination!['from']} - ${projectController.pagination!['to']} sur ${projectController.pagination!['total']} projets',
-                                  style: const TextStyle(
-                                    color: Color(0xFF6B7280),
-                                    fontSize: 12,
-                                    fontFamily: 'Nunito',
-                                  ),
-                                  textAlign: TextAlign.center,
+                                const SizedBox(height: 12),
+                                ProjectFilters(
+                                  selectedStatus: _statusFilter,
+                                  selectedVoteFilter: _voteFilter,
+                                  onFilterChanged: _onFilterChanged,
+                                  onVoteFilterChanged: _onVoteFilterChanged,
+                                ),
+                                const SizedBox(height: 12),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // Liste animée ou message vide
+                        if (_displayedProjects.isEmpty && !projectController.isLoadingProjects)
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(40),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.05),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.search_off,
+                                      size: 48,
+                                      color: Colors.grey.shade400,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Aucun projet trouvé',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey.shade600,
+                                        fontFamily: 'Poppins',
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Essayez de modifier vos filtres de recherche',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey.shade500,
+                                        fontFamily: 'Nunito',
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
                                 ),
                               ),
-                          ],
+                            ),
+                          )
+                        else
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            sliver: SliverAnimatedList(
+                              key: _listKey,
+                              initialItemCount: _displayedProjects.length,
+                              itemBuilder: _buildAnimatedCard,
+                            ),
+                          ),
+
+                        // Indicateur de pagination
+                        SliverToBoxAdapter(
+                          child: Column(
+                            children: [
+                              if (_isLoadingMore)
+                                Container(
+                                  padding: const EdgeInsets.all(20),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          color: Color(0xFF3B82F6),
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                      SizedBox(width: 12),
+                                      Text(
+                                        'Chargement...',
+                                        style: TextStyle(
+                                          color: Color(0xFF6B7280),
+                                          fontFamily: 'Nunito',
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              if (projectController.pagination != null && !_isLoadingMore)
+                                Container(
+                                  padding: const EdgeInsets.all(20),
+                                  child: Text(
+                                    '${projectController.pagination!['from']} - ${projectController.pagination!['to']} sur ${projectController.pagination!['total']} projets',
+                                    style: const TextStyle(
+                                      color: Color(0xFF6B7280),
+                                      fontSize: 12,
+                                      fontFamily: 'Nunito',
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              const SizedBox(height: 20),
+                            ],
+                          ),
                         ),
-                    ],
-                  ),
-                );
+                      ],
+                    );
                   },
                 ),
               ),

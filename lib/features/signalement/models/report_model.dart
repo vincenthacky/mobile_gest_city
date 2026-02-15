@@ -39,6 +39,16 @@ class ReportModel {
     this.userName,
   });
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ReportModel &&
+          id == other.id &&
+          updatedAt == other.updatedAt;
+
+  @override
+  int get hashCode => Object.hash(id, updatedAt);
+
   factory ReportModel.fromJson(Map<String, dynamic> json) {
     // Mapper les types de rapport depuis l'API
     ReportType mapReportType(String apiType) {
