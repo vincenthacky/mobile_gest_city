@@ -592,6 +592,10 @@ class _ProjetsPageState extends State<ProjetsPage> {
 
                     // Sync la liste animée avec les nouvelles données
                     final newFiltered = _computeFilteredProjects();
+                    // Initialiser immédiatement si on revient sur la page avec des données déjà en mémoire
+                    if (_displayedProjects.isEmpty && newFiltered.isNotEmpty) {
+                      _displayedProjects = List.from(newFiltered);
+                    }
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       if (mounted) {
                         _syncDisplayedList(newFiltered);

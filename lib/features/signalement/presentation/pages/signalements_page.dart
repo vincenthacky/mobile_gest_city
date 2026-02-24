@@ -394,6 +394,10 @@ class _SignalementsPageState extends State<SignalementsPage> {
 
                     // Sync la liste animée avec les nouvelles données
                     final newFiltered = _computeFilteredReports();
+                    // Initialisation synchrone pour éviter le flash "aucune donnée"
+                    if (_displayedReports.isEmpty && newFiltered.isNotEmpty) {
+                      _displayedReports = List.from(newFiltered);
+                    }
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       if (mounted) {
                         _syncDisplayedList(newFiltered);

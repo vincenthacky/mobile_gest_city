@@ -338,6 +338,10 @@ class _CadreDeViePageState extends State<CadreDeViePage> {
 
                     // Sync la liste animée avec les nouvelles données
                     final newFiltered = _computeFilteredInformations();
+                    // Initialisation synchrone pour éviter le flash "aucune donnée"
+                    if (_displayedInformations.isEmpty && newFiltered.isNotEmpty) {
+                      _displayedInformations = List.from(newFiltered);
+                    }
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       if (mounted) {
                         _syncDisplayedList(newFiltered);
