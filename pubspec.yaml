@@ -52,6 +52,9 @@ dependencies:
   
   # Image picker
   image_picker: ^1.0.7
+
+  # Image compression & optimization (HEIC→JPEG, EXIF strip, resize)
+  flutter_image_compress: ^2.1.0
   
   # Camera
   camera: ^0.10.5+9

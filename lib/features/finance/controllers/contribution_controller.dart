@@ -8,6 +8,7 @@ import '../models/payment_proofs_model.dart';
 import '../models/payment_list_model.dart';
 import '../models/payment_periods_model.dart';
 import '../services/contribution_local_storage_service.dart';
+import '../services/upload_service.dart';
 import '../../../core/services/connectivity_service.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/widgets/sync_notification.dart';
@@ -18,6 +19,7 @@ enum ContributionStatus { initial, loading, loaded, error }
 class ContributionController extends ChangeNotifier {
   final ContributionDataSource _dataSource = ContributionDataSource();
   final ConnectivityService _connectivityService = ConnectivityService();
+  final PaymentUploadService _uploadService = PaymentUploadService();
 
   ContributionStatus _status = ContributionStatus.initial;
   ContributionData? _contributionData;
@@ -512,12 +514,12 @@ class ContributionController extends ChangeNotifier {
     }
   }
 
-  // Nouvelle méthode pour soumettre un paiement avec périodes
+  // Soumettre un paiement via PaymentUploadService (optimisation JPEG incluse)
   Future<PaymentSubmissionResponse> submitPaymentWithPeriods(
     PaymentSubmissionRequest request,
   ) async {
     try {
-      return await _dataSource.submitPaymentWithPeriods(request);
+      return await _uploadService.submitPaymentWithPeriods(request);
     } catch (e) {
       debugPrint('Erreur lors de la soumission du paiement: $e');
       rethrow;

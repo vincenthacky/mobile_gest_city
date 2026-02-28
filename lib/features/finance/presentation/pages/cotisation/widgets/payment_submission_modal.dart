@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../../models/payment_periods_model.dart';
 import '../../../../models/contribution_model.dart';
 import '../../../../controllers/contribution_controller.dart';
+import '../../../../services/image_optimizer.dart';
 
 class PaymentSubmissionModal extends StatefulWidget {
   final ContributionData contributionData;
@@ -31,9 +32,10 @@ class _PaymentSubmissionModalState extends State<PaymentSubmissionModal> {
   PaymentPeriodsData? _periodsData;
   List<File> _selectedImages = [];
   bool _isLoading = false;
+  bool _isOptimizing = false; // true pendant l'optimisation des images
   bool _isSubmitting = false;
   String? _errorMessage;
-  
+
   final ImagePicker _imagePicker = ImagePicker();
 
   @override
@@ -80,14 +82,22 @@ class _PaymentSubmissionModalState extends State<PaymentSubmissionModal> {
   Future<void> _pickImages() async {
     try {
       final List<XFile> images = await _imagePicker.pickMultiImage();
-      
+      if (images.isEmpty || !mounted) return;
+
+      setState(() => _isOptimizing = true);
+
+      final rawFiles = images.map((x) => File(x.path)).toList();
+      final optimized = await ImageOptimizer.optimizeAll(rawFiles);
+
       if (mounted) {
         setState(() {
-          _selectedImages = images.map((xfile) => File(xfile.path)).toList();
+          _selectedImages = optimized;
+          _isOptimizing = false;
         });
       }
     } catch (e) {
       if (mounted) {
+        setState(() => _isOptimizing = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erreur lors de la sélection des images: $e'),
@@ -100,15 +110,24 @@ class _PaymentSubmissionModalState extends State<PaymentSubmissionModal> {
 
   Future<void> _takePhoto() async {
     try {
-      final XFile? image = await _imagePicker.pickImage(source: ImageSource.camera);
-      
-      if (image != null && mounted) {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+      );
+      if (image == null || !mounted) return;
+
+      setState(() => _isOptimizing = true);
+
+      final optimized = await ImageOptimizer.optimize(File(image.path));
+
+      if (mounted) {
         setState(() {
-          _selectedImages.add(File(image.path));
+          _selectedImages.add(optimized);
+          _isOptimizing = false;
         });
       }
     } catch (e) {
       if (mounted) {
+        setState(() => _isOptimizing = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Erreur lors de la prise de photo: $e'),
@@ -536,7 +555,7 @@ class _PaymentSubmissionModalState extends State<PaymentSubmissionModal> {
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: _pickImages,
+                onPressed: _isOptimizing ? null : _pickImages,
                 icon: const Icon(Icons.photo_library),
                 label: const Text('Galerie'),
                 style: OutlinedButton.styleFrom(
@@ -552,7 +571,7 @@ class _PaymentSubmissionModalState extends State<PaymentSubmissionModal> {
             const SizedBox(width: 12),
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: _takePhoto,
+                onPressed: _isOptimizing ? null : _takePhoto,
                 icon: const Icon(Icons.camera_alt),
                 label: const Text('Photo'),
                 style: OutlinedButton.styleFrom(
@@ -567,6 +586,43 @@ class _PaymentSubmissionModalState extends State<PaymentSubmissionModal> {
             ),
           ],
         ),
+
+        // Indicateur d'optimisation
+        if (_isOptimizing) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF4F46E5).withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF4F46E5).withValues(alpha: 0.2),
+              ),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Color(0xFF4F46E5),
+                  ),
+                ),
+                SizedBox(width: 10),
+                Text(
+                  'Optimisation de l\'image en cours…',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF4F46E5),
+                    fontFamily: 'Nunito',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         
         // Affichage des images sélectionnées
         if (_selectedImages.isNotEmpty) ...[
@@ -709,7 +765,7 @@ class _PaymentSubmissionModalState extends State<PaymentSubmissionModal> {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: (_isSubmitting || selectedPeriods.isEmpty || _selectedImages.isEmpty)
+            onPressed: (_isSubmitting || _isOptimizing || selectedPeriods.isEmpty || _selectedImages.isEmpty)
                 ? null
                 : _submitPayment,
             style: ElevatedButton.styleFrom(
