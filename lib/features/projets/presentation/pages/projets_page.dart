@@ -242,6 +242,13 @@ class _ProjetsPageState extends State<ProjetsPage> {
       newOrder.add(match);
     }
     _displayedProjects = newOrder;
+
+    // Si la liste est devenue vide, forcer un rebuild pour afficher l'état vide.
+    // Sans ça, le SliverAnimatedList reste dans l'arbre avec un count interne = 0,
+    // et le prochain changement de filtre tombe sur un écran blanc permanent.
+    if (_displayedProjects.isEmpty && mounted) {
+      setState(() {});
+    }
   }
 
   Widget _buildAnimatedCard(
@@ -336,7 +343,8 @@ class _ProjetsPageState extends State<ProjetsPage> {
       _voteFilter = filter;
       _statusFilter = null; // Reset status filter when vote filter changes
     });
-    // Le filtrage se fait dans _filteredProjects getter
+    // Synchroniser l'état du contrôleur : sans filtre de statut, montrer tous les projets
+    _projectController.applyStatusFilter(null);
   }
 
 
