@@ -232,23 +232,35 @@ class PaymentBreakdownController extends ChangeNotifier {
     );
   }
 
-  // Charger les données UNIQUEMENT depuis le cache (affichage)
+  /// Charge les données de ventilation.
+  /// 1. Charge le cache immédiatement pour affichage instantané.
+  /// 2. Si connecté → appel API direct, mise à jour du cache, rafraîchissement UI.
+  /// 3. Si hors ligne → cache uniquement + notification.
   Future<void> loadPaymentBreakdownData() async {
     _setStatus(PaymentBreakdownStatus.loading);
     _clearError();
     _isOffline = !_connectivityService.isConnected;
 
     try {
-      // TOUJOURS charger depuis le cache d'abord
+      // Étape 1 : cache pour affichage immédiat
       await _loadFromCache();
 
-      // Afficher notification hors ligne si pas de connexion
       if (_isOffline) {
+        // Hors ligne : garder le cache, notifier l'utilisateur
         showOfflineNotification();
+      } else {
+        // Connecté : aller chercher les données fraîches depuis l'API
+        await _syncPaymentData();
       }
     } catch (e) {
-      _setError(e.toString());
-      _setStatus(PaymentBreakdownStatus.error);
+      debugPrint('❌ [PAYMENT BREAKDOWN] Erreur loadPaymentBreakdownData: $e');
+      if (_paymentOverview.isNotEmpty) {
+        // Données en cache disponibles → afficher sans erreur
+        _setStatus(PaymentBreakdownStatus.loaded);
+      } else {
+        _setError(e.toString());
+        _setStatus(PaymentBreakdownStatus.error);
+      }
     }
   }
 
@@ -279,32 +291,35 @@ class PaymentBreakdownController extends ChangeNotifier {
     }
   }
 
-  // Synchronisation des données de paiement (déclenchée par Transaction sync)
+  /// Synchronise les données depuis l'API et met à jour le cache local.
   Future<void> _syncPaymentData() async {
     if (!_connectivityService.isConnected) {
-      debugPrint('📱 [PAYMENT BREAKDOWN] Pas de connexion, pas de sync');
+      debugPrint('📱 [PAYMENT BREAKDOWN] Pas de connexion, sync annulée');
+      _setStatus(PaymentBreakdownStatus.loaded);
       return;
     }
 
     try {
       debugPrint('🔄 [PAYMENT BREAKDOWN] Début synchronisation...');
-      
-      // Synchroniser l'aperçu des paiements
+
+      // Récupérer l'aperçu des paiements depuis l'API
       final overviewResponse = await _dataSource.getPaymentOverview();
       if (overviewResponse.success) {
         _paymentOverview = overviewResponse.data;
         await PaymentOverviewLocalStorageService.savePaymentOverview(_paymentOverview);
-        debugPrint('✅ [PAYMENT BREAKDOWN] Aperçu synchronisé');
+        debugPrint('✅ [PAYMENT BREAKDOWN] Aperçu synchronisé (${_paymentOverview.length} membres)');
       }
 
-      // Synchroniser les statistiques pour l'année courante
+      // Récupérer les statistiques annuelles depuis l'API
       final currentYear = DateTime.now().year;
       await _loadAndCacheAnnualStatistics(currentYear);
-      
-      notifyListeners();
+
+      _setStatus(PaymentBreakdownStatus.loaded);
       debugPrint('✅ [PAYMENT BREAKDOWN] Synchronisation terminée');
     } catch (e) {
       debugPrint('❌ [PAYMENT BREAKDOWN] Erreur synchronisation: $e');
+      // En cas d'erreur, afficher quand même ce qu'on a en mémoire
+      _setStatus(PaymentBreakdownStatus.loaded);
     }
   }
 
@@ -325,8 +340,21 @@ class PaymentBreakdownController extends ChangeNotifier {
     }
   }
 
+  /// Actualise les données (pull-to-refresh).
+  /// Si connecté → appel API + mise à jour du cache.
+  /// Si hors ligne → conserve le cache existant.
   Future<void> refreshData() async {
-    await loadPaymentBreakdownData();
+    _clearError();
+    _isOffline = !_connectivityService.isConnected;
+
+    if (_isOffline) {
+      debugPrint('📱 [PAYMENT BREAKDOWN] Refresh hors ligne — cache conservé');
+      notifyListeners();
+      return;
+    }
+
+    _setStatus(PaymentBreakdownStatus.loading);
+    await _syncPaymentData();
   }
 
 
