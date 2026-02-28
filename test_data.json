@@ -1,0 +1,198 @@
+{
+  "_readme": "Données de test pour les 3 formulaires de création — gest_city",
+  "_contexte": "Résidence fermée en Côte d'Ivoire, environ 120 villas, gestion communautaire",
+
+  "projets": [
+    {
+      "_id": "P001",
+      "_description_formulaire": "Type : Sans prestataire",
+      "title": "Réfection complète du parking résidentiel",
+      "briefDescription": "Rénovation du revêtement du parking commun dégradé et balisage des places.",
+      "detailedDescription": "Le parking commun de la résidence présente de nombreux nids-de-poule et une signalisation effacée depuis plus de deux ans. Ce projet vise à poser un revêtement en bitume stabilisé sur 1 200 m², à peindre les délimitations des 80 places visiteurs, à installer des bordures en béton et à améliorer le drainage pour éviter les accumulations d'eau en saison des pluies.",
+      "estimatedBudget": "8500000",
+      "startDate": "2025-03-15T00:00:00.000Z",
+      "estimatedCompletionDate": "2025-05-30T00:00:00.000Z",
+      "dateLapses": "2025-08-31T00:00:00.000Z",
+      "implementationType": "withoutProvider",
+      "withCallForTenders": false,
+      "withServiceProvider": false,
+      "providerName": null,
+      "providerAmount": null
+    },
+    {
+      "_id": "P002",
+      "_description_formulaire": "Type : Avec appel d'offre",
+      "title": "Installation d'un système de vidéosurveillance",
+      "briefDescription": "Mise en place de 24 caméras IP haute définition aux points stratégiques de la résidence.",
+      "detailedDescription": "Face à la recrudescence des intrusions nocturnes, la résidence souhaite déployer un système de vidéosurveillance moderne. Le projet comprend l'installation de 24 caméras IP 4K avec vision nocturne, la mise en place d'un NVR (enregistreur réseau) de 16 To, l'installation d'un pupitre de surveillance au poste de gardiennage, le câblage réseau sécurisé sur l'ensemble du périmètre, et une formation des agents de sécurité à l'utilisation du système. Les images seront conservées 30 jours.",
+      "estimatedBudget": "22000000",
+      "startDate": "2025-04-01T00:00:00.000Z",
+      "estimatedCompletionDate": "2025-06-15T00:00:00.000Z",
+      "dateLapses": "2025-10-01T00:00:00.000Z",
+      "implementationType": "withTender",
+      "withCallForTenders": true,
+      "withServiceProvider": false,
+      "providerName": null,
+      "providerAmount": null
+    },
+    {
+      "_id": "P003",
+      "_description_formulaire": "Type : Prestataire connu",
+      "title": "Aménagement de l'espace vert et aire de jeux enfants",
+      "briefDescription": "Création d'un espace vert paysagé avec aire de jeux sécurisée pour les enfants de la résidence.",
+      "detailedDescription": "L'espace central de la résidence, actuellement laissé à l'abandon, sera transformé en un espace vert agréable. Les travaux comprennent : le nivellement et l'engazonnement de 800 m², la plantation de 15 palmiers ornementaux et de massifs fleuris, l'installation d'une aire de jeux certifiée NF EN 1176 avec toboggan, balançoires et bac à sable, la pose de 6 bancs en bois et de 4 corbeilles à papier, et l'installation d'un système d'arrosage automatique. Le prestataire VERDE GARDEN CI sera en charge des travaux.",
+      "estimatedBudget": "14500000",
+      "startDate": "2025-05-05T00:00:00.000Z",
+      "estimatedCompletionDate": "2025-07-20T00:00:00.000Z",
+      "dateLapses": "2025-11-30T00:00:00.000Z",
+      "implementationType": "knownProvider",
+      "withCallForTenders": false,
+      "withServiceProvider": true,
+      "providerName": "VERDE GARDEN CI",
+      "providerAmount": "13200000"
+    },
+    {
+      "_id": "P004",
+      "_description_formulaire": "Type : Avec appel d'offre",
+      "title": "Réhabilitation du réseau d'éclairage extérieur",
+      "briefDescription": "Remplacement de l'éclairage sodium vétuste par des lampadaires LED basse consommation.",
+      "detailedDescription": "Le réseau d'éclairage de la résidence date de 1998 et présente des défaillances régulières. Le projet prévoit le remplacement de 45 lampadaires à vapeur de sodium par des lampadaires LED de 60W avec détecteur crépusculaire, la réfection complète du câblage enterré sur 1,8 km, la mise en place d'une armoire électrique de commande centralisée avec programmation horaire, et l'installation de 8 bornes lumineuses basses pour sécuriser les trottoirs piétons. L'économie d'énergie estimée est de 65% par rapport au système actuel.",
+      "estimatedBudget": "31000000",
+      "startDate": "2025-06-01T00:00:00.000Z",
+      "estimatedCompletionDate": "2025-09-30T00:00:00.000Z",
+      "dateLapses": "2026-01-31T00:00:00.000Z",
+      "implementationType": "withTender",
+      "withCallForTenders": true,
+      "withServiceProvider": false,
+      "providerName": null,
+      "providerAmount": null
+    },
+    {
+      "_id": "P005",
+      "_description_formulaire": "Type : Prestataire connu",
+      "title": "Construction d'un local à déchets collectif et sécurisé",
+      "briefDescription": "Réalisation d'un local fermé et ventilé pour la collecte et le tri sélectif des ordures ménagères.",
+      "detailedDescription": "Les poubelles actuellement disposées devant chaque villa créent des nuisances visuelles et olfactives, et attirent des animaux errants. Ce projet consiste à construire un local à déchets collectif de 36 m² en parpaings enduits, avec une dalle béton, un accès sécurisé par badge pour les résidents, 3 bennes de tri (ordures générales, plastiques, papiers), une ventilation haute et basse forcée, un point d'eau avec siphon de sol pour le nettoyage, et un éclairage automatique à détection de présence. Le prestataire BATIPRO ABIDJAN réalisera les travaux.",
+      "estimatedBudget": "6800000",
+      "startDate": "2025-04-10T00:00:00.000Z",
+      "estimatedCompletionDate": "2025-05-15T00:00:00.000Z",
+      "dateLapses": "2025-09-30T00:00:00.000Z",
+      "implementationType": "knownProvider",
+      "withCallForTenders": false,
+      "withServiceProvider": true,
+      "providerName": "BATIPRO ABIDJAN",
+      "providerAmount": "6200000"
+    }
+  ],
+
+  "cadre_de_vie": [
+    {
+      "_id": "CDV001",
+      "_description_formulaire": "Type UI: mariage → API: other",
+      "title": "Célébration de mariage — Villa-87",
+      "description": "Les époux Kouakou Jean-Marc et Assi Nadia, résidents de la Villa-87, organisent leur cérémonie de mariage au sein de la résidence. La réception se tiendra dans l'espace commun central le samedi 22 février 2025 à partir de 18h00. Les résidents sont cordialement invités à se joindre à la célébration. Une sono sera installée avec l'accord du conseil syndical.",
+      "place": "Espace commun central — allée principale, devant la Villa-87",
+      "activityType": "mariage",
+      "reportType": "other",
+      "priority": "medium",
+      "isAnonymous": false
+    },
+    {
+      "_id": "CDV002",
+      "_description_formulaire": "Type UI: travaux → API: infrastructure",
+      "title": "Travaux de plomberie au bloc B — interruption d'eau prévue",
+      "description": "L'entreprise HYDRO SERVICE CI interviendra pour remplacer la colonne montante d'eau du bloc B (Villas 30 à 45). Une interruption de la distribution d'eau chaude et froide est prévue le jeudi 27 février 2025 de 8h à 17h. Les résidents concernés sont invités à constituer des réserves d'eau la veille. Le technicien sera accompagné du gardien chef pour l'accès aux gaines techniques.",
+      "place": "Bloc B — gaine technique commune, Villas 30 à 45",
+      "activityType": "travaux",
+      "reportType": "infrastructure",
+      "priority": "high",
+      "isAnonymous": false
+    },
+    {
+      "_id": "CDV003",
+      "_description_formulaire": "Type UI: reunion → API: other",
+      "title": "Assemblée générale ordinaire des résidents — mars 2025",
+      "description": "Le conseil syndical convoque l'ensemble des résidents à l'assemblée générale ordinaire du premier trimestre 2025. Ordre du jour : (1) approbation des comptes de l'exercice 2024, (2) présentation du budget prévisionnel 2025, (3) vote sur le projet de vidéosurveillance, (4) questions diverses. La présence d'au moins un représentant par villa est fortement souhaitée. Chaque villa ne disposant pas d'un représentant présent sera comptabilisée comme abstention.",
+      "place": "Salle de réunion de la résidence — bâtiment administratif, rez-de-chaussée",
+      "activityType": "reunion",
+      "reportType": "other",
+      "priority": "high",
+      "isAnonymous": false
+    },
+    {
+      "_id": "CDV004",
+      "_description_formulaire": "Type UI: naissance → API: other",
+      "title": "Heureux événement — naissance à la Villa-112",
+      "description": "Madame et Monsieur Bamba Issouf ont la joie d'annoncer la naissance de leur petite Fatoumata, survenue le 14 février 2025 à la Clinique Sainte-Marie d'Abidjan. Mère et bébé se portent très bien. La famille remercie chaleureusement tous les résidents pour leurs messages de félicitations et leur soutien pendant cette période. Un baptême sera organisé dans les prochaines semaines, les résidents seront informés des détails ultérieurement.",
+      "place": "Villa-112 — Résidence Les Acacias",
+      "activityType": "naissance",
+      "reportType": "other",
+      "priority": "low",
+      "isAnonymous": false
+    },
+    {
+      "_id": "CDV005",
+      "_description_formulaire": "Type UI: visite → API: other",
+      "title": "Visite d'inspection de la Mairie — délégation technique",
+      "description": "La mairie de la commune a programmé une visite d'inspection technique de notre résidence dans le cadre du programme de mise aux normes des infrastructures privées 2025. La délégation, composée de 4 techniciens et du directeur des services techniques, passera le lundi 3 mars 2025 entre 9h et 12h. Elle évaluera l'état des voiries internes, du réseau pluvial, des espaces verts et des équipements collectifs. Le président du conseil syndical sera présent pour accompagner la délégation.",
+      "place": "Ensemble de la résidence — accès par portail principal sur l'Avenue des Flamboyants",
+      "activityType": "visite",
+      "reportType": "other",
+      "priority": "medium",
+      "isAnonymous": false
+    }
+  ],
+
+  "signalements": [
+    {
+      "_id": "SIG001",
+      "title": "Nuisance sonore nocturne répétée — bloc A",
+      "description": "Depuis trois semaines, des nuisances sonores intenses perturbent le sommeil des résidents du bloc A les vendredis et samedis soir. La musique provient de la Villa-12 et dépasse clairement les seuils réglementaires au-delà de 22h, parfois jusqu'à 3h du matin. Plusieurs résidents ont tenté de régler la situation à l'amiable sans succès. Le gardien de nuit a été sollicité à plusieurs reprises mais n'a pas les moyens légaux d'intervenir. La situation devient insupportable pour les familles avec enfants en bas âge.",
+      "place": "Villa-12, Bloc A — côté allée des Palmiers",
+      "signalementType": "noisePollution",
+      "reportType": "noise_pollution",
+      "priority": "high",
+      "isAnonymous": false
+    },
+    {
+      "_id": "SIG002",
+      "title": "Individu suspect rôdant autour du bloc C depuis plusieurs soirs",
+      "description": "Un individu inconnu, homme d'environ 30-35 ans, vêtu d'un jean noir et d'un t-shirt blanc, est observé chaque soir entre 21h et 23h aux abords du bloc C. Il longe les grillages des villas, s'arrête longuement devant les entrées et semble observer les allées et venues des résidents. Il n'a pas encore commis d'acte délictueux identifié mais son comportement est clairement suspect et inquiétant. Plusieurs résidents ont signalé avoir peur de rentrer chez eux. Le gardien a été alerté mais l'individu disparaît dès qu'il approche.",
+      "place": "Bloc C — allée des Bougainvilliers, entre les Villas 55 et 68",
+      "signalementType": "suspiciousPerson",
+      "reportType": "suspicious_person",
+      "priority": "high",
+      "isAnonymous": false
+    },
+    {
+      "_id": "SIG003",
+      "title": "Poteau électrique incliné — risque de chute imminente",
+      "description": "Le poteau électrique n° 7 de l'allée centrale, situé entre les Villas 33 et 34, présente une inclinaison anormale d'environ 25 degrés depuis les dernières pluies diluviennes du week-end. La base du poteau montre des signes évidents d'érosion du sol et le béton de fondation est fissuré. Des câbles électriques sont visiblement sous tension dans cette zone. En l'état, tout vent fort ou passage de véhicule lourd pourrait provoquer la chute du poteau, avec risque d'électrocution grave. Une intervention urgente de la CIE ou du prestataire électrique de la résidence est nécessaire.",
+      "place": "Allée centrale — entre la Villa-33 et la Villa-34, poteau n°7",
+      "signalementType": "infrastructure",
+      "reportType": "infrastructure",
+      "priority": "high",
+      "isAnonymous": false
+    },
+    {
+      "_id": "SIG004",
+      "title": "Portail secondaire défaillant — accès non contrôlé depuis 48h",
+      "description": "Le portail coulissant secondaire (entrée côté rue des Jardins) est hors service depuis dimanche matin. Le moteur électrique est tombé en panne et le portail reste bloqué en position ouverte. N'importe quelle personne extérieure peut entrer et sortir librement sans contrôle des agents de sécurité. Des individus non identifiés ont déjà été repérés en train de déambuler dans l'enceinte de la résidence. Cette situation représente un risque sécuritaire majeur pour l'ensemble des résidents. Le prestataire de maintenance SECURITECH CI a été contacté mais n'a pas encore donné de date d'intervention.",
+      "place": "Portail secondaire — entrée rue des Jardins, côté est de la résidence",
+      "signalementType": "security",
+      "reportType": "security",
+      "priority": "high",
+      "isAnonymous": false
+    },
+    {
+      "_id": "SIG005",
+      "title": "Consommation de stupéfiants dans le parking souterrain",
+      "description": "Depuis environ deux semaines, des odeurs de cannabis très prononcées sont régulièrement signalées au niveau du parking souterrain du bâtiment principal, notamment aux niveaux -1 et -2. Des résidents ont surpris à deux reprises un groupe de 3 à 4 jeunes, apparemment étrangers à la résidence, en train de consommer des substances dans les angles peu éclairés du parking. Des traces (papiers à rouler, mégots de joint, emballages de substances) ont été retrouvées entre les véhicules. Cette situation est inacceptable, notamment car des enfants utilisent ce parking quotidiennement.",
+      "place": "Parking souterrain — niveaux -1 et -2, angle nord-ouest près des locaux techniques",
+      "signalementType": "drugs",
+      "reportType": "drugs",
+      "priority": "high",
+      "isAnonymous": true
+    }
+  ]
+}

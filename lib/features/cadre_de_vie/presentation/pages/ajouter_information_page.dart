@@ -599,7 +599,42 @@ class _AjouterInformationPageState extends State<AjouterInformationPage> {
             ),
           ],
         ),
-        if (controller.hasImages) ...[
+        if (controller.isOptimizing) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF10B981).withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF10B981).withValues(alpha: 0.2),
+              ),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Color(0xFF10B981),
+                  ),
+                ),
+                SizedBox(width: 10),
+                Text(
+                  'Optimisation de l\'image en cours…',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Color(0xFF10B981),
+                    fontFamily: 'Nunito',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        if (controller.hasImages && !controller.isOptimizing) ...[
           const SizedBox(height: 16),
           SizedBox(
             height: 80,

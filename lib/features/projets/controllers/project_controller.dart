@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../core/services/image_optimizer.dart';
 import '../data_sources/project_data_source.dart';
 import '../models/project_model.dart';
 import '../models/voter_model.dart';
@@ -26,6 +27,7 @@ class ProjectController extends ChangeNotifier {
   ProjectSubmissionStatus _status = ProjectSubmissionStatus.initial;
   String? _errorMessage;
   List<File> _selectedImages = [];
+  bool _isOptimizing = false;
 
   // Pour la récupération des projets
   ProjectLoadingStatus _loadingStatus = ProjectLoadingStatus.initial;
@@ -72,6 +74,7 @@ class ProjectController extends ChangeNotifier {
   List<File> get selectedImages => List.unmodifiable(_selectedImages);
   bool get isLoading => _status == ProjectSubmissionStatus.loading;
   bool get hasImages => _selectedImages.isNotEmpty;
+  bool get isOptimizing => _isOptimizing;
 
   // Getters pour la récupération des projets
   ProjectLoadingStatus get loadingStatus => _loadingStatus;
@@ -127,32 +130,41 @@ class ProjectController extends ChangeNotifier {
 
   Future<void> pickImages() async {
     try {
-      final List<XFile> images = await _imagePicker.pickMultiImage(
-        imageQuality: 80,
+      final List<XFile> picked = await _imagePicker.pickMultiImage();
+      if (picked.isEmpty) return;
+
+      _isOptimizing = true;
+      notifyListeners();
+
+      final optimized = await ImageOptimizer.optimizeAll(
+        picked.map((x) => File(x.path)).toList(),
       );
-      
-      if (images.isNotEmpty) {
-        _selectedImages.addAll(images.map((xfile) => File(xfile.path)));
-        notifyListeners();
-      }
+      _selectedImages.addAll(optimized);
     } catch (e) {
       _setError('Erreur lors de la sélection des images: $e');
+    } finally {
+      _isOptimizing = false;
+      notifyListeners();
     }
   }
 
   Future<void> pickImageFromCamera() async {
     try {
-      final XFile? image = await _imagePicker.pickImage(
+      final XFile? picked = await _imagePicker.pickImage(
         source: ImageSource.camera,
-        imageQuality: 80,
       );
-      
-      if (image != null) {
-        _selectedImages.add(File(image.path));
-        notifyListeners();
-      }
+      if (picked == null) return;
+
+      _isOptimizing = true;
+      notifyListeners();
+
+      final optimized = await ImageOptimizer.optimize(File(picked.path));
+      _selectedImages.add(optimized);
     } catch (e) {
       _setError('Erreur lors de la prise de photo: $e');
+    } finally {
+      _isOptimizing = false;
+      notifyListeners();
     }
   }
 

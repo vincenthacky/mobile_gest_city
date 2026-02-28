@@ -215,6 +215,39 @@ class _AjouterSignalementPageState extends State<AjouterSignalementPage> {
                       
                       Consumer<SignalementController>(
                         builder: (context, controller, child) {
+                          if (controller.isOptimizing) {
+                            return _buildSection(
+                              'Optimisation en cours…',
+                              Icons.image,
+                              [
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 8),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Color(0xFFEF4444),
+                                        ),
+                                      ),
+                                      SizedBox(width: 10),
+                                      Text(
+                                        'Préparation des images…',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Color(0xFF6B7280),
+                                          fontFamily: 'Nunito',
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          }
                           if (controller.hasImages) {
                             return _buildSection(
                               'Images sélectionnées (${controller.selectedImages.length})',
